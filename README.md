@@ -512,6 +512,10 @@ NovaPlayer با هدف ساخت یک موزیک‌پلیر مدرن و ساده 
 
 <br>
 
+<br>
+با همکاری ❤️ [Kasra](https://github.com/kasragfxdx)
+<br>
+
 [🌐 وب‌سایت](https://mehdi138iimm.github.io/NovaPlayer/) •
 [💻 گیت‌هاب](https://github.com/Mehdi138iimm/NovaPlayer) •
 [🐛 گزارش مشکل](https://github.com/Mehdi138iimm/NovaPlayer/issues)
