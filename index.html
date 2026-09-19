@@ -580,5 +580,22 @@
   setTimeout(finish, 6000);
 }());
 </script>
+
+<style id="mobile-features-fix">
+/* Mobile/touch fix: the later `@media (max-width:1024px){.stack{height:190px}}` rule was
+   re-applying a fixed stack height on phones, so the un-stacked cards got squeezed into
+   190px and their titles/descriptions were clipped by `.card{overflow:hidden}`. */
+@media (hover:none),(max-width:760px){
+  .features-decks{grid-template-columns:1fr;gap:26px;padding:40px 0 48px;}
+  .deck{gap:10px;}
+  .stack{position:static !important;height:auto !important;min-height:0;display:flex;flex-direction:column;gap:10px;overflow:visible;}
+  .card{position:static !important;inset:auto !important;transform:none !important;flex:0 0 auto;height:auto;min-height:0;overflow:visible;z-index:auto;box-shadow:0 6px 18px oklch(var(--sh) / .26);}
+  .card:nth-child(1),.card:nth-child(2),.card:nth-child(3){z-index:auto;}
+  .feature-title{font-size:14px;}
+  .feature-desc{font-size:12.5px;}
+  .deck-head{flex-wrap:wrap;}
+  .deck-head span{display:none;}
+}
+</style>
 <script>if(window.lucide)lucide.createIcons();</script>
 </html>
