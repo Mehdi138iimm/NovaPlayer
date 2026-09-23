@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1210 390" width="1210" height="390">
+<defs><linearGradient id="gl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".07"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+<style>
+.in{animation:in .9s cubic-bezier(.2,.9,.3,1.2) both}@keyframes in{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.sp{transform-box:fill-box;transform-origin:center;animation:sp 4s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.bl{animation:bl 1.4s ease-in-out infinite}@keyframes bl{50%{opacity:.3}}
+.fl{animation:fl 2.6s ease-in-out infinite}@keyframes fl{50%{transform:translateY(-5px)}}
+.pu,.pu2{transform-box:fill-box;transform-origin:center;animation:pu 1.6s ease-out infinite}.pu2{animation-delay:-.8s}@keyframes pu{from{transform:scale(.6);opacity:1}to{transform:scale(1.5);opacity:0}}
+</style>
+<g class="in" style="animation-delay:0.0s">
+<g transform="translate(10,10)">
+<rect width="380" height="170" rx="22" fill="#0f0f1a" stroke="#fff" stroke-opacity=".08"/>
+<rect width="380" height="170" rx="22" fill="url(#gl)"/>
+<rect x="0" y="0" width="380" height="3" rx="1.5" fill="#c8ff00" opacity=".7"/>
+<g transform="translate(58,60)"><rect x="-32" y="-32" width="64" height="64" rx="18" fill="#c8ff00" fill-opacity=".1" stroke="#c8ff00" stroke-opacity=".3"/><g class="sp"><circle r="22" fill="#0b0b12" stroke="#c8ff00" stroke-width="2"/><circle r="14" fill="none" stroke="#fff" stroke-opacity=".15"/><circle r="7" fill="#c8ff00"/></g></g>
+<text x="110" y="52" font-family="Cascadia Mono,Consolas,monospace" font-size="15" font-weight="700" letter-spacing="2" fill="#c8ff00">CINEMA MODE</text>
+<text x="110" y="80" font-family="Segoe UI,Tahoma,sans-serif" font-size="17" font-weight="700" fill="#f0f0f5">حالت سینمایی</text>
+<text x="26" y="140" font-family="Segoe UI,Helvetica,sans-serif" font-size="14" fill="#f0f0f5" fill-opacity=".5">Big spinning disc, cover glow</text>
+<text x="354" y="140" text-anchor="end" font-family="Cascadia Mono,monospace" font-size="12" fill="#f0f0f5" fill-opacity=".25">01</text>
+</g></g><g class="in" style="animation-delay:0.15s">
+<g transform="translate(410,10)">
+<rect width="380" height="170" rx="22" fill="#0f0f1a" stroke="#fff" stroke-opacity=".08"/>
+<rect width="380" height="170" rx="22" fill="url(#gl)"/>
+<rect x="0" y="0" width="380" height="3" rx="1.5" fill="#00d4ff" opacity=".7"/>
+<g transform="translate(58,60)"><rect x="-32" y="-32" width="64" height="64" rx="18" fill="#00d4ff" fill-opacity=".1" stroke="#00d4ff" stroke-opacity=".3"/><g fill="#00d4ff"><rect x="-20" y="-14" width="40" height="5" rx="2.5" class="bl"/><rect x="-20" y="-3" width="28" height="5" rx="2.5" opacity=".5"/><rect x="-20" y="8" width="34" height="5" rx="2.5" opacity=".3"/></g></g>
+<text x="110" y="52" font-family="Cascadia Mono,Consolas,monospace" font-size="15" font-weight="700" letter-spacing="2" fill="#00d4ff">SYNCED LYRICS</text>
+<text x="110" y="80" font-family="Segoe UI,Tahoma,sans-serif" font-size="17" font-weight="700" fill="#f0f0f5">متن هم‌زمان</text>
+<text x="26" y="140" font-family="Segoe UI,Helvetica,sans-serif" font-size="14" fill="#f0f0f5" fill-opacity=".5">Line-by-line from .LRC</text>
+<text x="354" y="140" text-anchor="end" font-family="Cascadia Mono,monospace" font-size="12" fill="#f0f0f5" fill-opacity=".25">02</text>
+</g></g><g class="in" style="animation-delay:0.3s">
+<g transform="translate(810,10)">
+<rect width="380" height="170" rx="22" fill="#0f0f1a" stroke="#fff" stroke-opacity=".08"/>
+<rect width="380" height="170" rx="22" fill="url(#gl)"/>
+<rect x="0" y="0" width="380" height="3" rx="1.5" fill="#ff6130" opacity=".7"/>
+<g transform="translate(58,60)"><rect x="-32" y="-32" width="64" height="64" rx="18" fill="#ff6130" fill-opacity=".1" stroke="#ff6130" stroke-opacity=".3"/><g class="fl"><rect x="-22" y="-15" width="44" height="30" rx="7" fill="none" stroke="#ff6130" stroke-width="2"/><circle cx="-10" cy="0" r="6" fill="#ff6130"/><rect x="0" y="-3" width="15" height="3" rx="1.5" fill="#ff6130" opacity=".6"/></g></g>
+<text x="110" y="52" font-family="Cascadia Mono,Consolas,monospace" font-size="15" font-weight="700" letter-spacing="2" fill="#ff6130">MINI PLAYER</text>
+<text x="110" y="80" font-family="Segoe UI,Tahoma,sans-serif" font-size="17" font-weight="700" fill="#f0f0f5">مینی‌پلیر شناور</text>
+<text x="26" y="140" font-family="Segoe UI,Helvetica,sans-serif" font-size="14" fill="#f0f0f5" fill-opacity=".5">Always on top of other apps</text>
+<text x="354" y="140" text-anchor="end" font-family="Cascadia Mono,monospace" font-size="12" fill="#f0f0f5" fill-opacity=".25">03</text>
+</g></g><g class="in" style="animation-delay:0.44999999999999996s">
+<g transform="translate(10,200)">
+<rect width="380" height="170" rx="22" fill="#0f0f1a" stroke="#fff" stroke-opacity=".08"/>
+<rect width="380" height="170" rx="22" fill="url(#gl)"/>
+<rect x="0" y="0" width="380" height="3" rx="1.5" fill="#c8ff00" opacity=".7"/>
+<g transform="translate(58,60)"><rect x="-32" y="-32" width="64" height="64" rx="18" fill="#c8ff00" fill-opacity=".1" stroke="#c8ff00" stroke-opacity=".3"/><g><rect x="-24" y="-16" width="22" height="32" rx="4" fill="#c8ff00" opacity=".35" transform="rotate(-12)"/><rect x="-11" y="-17" width="22" height="34" rx="4" fill="#c8ff00" opacity=".6"/><rect x="2" y="-16" width="22" height="32" rx="4" fill="#c8ff00" transform="rotate(12)"/></g></g>
+<text x="110" y="52" font-family="Cascadia Mono,Consolas,monospace" font-size="15" font-weight="700" letter-spacing="2" fill="#c8ff00">COVER SHELF</text>
+<text x="110" y="80" font-family="Segoe UI,Tahoma,sans-serif" font-size="17" font-weight="700" fill="#f0f0f5">قفسهٔ کاورها</text>
+<text x="26" y="140" font-family="Segoe UI,Helvetica,sans-serif" font-size="14" fill="#f0f0f5" fill-opacity=".5">Flip through your albums</text>
+<text x="354" y="140" text-anchor="end" font-family="Cascadia Mono,monospace" font-size="12" fill="#f0f0f5" fill-opacity=".25">04</text>
+</g></g><g class="in" style="animation-delay:0.6s">
+<g transform="translate(410,200)">
+<rect width="380" height="170" rx="22" fill="#0f0f1a" stroke="#fff" stroke-opacity=".08"/>
+<rect width="380" height="170" rx="22" fill="url(#gl)"/>
+<rect x="0" y="0" width="380" height="3" rx="1.5" fill="#00d4ff" opacity=".7"/>
+<g transform="translate(58,60)"><rect x="-32" y="-32" width="64" height="64" rx="18" fill="#00d4ff" fill-opacity=".1" stroke="#00d4ff" stroke-opacity=".3"/><g><circle r="10" fill="#00d4ff"/><circle class="pu" r="18" fill="none" stroke="#00d4ff" stroke-width="2"/><circle class="pu2" r="18" fill="none" stroke="#00d4ff" stroke-width="2"/></g></g>
+<text x="110" y="52" font-family="Cascadia Mono,Consolas,monospace" font-size="15" font-weight="700" letter-spacing="2" fill="#00d4ff">AUDIO RING</text>
+<text x="110" y="80" font-family="Segoe UI,Tahoma,sans-serif" font-size="17" font-weight="700" fill="#f0f0f5">حلقهٔ صدا</text>
+<text x="26" y="140" font-family="Segoe UI,Helvetica,sans-serif" font-size="14" fill="#f0f0f5" fill-opacity=".5">Reacts to the real audio</text>
+<text x="354" y="140" text-anchor="end" font-family="Cascadia Mono,monospace" font-size="12" fill="#f0f0f5" fill-opacity=".25">05</text>
+</g></g><g class="in" style="animation-delay:0.75s">
+<g transform="translate(810,200)">
+<rect width="380" height="170" rx="22" fill="#0f0f1a" stroke="#fff" stroke-opacity=".08"/>
+<rect width="380" height="170" rx="22" fill="url(#gl)"/>
+<rect x="0" y="0" width="380" height="3" rx="1.5" fill="#ff6130" opacity=".7"/>
+<g transform="translate(58,60)"><rect x="-32" y="-32" width="64" height="64" rx="18" fill="#ff6130" fill-opacity=".1" stroke="#ff6130" stroke-opacity=".3"/><g fill="none" stroke="#ff6130" stroke-width="2.5"><rect x="-15" y="-4" width="30" height="22" rx="5"/><path d="M-9,-4 V-11 A9,9 0 0 1 9,-11 V-4"/><circle cx="0" cy="7" r="3" fill="#ff6130"/></g></g>
+<text x="110" y="52" font-family="Cascadia Mono,Consolas,monospace" font-size="15" font-weight="700" letter-spacing="2" fill="#ff6130">100% OFFLINE</text>
+<text x="110" y="80" font-family="Segoe UI,Tahoma,sans-serif" font-size="17" font-weight="700" fill="#f0f0f5">کاملاً آفلاین</text>
+<text x="26" y="140" font-family="Segoe UI,Helvetica,sans-serif" font-size="14" fill="#f0f0f5" fill-opacity=".5">No ads · no account · private</text>
+<text x="354" y="140" text-anchor="end" font-family="Cascadia Mono,monospace" font-size="12" fill="#f0f0f5" fill-opacity=".25">06</text>
+</g></g>
+</svg>

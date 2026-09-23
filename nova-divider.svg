@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 24" width="1200" height="24">
+<defs><linearGradient id="d" x1="0" x2="1"><stop offset="0" stop-color="#c8ff00" stop-opacity="0"/><stop offset=".5" stop-color="#c8ff00"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></linearGradient></defs>
+<style>.s{animation:m 3.5s linear infinite}@keyframes m{from{transform:translateX(-400px)}to{transform:translateX(1200px)}}</style>
+<rect y="11" width="1200" height="1.5" fill="#ffffff" fill-opacity=".08"/>
+<rect class="s" y="10.5" width="400" height="2.5" rx="1" fill="url(#d)"/>
+<circle cx="600" cy="12" r="4" fill="#c8ff00"/><circle cx="600" cy="12" r="8" fill="none" stroke="#c8ff00" stroke-opacity=".35"/>
+</svg>

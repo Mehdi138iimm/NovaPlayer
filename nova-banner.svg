@@ -152,7 +152,7 @@
   </g>
   <g class="fade2">
     <text x="-4" y="190" font-family="Cascadia Mono, Consolas, monospace" font-size="132" font-weight="800" letter-spacing="-6" fill="url(#neonTxt)" filter="url(#glow)">NOVA</text>
-    <text x="4" y="232" font-family="Cascadia Mono, Consolas, monospace" font-size="22" letter-spacing="10" fill="#f0f0f5">PLAYER <tspan fill="#c8ff00">v3.0</tspan></text>
+    <text x="4" y="232" font-family="Cascadia Mono, Consolas, monospace" font-size="22" letter-spacing="10" fill="#f0f0f5">PLAYER</text>
   </g>
   <g class="fade3">
     <text x="4" y="282" font-size="21" fill="#f0f0f5" fill-opacity=".75">Fast, private, offline music for Windows.</text>
