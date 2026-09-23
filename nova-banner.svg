@@ -1,0 +1,242 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs>
+<radialGradient id="g1" cx="15%" cy="10%" r="70%"><stop offset="0" stop-color="#c8ff00" stop-opacity=".16"/><stop offset="1" stop-color="#c8ff00" stop-opacity="0"/></radialGradient>
+<radialGradient id="g2" cx="88%" cy="95%" r="65%"><stop offset="0" stop-color="#ff6130" stop-opacity=".16"/><stop offset="1" stop-color="#ff6130" stop-opacity="0"/></radialGradient>
+<radialGradient id="g3" cx="70%" cy="40%" r="40%"><stop offset="0" stop-color="#00d4ff" stop-opacity=".12"/><stop offset="1" stop-color="#00d4ff" stop-opacity="0"/></radialGradient>
+<pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#fff" stroke-opacity=".035"/></pattern>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".09"/><stop offset=".6" stop-color="#fff" stop-opacity=".03"/><stop offset="1" stop-color="#fff" stop-opacity=".02"/></linearGradient>
+<linearGradient id="art" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a1a2e"/><stop offset=".5" stop-color="#16213e"/><stop offset="1" stop-color="#0f3460"/></linearGradient>
+<linearGradient id="neonTxt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c8ff00"/><stop offset=".5" stop-color="#eaff8a"/><stop offset="1" stop-color="#c8ff00"/>
+<animate attributeName="x1" values="-1;1" dur="4s" repeatCount="indefinite"/><animate attributeName="x2" values="0;2" dur="4s" repeatCount="indefinite"/></linearGradient>
+<radialGradient id="label" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#eaff8a"/><stop offset="1" stop-color="#8fbf00"/></radialGradient>
+<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="18"/></filter>
+<clipPath id="artClip"><rect x="0" y="0" width="330" height="200" rx="18"/></clipPath>
+</defs>
+<style>
+.float{animation:fl 6s ease-in-out infinite}
+.float2{animation:fl 7s ease-in-out infinite reverse}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.spin{transform-box:fill-box;transform-origin:center;animation:sp 6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ring{transform-box:fill-box;transform-origin:center;animation:rg 1.2s ease-in-out infinite}
+.ring2{transform-box:fill-box;transform-origin:center;animation:rg 1.2s ease-in-out infinite;animation-delay:-.6s}
+@keyframes rg{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.07);opacity:.22}}
+.eq{transform-box:fill-box;transform-origin:bottom;animation:eqa .8s ease-in-out infinite alternate}
+@keyframes eqa{from{transform:scaleY(.25)}to{transform:scaleY(1)}}
+.vb{transform-box:fill-box;transform-origin:bottom;animation:vba 1s ease-in-out infinite alternate;opacity:.35}
+@keyframes vba{from{transform:scaleY(.15)}to{transform:scaleY(1)}}
+.prog{animation:pg 12s linear infinite}
+@keyframes pg{from{width:0}to{width:286px}}
+.thumb{animation:th 12s linear infinite}
+@keyframes th{from{transform:translateX(0)}to{transform:translateX(286px)}}
+.pt{animation:ptf 10s linear infinite;opacity:0}
+@keyframes ptf{0%{transform:translateY(0);opacity:0}20%{opacity:.7}100%{transform:translateY(-160px);opacity:0}}
+.fade{animation:fd 1.2s ease-out both}
+.fade2{animation:fd 1.2s ease-out .25s both}
+.fade3{animation:fd 1.2s ease-out .5s both}
+.fade4{animation:fd 1.2s ease-out .75s both}
+@keyframes fd{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
+.blink{animation:bl 1.6s ease-in-out infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.25}}
+.scan{animation:sc 5s linear infinite}
+@keyframes sc{from{transform:translateX(-400px)}to{transform:translateX(1400px)}}
+.lyr{animation:ly 6s ease-in-out infinite}
+@keyframes ly{0%,30%{transform:translateY(0)}35%,65%{transform:translateY(-22px)}70%,100%{transform:translateY(-44px)}}
+</style>
+
+<rect width="1280" height="640" fill="#09090f"/>
+<rect width="1280" height="640" fill="url(#g1)"/>
+<rect width="1280" height="640" fill="url(#g2)"/>
+<rect width="1280" height="640" fill="url(#g3)"/>
+<rect width="1280" height="640" fill="url(#grid)"/>
+<g><circle class="pt" cx="728" cy="228" r="2" fill="#00d4ff" style="animation-duration:11.1s;animation-delay:-6.1s"/>
+<circle class="pt" cx="490" cy="410" r="1.5" fill="#c8ff00" style="animation-duration:7.6s;animation-delay:-4.9s"/>
+<circle class="pt" cx="57" cy="286" r="2.5" fill="#ff6130" style="animation-duration:8.1s;animation-delay:-6.9s"/>
+<circle class="pt" cx="915" cy="357" r="2" fill="#ffffff" style="animation-duration:6.6s;animation-delay:-1.0s"/>
+<circle class="pt" cx="402" cy="345" r="1.5" fill="#c8ff00" style="animation-duration:9.9s;animation-delay:-9.9s"/>
+<circle class="pt" cx="981" cy="352" r="1" fill="#ffffff" style="animation-duration:12.7s;animation-delay:-1.2s"/>
+<circle class="pt" cx="408" cy="489" r="1.5" fill="#c8ff00" style="animation-duration:9.5s;animation-delay:-6.4s"/>
+<circle class="pt" cx="810" cy="474" r="2.5" fill="#00d4ff" style="animation-duration:11.9s;animation-delay:-0.8s"/>
+<circle class="pt" cx="348" cy="130" r="1" fill="#00d4ff" style="animation-duration:7.2s;animation-delay:-9.0s"/>
+<circle class="pt" cx="1252" cy="610" r="2.5" fill="#00d4ff" style="animation-duration:11.3s;animation-delay:-3.5s"/>
+<circle class="pt" cx="43" cy="14" r="1" fill="#ffffff" style="animation-duration:10.2s;animation-delay:-9.3s"/>
+<circle class="pt" cx="398" cy="216" r="1" fill="#00d4ff" style="animation-duration:8.0s;animation-delay:-2.9s"/>
+<circle class="pt" cx="1201" cy="333" r="2" fill="#c8ff00" style="animation-duration:10.4s;animation-delay:-8.3s"/>
+<circle class="pt" cx="724" cy="469" r="2.5" fill="#00d4ff" style="animation-duration:12.6s;animation-delay:-8.8s"/>
+<circle class="pt" cx="1089" cy="155" r="1" fill="#c8ff00" style="animation-duration:13.0s;animation-delay:-7.8s"/>
+<circle class="pt" cx="306" cy="176" r="1.5" fill="#c8ff00" style="animation-duration:9.8s;animation-delay:-7.3s"/>
+<circle class="pt" cx="667" cy="530" r="2.5" fill="#c8ff00" style="animation-duration:12.3s;animation-delay:-1.1s"/>
+<circle class="pt" cx="508" cy="195" r="2" fill="#ffffff" style="animation-duration:6.3s;animation-delay:-1.0s"/>
+<circle class="pt" cx="1150" cy="28" r="1" fill="#00d4ff" style="animation-duration:9.5s;animation-delay:-6.1s"/>
+<circle class="pt" cx="567" cy="463" r="2.5" fill="#ff6130" style="animation-duration:10.1s;animation-delay:-2.5s"/>
+<circle class="pt" cx="1145" cy="207" r="2.5" fill="#ffffff" style="animation-duration:7.1s;animation-delay:-1.2s"/>
+<circle class="pt" cx="647" cy="74" r="1.5" fill="#ff6130" style="animation-duration:9.4s;animation-delay:-2.1s"/>
+<circle class="pt" cx="250" cy="158" r="2" fill="#ffffff" style="animation-duration:7.1s;animation-delay:-8.8s"/>
+<circle class="pt" cx="449" cy="96" r="2.5" fill="#00d4ff" style="animation-duration:13.1s;animation-delay:-1.6s"/>
+<circle class="pt" cx="330" cy="441" r="2.5" fill="#ff6130" style="animation-duration:8.7s;animation-delay:-2.0s"/>
+<circle class="pt" cx="188" cy="374" r="1" fill="#c8ff00" style="animation-duration:8.7s;animation-delay:-4.6s"/></g>
+<g><rect class="vb" x="20.0" y="579" width="13.4" height="61" rx="3" fill="#00d4ff" style="animation-duration:1.26s;animation-delay:-0.39s"/>
+<rect class="vb" x="39.4" y="614" width="13.4" height="26" rx="3" fill="#c8ff00" style="animation-duration:0.56s;animation-delay:-0.54s"/>
+<rect class="vb" x="58.8" y="574" width="13.4" height="66" rx="3" fill="#c8ff00" style="animation-duration:0.97s;animation-delay:-0.91s"/>
+<rect class="vb" x="78.1" y="593" width="13.4" height="47" rx="3" fill="#c8ff00" style="animation-duration:0.53s;animation-delay:-0.43s"/>
+<rect class="vb" x="97.5" y="612" width="13.4" height="28" rx="3" fill="#c8ff00" style="animation-duration:0.69s;animation-delay:-0.55s"/>
+<rect class="vb" x="116.9" y="613" width="13.4" height="27" rx="3" fill="#00d4ff" style="animation-duration:1.16s;animation-delay:-0.12s"/>
+<rect class="vb" x="136.2" y="592" width="13.4" height="48" rx="3" fill="#c8ff00" style="animation-duration:1.0s;animation-delay:-0.58s"/>
+<rect class="vb" x="155.6" y="613" width="13.4" height="27" rx="3" fill="#c8ff00" style="animation-duration:0.96s;animation-delay:-0.4s"/>
+<rect class="vb" x="175.0" y="592" width="13.4" height="48" rx="3" fill="#c8ff00" style="animation-duration:0.54s;animation-delay:-0.86s"/>
+<rect class="vb" x="194.4" y="583" width="13.4" height="57" rx="3" fill="#c8ff00" style="animation-duration:0.84s;animation-delay:-0.54s"/>
+<rect class="vb" x="213.8" y="547" width="13.4" height="93" rx="3" fill="#00d4ff" style="animation-duration:0.75s;animation-delay:-0.82s"/>
+<rect class="vb" x="233.1" y="597" width="13.4" height="43" rx="3" fill="#c8ff00" style="animation-duration:0.58s;animation-delay:-0.57s"/>
+<rect class="vb" x="252.5" y="596" width="13.4" height="44" rx="3" fill="#c8ff00" style="animation-duration:0.8s;animation-delay:-0.55s"/>
+<rect class="vb" x="271.9" y="612" width="13.4" height="28" rx="3" fill="#c8ff00" style="animation-duration:0.95s;animation-delay:-0.62s"/>
+<rect class="vb" x="291.2" y="557" width="13.4" height="83" rx="3" fill="#c8ff00" style="animation-duration:1.04s;animation-delay:-0.43s"/>
+<rect class="vb" x="310.6" y="580" width="13.4" height="60" rx="3" fill="#00d4ff" style="animation-duration:0.87s;animation-delay:-0.92s"/>
+<rect class="vb" x="330.0" y="574" width="13.4" height="66" rx="3" fill="#c8ff00" style="animation-duration:0.74s;animation-delay:-0.79s"/>
+<rect class="vb" x="349.4" y="531" width="13.4" height="109" rx="3" fill="#c8ff00" style="animation-duration:1.12s;animation-delay:-0.08s"/>
+<rect class="vb" x="368.8" y="582" width="13.4" height="58" rx="3" fill="#c8ff00" style="animation-duration:0.92s;animation-delay:-0.88s"/>
+<rect class="vb" x="388.1" y="563" width="13.4" height="77" rx="3" fill="#c8ff00" style="animation-duration:0.73s;animation-delay:-0.98s"/>
+<rect class="vb" x="407.5" y="605" width="13.4" height="35" rx="3" fill="#00d4ff" style="animation-duration:0.91s;animation-delay:-0.16s"/>
+<rect class="vb" x="426.9" y="577" width="13.4" height="63" rx="3" fill="#c8ff00" style="animation-duration:0.62s;animation-delay:-0.49s"/>
+<rect class="vb" x="446.2" y="615" width="13.4" height="25" rx="3" fill="#c8ff00" style="animation-duration:1.27s;animation-delay:-0.08s"/>
+<rect class="vb" x="465.6" y="549" width="13.4" height="91" rx="3" fill="#c8ff00" style="animation-duration:0.96s;animation-delay:-0.88s"/>
+<rect class="vb" x="485.0" y="580" width="13.4" height="60" rx="3" fill="#c8ff00" style="animation-duration:0.77s;animation-delay:-0.35s"/>
+<rect class="vb" x="504.4" y="557" width="13.4" height="83" rx="3" fill="#00d4ff" style="animation-duration:0.96s;animation-delay:-0.46s"/>
+<rect class="vb" x="523.8" y="609" width="13.4" height="31" rx="3" fill="#c8ff00" style="animation-duration:1.26s;animation-delay:-0.47s"/>
+<rect class="vb" x="543.1" y="535" width="13.4" height="105" rx="3" fill="#c8ff00" style="animation-duration:0.55s;animation-delay:-0.73s"/>
+<rect class="vb" x="562.5" y="581" width="13.4" height="59" rx="3" fill="#c8ff00" style="animation-duration:1.02s;animation-delay:-0.99s"/>
+<rect class="vb" x="581.9" y="563" width="13.4" height="77" rx="3" fill="#c8ff00" style="animation-duration:0.73s;animation-delay:-0.39s"/>
+<rect class="vb" x="601.2" y="535" width="13.4" height="105" rx="3" fill="#00d4ff" style="animation-duration:0.78s;animation-delay:-0.94s"/>
+<rect class="vb" x="620.6" y="575" width="13.4" height="65" rx="3" fill="#c8ff00" style="animation-duration:0.63s;animation-delay:-0.12s"/>
+<rect class="vb" x="640.0" y="613" width="13.4" height="27" rx="3" fill="#c8ff00" style="animation-duration:0.67s;animation-delay:-0.29s"/>
+<rect class="vb" x="659.4" y="589" width="13.4" height="51" rx="3" fill="#c8ff00" style="animation-duration:0.82s;animation-delay:-0.92s"/>
+<rect class="vb" x="678.8" y="557" width="13.4" height="83" rx="3" fill="#c8ff00" style="animation-duration:0.56s;animation-delay:-0.45s"/>
+<rect class="vb" x="698.1" y="550" width="13.4" height="90" rx="3" fill="#00d4ff" style="animation-duration:0.72s;animation-delay:-0.14s"/>
+<rect class="vb" x="717.5" y="565" width="13.4" height="75" rx="3" fill="#c8ff00" style="animation-duration:1.19s;animation-delay:-0.28s"/>
+<rect class="vb" x="736.9" y="567" width="13.4" height="73" rx="3" fill="#c8ff00" style="animation-duration:1.29s;animation-delay:-0.68s"/>
+<rect class="vb" x="756.2" y="572" width="13.4" height="68" rx="3" fill="#c8ff00" style="animation-duration:1.27s;animation-delay:-0.15s"/>
+<rect class="vb" x="775.6" y="598" width="13.4" height="42" rx="3" fill="#c8ff00" style="animation-duration:0.62s;animation-delay:-0.66s"/>
+<rect class="vb" x="795.0" y="619" width="13.4" height="21" rx="3" fill="#00d4ff" style="animation-duration:0.89s;animation-delay:-0.59s"/>
+<rect class="vb" x="814.4" y="587" width="13.4" height="53" rx="3" fill="#c8ff00" style="animation-duration:0.73s;animation-delay:-0.15s"/>
+<rect class="vb" x="833.8" y="552" width="13.4" height="88" rx="3" fill="#c8ff00" style="animation-duration:0.8s;animation-delay:-0.57s"/>
+<rect class="vb" x="853.1" y="604" width="13.4" height="36" rx="3" fill="#c8ff00" style="animation-duration:1.05s;animation-delay:-0.52s"/>
+<rect class="vb" x="872.5" y="541" width="13.4" height="99" rx="3" fill="#c8ff00" style="animation-duration:1.02s;animation-delay:-0.74s"/>
+<rect class="vb" x="891.9" y="562" width="13.4" height="78" rx="3" fill="#00d4ff" style="animation-duration:1.22s;animation-delay:-0.78s"/>
+<rect class="vb" x="911.2" y="533" width="13.4" height="107" rx="3" fill="#c8ff00" style="animation-duration:1.14s;animation-delay:-0.39s"/>
+<rect class="vb" x="930.6" y="569" width="13.4" height="71" rx="3" fill="#c8ff00" style="animation-duration:0.82s;animation-delay:-0.48s"/>
+<rect class="vb" x="950.0" y="569" width="13.4" height="71" rx="3" fill="#c8ff00" style="animation-duration:0.55s;animation-delay:-0.07s"/>
+<rect class="vb" x="969.4" y="594" width="13.4" height="46" rx="3" fill="#c8ff00" style="animation-duration:0.85s;animation-delay:-0.11s"/>
+<rect class="vb" x="988.8" y="544" width="13.4" height="96" rx="3" fill="#00d4ff" style="animation-duration:0.54s;animation-delay:-0.0s"/>
+<rect class="vb" x="1008.1" y="601" width="13.4" height="39" rx="3" fill="#c8ff00" style="animation-duration:0.93s;animation-delay:-0.95s"/>
+<rect class="vb" x="1027.5" y="542" width="13.4" height="98" rx="3" fill="#c8ff00" style="animation-duration:0.52s;animation-delay:-0.87s"/>
+<rect class="vb" x="1046.9" y="542" width="13.4" height="98" rx="3" fill="#c8ff00" style="animation-duration:0.8s;animation-delay:-0.63s"/>
+<rect class="vb" x="1066.2" y="576" width="13.4" height="64" rx="3" fill="#c8ff00" style="animation-duration:0.98s;animation-delay:-0.47s"/>
+<rect class="vb" x="1085.6" y="606" width="13.4" height="34" rx="3" fill="#00d4ff" style="animation-duration:1.18s;animation-delay:-0.99s"/>
+<rect class="vb" x="1105.0" y="561" width="13.4" height="79" rx="3" fill="#c8ff00" style="animation-duration:0.88s;animation-delay:-0.31s"/>
+<rect class="vb" x="1124.4" y="602" width="13.4" height="38" rx="3" fill="#c8ff00" style="animation-duration:0.58s;animation-delay:-0.34s"/>
+<rect class="vb" x="1143.8" y="587" width="13.4" height="53" rx="3" fill="#c8ff00" style="animation-duration:0.88s;animation-delay:-0.69s"/>
+<rect class="vb" x="1163.1" y="554" width="13.4" height="86" rx="3" fill="#c8ff00" style="animation-duration:0.52s;animation-delay:-0.95s"/>
+<rect class="vb" x="1182.5" y="553" width="13.4" height="87" rx="3" fill="#00d4ff" style="animation-duration:0.79s;animation-delay:-0.69s"/>
+<rect class="vb" x="1201.9" y="617" width="13.4" height="23" rx="3" fill="#c8ff00" style="animation-duration:1.11s;animation-delay:-0.3s"/>
+<rect class="vb" x="1221.2" y="538" width="13.4" height="102" rx="3" fill="#c8ff00" style="animation-duration:1.19s;animation-delay:-0.7s"/>
+<rect class="vb" x="1240.6" y="587" width="13.4" height="53" rx="3" fill="#c8ff00" style="animation-duration:0.91s;animation-delay:-0.91s"/></g>
+<rect class="scan" x="0" y="0" width="160" height="640" fill="url(#glass)" opacity=".25" transform="skewX(-20)"/>
+
+<!-- LEFT: brand -->
+<g transform="translate(80,120)">
+  <g class="fade">
+    <rect width="64" height="64" rx="18" fill="#c8ff00" filter="url(#glow)"/>
+    <g transform="translate(32,32)" fill="#09090f"><circle r="15" fill="none" stroke="#09090f" stroke-width="4"/><circle r="5"/></g>
+    <text x="84" y="28" font-family="Cascadia Mono, Consolas, monospace" font-size="13" letter-spacing="4" fill="#f0f0f5" fill-opacity=".45">MOTION STUDIO</text>
+    <g transform="translate(84,40)"><circle cx="5" cy="6" r="4" fill="#c8ff00" class="blink"/><text x="16" y="11" font-family="Cascadia Mono, Consolas, monospace" font-size="12" letter-spacing="2" fill="#c8ff00">NOW PLAYING</text></g>
+  </g>
+  <g class="fade2">
+    <text x="-4" y="190" font-family="Cascadia Mono, Consolas, monospace" font-size="132" font-weight="800" letter-spacing="-6" fill="url(#neonTxt)" filter="url(#glow)">NOVA</text>
+    <text x="4" y="232" font-family="Cascadia Mono, Consolas, monospace" font-size="22" letter-spacing="10" fill="#f0f0f5">PLAYER <tspan fill="#c8ff00">v3.0</tspan></text>
+  </g>
+  <g class="fade3">
+    <text x="4" y="282" font-size="21" fill="#f0f0f5" fill-opacity=".75">Fast, private, offline music for Windows.</text>
+    <text x="4" y="310" font-size="16" fill="#f0f0f5" fill-opacity=".42">Synced lyrics · Cinema mode · Floating mini-player</text>
+  </g>
+  <g class="fade4" font-family="Cascadia Mono, Consolas, monospace" font-size="12" letter-spacing="1.5" font-weight="700">
+    <g transform="translate(4,338)"><rect width="84" height="30" rx="9" fill="#c8ff00" fill-opacity=".14" stroke="#c8ff00" stroke-opacity=".4"/><text x="42" y="20" text-anchor="middle" fill="#c8ff00">TAURI 2</text></g>
+    <g transform="translate(98,338)"><rect width="64" height="30" rx="9" fill="#ff6130" fill-opacity=".14" stroke="#ff6130" stroke-opacity=".45"/><text x="32" y="20" text-anchor="middle" fill="#ff6130">RUST</text></g>
+    <g transform="translate(172,338)"><rect width="112" height="30" rx="9" fill="#00d4ff" fill-opacity=".12" stroke="#00d4ff" stroke-opacity=".4"/><text x="56" y="20" text-anchor="middle" fill="#00d4ff">WEB AUDIO</text></g>
+    <g transform="translate(294,338)"><rect width="100" height="30" rx="9" fill="#fff" fill-opacity=".05" stroke="#fff" stroke-opacity=".18"/><text x="50" y="20" text-anchor="middle" fill="#f0f0f5">OFFLINE</text></g>
+  </g>
+</g>
+
+<!-- RIGHT: mini floating window (behind) -->
+<g class="float2" transform="translate(0,0)">
+ <g transform="translate(1020,40)">
+  <rect width="220" height="78" rx="18" fill="#0f0f1a" fill-opacity=".85" stroke="#00d4ff" stroke-opacity=".35"/>
+  <rect width="220" height="78" rx="18" fill="url(#glass)"/>
+  <g transform="translate(39,39)"><circle r="24" fill="#16213e"/><g class="spin"><circle r="24" fill="none" stroke="#00d4ff" stroke-opacity=".6" stroke-dasharray="10 6" stroke-width="2"/></g><circle r="8" fill="#00d4ff"/><circle r="3" fill="#09090f"/></g>
+  <text x="76" y="32" font-size="13" font-weight="700" fill="#f0f0f5">Mini Player</text>
+  <text x="76" y="50" font-family="Cascadia Mono, Consolas, monospace" font-size="10" letter-spacing="1" fill="#00d4ff">ALWAYS ON TOP</text>
+  <g transform="translate(76,58)"><rect width="126" height="3" rx="2" fill="#fff" fill-opacity=".1"/><rect width="80" height="3" rx="2" fill="#00d4ff"/></g>
+ </g>
+</g>
+
+<!-- RIGHT: main player card -->
+<g class="float">
+ <g transform="translate(700,110)">
+  <rect x="10" y="30" width="390" height="440" rx="30" fill="#c8ff00" opacity=".12" filter="url(#soft)"/>
+  <rect width="390" height="440" rx="28" fill="#0f0f1a" fill-opacity=".82" stroke="#fff" stroke-opacity=".1"/>
+  <rect width="390" height="440" rx="28" fill="url(#glass)"/>
+  <!-- artwork -->
+  <g transform="translate(30,28)">
+    <g clip-path="url(#artClip)">
+      <rect width="330" height="200" fill="url(#art)"/>
+      <rect width="330" height="200" fill="url(#g3)"/>
+      <!-- disc -->
+      <g transform="translate(165,100)">
+        <circle class="ring2" r="96" fill="none" stroke="#00d4ff" stroke-width="2" stroke-opacity=".5"/>
+        <circle class="ring" r="86" fill="none" stroke="#c8ff00" stroke-width="3" filter="url(#glow)"/>
+        <g class="spin">
+          <circle r="76" fill="#0b0b12"/>
+          <g transform="scale(.66)"><circle r="40" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/><circle r="46" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/><circle r="52" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/><circle r="58" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/><circle r="64" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/><circle r="70" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/><circle r="76" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/><circle r="82" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/><circle r="88" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/><circle r="94" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/><circle r="100" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/><circle r="106" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1"/></g>
+          <path d="M0,-76 A76,76 0 0 1 60,-46" stroke="#fff" stroke-opacity=".18" stroke-width="10" fill="none"/>
+          <circle r="24" fill="url(#label)"/>
+          <text y="4" text-anchor="middle" font-family="Cascadia Mono, Consolas, monospace" font-size="8" font-weight="800" fill="#09090f">NOVA</text>
+          <circle r="3" fill="#09090f"/>
+        </g>
+      </g>
+      <rect y="120" width="330" height="80" fill="#09090f" fill-opacity=".45"/>
+    </g>
+    <g transform="translate(14,168)"><rect class="eq" x="0" y="0" width="4" height="24" rx="2" fill="#c8ff00" style="animation-delay:-0.00s"/><rect class="eq" x="7" y="0" width="4" height="24" rx="2" fill="#c8ff00" style="animation-delay:-0.13s"/><rect class="eq" x="14" y="0" width="4" height="24" rx="2" fill="#c8ff00" style="animation-delay:-0.26s"/><rect class="eq" x="21" y="0" width="4" height="24" rx="2" fill="#c8ff00" style="animation-delay:-0.39s"/><rect class="eq" x="28" y="0" width="4" height="24" rx="2" fill="#c8ff00" style="animation-delay:-0.52s"/><rect class="eq" x="35" y="0" width="4" height="24" rx="2" fill="#c8ff00" style="animation-delay:-0.65s"/></g>
+    <g transform="translate(256,172)"><rect width="62" height="18" rx="6" fill="#c8ff00"/><text x="31" y="13" text-anchor="middle" font-family="Cascadia Mono, Consolas, monospace" font-size="9" font-weight="800" letter-spacing="1.5" fill="#09090f">HI-FI</text></g>
+  </g>
+  <!-- meta -->
+  <text x="195" y="262" text-anchor="middle" font-size="19" font-weight="700" fill="#f0f0f5">Midnight Frequencies</text>
+  <!-- lyrics ticker -->
+  <svg x="40" y="272" width="310" height="22" overflow="hidden">
+    <g class="lyr" font-family="Cascadia Mono, Consolas, monospace" font-size="11" fill="#c8ff00" text-anchor="middle">
+      <text x="155" y="15">♪ synced lyrics, line by line</text>
+      <text x="155" y="37">♪ from your own .LRC files</text>
+      <text x="155" y="59">♪ offline · no account · no ads</text>
+    </g>
+  </svg>
+  <!-- progress -->
+  <g transform="translate(52,316)">
+    <text x="0" y="-8" font-family="Cascadia Mono, Consolas, monospace" font-size="10" fill="#f0f0f5" fill-opacity=".4">01:24</text>
+    <text x="286" y="-8" text-anchor="end" font-family="Cascadia Mono, Consolas, monospace" font-size="10" fill="#f0f0f5" fill-opacity=".4">03:48</text>
+    <rect width="286" height="5" rx="3" fill="#fff" fill-opacity=".08"/>
+    <rect class="prog" width="120" height="5" rx="3" fill="#c8ff00" filter="url(#glow)"/>
+    <circle class="thumb" cx="0" cy="2.5" r="7" fill="#c8ff00"/>
+  </g>
+  <!-- controls -->
+  <g transform="translate(195,380)" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(-130,0)"><rect x="-21" y="-21" width="42" height="42" rx="12" fill="none" stroke="#fff" stroke-opacity=".1"/><path d="M-7,-5 H-3 L4,5 H8 M-7,5 H-3 L4,-5 H8 M5,-8 L8,-5 L5,-2 M5,2 L8,5 L5,8" stroke="#c8ff00" stroke-width="1.8" fill="none"/></g>
+    <g transform="translate(-68,0)"><rect x="-21" y="-21" width="42" height="42" rx="12" fill="none" stroke="#fff" stroke-opacity=".1"/><path d="M6,-7 L-4,0 L6,7 Z M-7,-7 V7" stroke="#f0f0f5" stroke-opacity=".6" stroke-width="1.8" fill="none"/></g>
+    <g><rect x="-31" y="-31" width="62" height="62" rx="18" fill="#c8ff00" filter="url(#glow)"/><rect x="-8" y="-10" width="5" height="20" rx="1.5" fill="#09090f"/><rect x="3" y="-10" width="5" height="20" rx="1.5" fill="#09090f"/></g>
+    <g transform="translate(68,0)"><rect x="-21" y="-21" width="42" height="42" rx="12" fill="none" stroke="#fff" stroke-opacity=".1"/><path d="M-6,-7 L4,0 L-6,7 Z M7,-7 V7" stroke="#f0f0f5" stroke-opacity=".6" stroke-width="1.8" fill="none"/></g>
+    <g transform="translate(130,0)"><rect x="-21" y="-21" width="42" height="42" rx="12" fill="none" stroke="#fff" stroke-opacity=".1"/><path d="M-7,-2 V-5 H6 M3,-8 L6,-5 L3,-2 M7,2 V5 H-6 M-3,8 L-6,5 L-3,2" stroke="#f0f0f5" stroke-opacity=".6" stroke-width="1.8" fill="none"/></g>
+  </g>
+ </g>
+</g>
+
+<!-- footer -->
+<text x="80" y="566" font-family="Cascadia Mono, Consolas, monospace" font-size="12" letter-spacing="3" fill="#f0f0f5" fill-opacity=".35">OPEN SOURCE · OFFLINE FIRST · WINDOWS DESKTOP</text>
+<text x="1200" y="600" text-anchor="end" font-family="Cascadia Mono, Consolas, monospace" font-size="12" letter-spacing="2" fill="#c8ff00" fill-opacity=".7">github.com/Mehdi138iimm/NovaPlayer</text>
+</svg>
