@@ -1,557 +1,87 @@
-<div dir="rtl" align="center">
+<p align="center">
+  <img src="nova-banner.svg" width="100%" alt="NOVA Player">
+</p>
 
-<p align="center">[nova-banner.svg](nova-banner.svg) </p>
+<p align="center">
+  <a href="https://github.com/Mehdi138iimm/NovaPlayer/releases/latest"><img src="https://img.shields.io/badge/⬇_دانلود_برای_ویندوز-c8ff00?style=for-the-badge&logoColor=09090f&labelColor=09090f" height="42" alt="Download"></a>
+  &nbsp;
+  <a href="https://mehdi138iimm.github.io/NovaPlayer/"><img src="https://img.shields.io/badge/🌐_نسخهٔ_وب-00d4ff?style=for-the-badge&labelColor=09090f" height="42" alt="Web"></a>
+</p>
 
-# 🎵 NovaPlayer
+<p align="center">
+  <img src="https://img.shields.io/github/v/release/Mehdi138iimm/NovaPlayer?style=flat-square&color=c8ff00&labelColor=09090f&label=release" alt="release">
+  <img src="https://img.shields.io/github/downloads/Mehdi138iimm/NovaPlayer/total?style=flat-square&color=00d4ff&labelColor=09090f" alt="downloads">
+  <img src="https://img.shields.io/github/stars/Mehdi138iimm/NovaPlayer?style=flat-square&color=ff6130&labelColor=09090f" alt="stars">
+  <img src="https://img.shields.io/badge/platform-Windows-0078D6?style=flat-square&labelColor=09090f" alt="windows">
+  <img src="https://img.shields.io/badge/Tauri_2-Rust-ff6130?style=flat-square&labelColor=09090f" alt="tauri">
+</p>
 
-### موسیقی تو، کتابخانه‌ی تو، تجربه‌ی تو
-
-**یک موزیک‌پلیر مدرن، سریع و زیبا برای ویندوز**
-
-<br>
-
-[🌐 وب‌سایت](https://mehdi138iimm.github.io/NovaPlayer/) •
-[💻 گیت‌هاب](https://github.com/Mehdi138iimm/NovaPlayer) •
-[🐛 گزارش مشکل](https://github.com/Mehdi138iimm/NovaPlayer/issues)
-
-<br>
-
-![NovaPlayer](https://img.shields.io/badge/NovaPlayer-Music%20Player-orange?style=for-the-badge)
-![Platform](https://img.shields.io/badge/Platform-Windows-blue?style=for-the-badge)
-![Open Source](https://img.shields.io/badge/Open%20Source-Yes-success?style=for-the-badge)
-
-</div>
+<h3 align="center">موسیقی تو، کتابخانهٔ تو، تجربهٔ تو</h3>
+<p align="center">یه موزیک‌پلیر آفلاین، سریع و خصوصی برای ویندوز. بدون تبلیغ، بدون حساب کاربری.</p>
 
 ---
 
-# 🎧 درباره NovaPlayer
-
-**NovaPlayer** یک موزیک‌پلیر مدرن برای ویندوز است که با تمرکز روی
-**سادگی، سرعت، ظاهر زیبا و مدیریت آسان موسیقی‌ها** ساخته شده است.
-
-هدف NovaPlayer این است که گوش دادن به موسیقی‌های شخصی شما را
-به تجربه‌ای ساده، سریع و لذت‌بخش تبدیل کند.
-
-فرقی نمی‌کند فقط چند آهنگ مورد علاقه داشته باشید یا یک آرشیو بزرگ
-از موسیقی‌های مختلف؛ NovaPlayer تلاش می‌کند همه‌چیز را مرتب،
-در دسترس و ساده نگه دارد.
-
-> 🎵 **موسیقی خودت را داشته باش، کتابخانه‌ات را مدیریت کن و از تجربه‌ی گوش دادن لذت ببر.**
-
----
-
-# ✨ امکانات
-
-NovaPlayer مجموعه‌ای از قابلیت‌های کاربردی را در اختیار شما قرار می‌دهد
-تا مدیریت و پخش موسیقی راحت‌تر و جذاب‌تر شود.
-
----
-
-## 🎵 پخش موسیقی
-
-موسیقی‌های خود را با یک پخش‌کننده‌ی ساده و روان اجرا کنید.
-
-- ▶️ پخش و توقف موسیقی
-- ⏮️ آهنگ قبلی
-- ⏭️ آهنگ بعدی
-- 🔀 پخش تصادفی
-- 🔁 تکرار آهنگ یا لیست
-- 🔊 کنترل صدا
-- ⏱️ کنترل زمان پخش
-- 🎧 تجربه‌ی پخش روان
-
----
-
-## 📚 کتابخانه هوشمند
-
-تمام موسیقی‌های خود را در یک محیط مرتب و ساده مدیریت کنید.
-
-- 🔎 جستجوی سریع آهنگ‌ها
-- ↕️ مرتب‌سازی موسیقی‌ها
-- 🎵 نمایش اطلاعات آهنگ
-- 🖼️ نمایش تصویر آلبوم
-- 📂 مدیریت موسیقی‌های محلی
-- 📋 دسترسی سریع به مجموعه موسیقی
-
-دیگر نیازی نیست برای پیدا کردن یک آهنگ بین تعداد زیادی فایل بگردید.
-
-**موسیقی‌هایتان را اضافه کنید و بگذارید NovaPlayer بقیه کار را انجام دهد.**
-
----
-
-## 🎶 ساخت و مدیریت Playlist
-
-برای هر موقعیت، حال‌وهوا یا سبک موسیقی، Playlist مخصوص خودتان را بسازید.
-
-### امکانات Playlist:
-
-- ➕ ساخت Playlist جدید
-- ➖ حذف آهنگ
-- 🎵 اضافه کردن آهنگ
-- ↕️ تغییر ترتیب آهنگ‌ها
-- 🖱️ جابه‌جایی با Drag & Drop
-- 📋 مدیریت چندین Playlist
-
-مثلاً می‌توانید Playlistهای جداگانه برای:
-
-```text
-🎮 Gaming
-💻 Coding
-📚 Study
-😴 Relax
-🏃 Workout
-❤️ Favorites
-```
-
-داشته باشید.
-
----
-
-# 🌈 Visualizer
-
-موسیقی فقط چیزی نیست که **می‌شنوید**؛ می‌تواند چیزی باشد که **می‌بینید**.
-
-Visualizer در NovaPlayer هنگام پخش موسیقی، جلوه‌های بصری پویا ایجاد
-می‌کند تا تجربه‌ی گوش دادن جذاب‌تر و زنده‌تر شود.
-
-🎧 موسیقی را پخش کنید.
-
-🌈 Visualizer را فعال کنید.
-
-✨ و از تجربه‌ی موسیقی لذت ببرید.
-
----
-
-# 🌙 حالت تاریک و روشن
-
-NovaPlayer به شما اجازه می‌دهد ظاهر برنامه را مطابق سلیقه‌ی خودتان
-تغییر دهید.
-
-```text
-☀️ حالت روشن
-
-🌙 حالت تاریک
-```
-
-اگر محیط تاریک را ترجیح می‌دهید، Dark Mode برای شما آماده است.
-
-اگر محیط روشن را دوست دارید، Light Mode را انتخاب کنید.
-
----
-
-# 🪟 Mini Player
-
-گاهی اوقات نمی‌خواهید پنجره‌ی اصلی موزیک‌پلیر تمام صفحه‌ی شما را اشغال کند.
-
-اینجاست که **Mini Player** وارد می‌شود.
-
-با Mini Player می‌توانید در حالی که مشغول کارهای دیگر هستید،
-کنترل‌های اصلی موسیقی را در اختیار داشته باشید.
-
-مناسب برای:
-
-- 🎮 بازی کردن
-- 💻 کار کردن
-- 📚 درس خواندن
-- 🌐 وب‌گردی
-- 🎨 طراحی و تولید محتوا
-- 💻 برنامه‌نویسی
-
----
-
-# 🖼️ تصاویر پروژه
-
-## 🎵 صفحه اصلی
-
-> 📸 تصویر رابط اصلی NovaPlayer در این قسمت قرار می‌گیرد.
-
-<!-- تصویر واقعی پروژه را اینجا قرار دهید -->
-
-<br>
-
-## 📚 کتابخانه موسیقی
-
-> 📸 تصویر بخش Library در این قسمت قرار می‌گیرد.
-
-<!-- تصویر واقعی پروژه را اینجا قرار دهید -->
-
-<br>
-
-## 🌈 Visualizer
-
-> 📸 تصویر Visualizer در این قسمت قرار می‌گیرد.
-
-<!-- تصویر واقعی پروژه را اینجا قرار دهید -->
-
-<br>
-
-## 🪟 Mini Player
-
-> 📸 تصویر Mini Player در این قسمت قرار می‌گیرد.
-
-<!-- تصویر واقعی پروژه را اینجا قرار دهید -->
-
----
-
-# 🚀 چرا NovaPlayer؟
-
-NovaPlayer با یک هدف ساده ساخته شده است:
-
-> **گوش دادن به موسیقی نباید پیچیده باشد.**
-
-تمرکز پروژه روی چند اصل اصلی است:
-
-### ⚡ سرعت
-
-رابط کاربری سریع و پاسخ‌گو، بدون شلوغی غیرضروری.
-
-### 🎨 ظاهر مدرن
-
-طراحی ساده و مدرن برای تجربه‌ای لذت‌بخش هنگام استفاده.
-
-### 📚 نظم
-
-تمام موسیقی‌ها و Playlistهای شما در یک محیط مرتب.
-
-### 🎧 تجربه‌ی موسیقی
-
-قابلیت‌هایی مانند Visualizer و Mini Player برای تجربه‌ای بهتر.
-
-### 🪟 راحتی
-
-کنترل موسیقی بدون نیاز به باز نگه داشتن دائمی پنجره‌ی اصلی.
-
----
-
-# 📋 وضعیت قابلیت‌ها
-
-| قابلیت | وضعیت |
-|---|:---:|
-| 🎵 پخش موسیقی | ✅ |
-| 📚 کتابخانه موسیقی | ✅ |
-| 🔎 جستجو | ✅ |
-| 🎶 Playlist | ✅ |
-| 🖼️ تصویر آلبوم | ✅ |
-| 🌈 Visualizer | ✅ |
-| 🌙 حالت تاریک | ✅ |
-| ☀️ حالت روشن | ✅ |
-| 🪟 Mini Player | ✅ |
-| 🖱️ Drag & Drop | ✅ |
-
----
-
-# 💻 سیستم‌عامل
-
-در حال حاضر NovaPlayer برای **Windows** توسعه داده شده است.
-
-```text
-🪟 Windows 10
-🪟 Windows 11
-```
-
-پشتیبانی از سیستم‌عامل‌های دیگر ممکن است در نسخه‌های آینده بررسی شود.
-
----
-
-# 📥 دانلود NovaPlayer
-
-## ⭐ آخرین نسخه
-
-برای دریافت آخرین نسخه‌ی NovaPlayer می‌توانید به بخش Releases
-مخزن GitHub مراجعه کنید.
-
-### 👉 [📥 دانلود NovaPlayer](https://github.com/Mehdi138iimm/NovaPlayer/releases)
-
-همچنین می‌توانید از وب‌سایت رسمی پروژه دیدن کنید:
-
-### 👉 [🌐 وب‌سایت NovaPlayer](https://mehdi138iimm.github.io/NovaPlayer/)
-
----
-
-# 🛠️ نصب و استفاده
-
-### 1️⃣ دانلود
-
-آخرین نسخه NovaPlayer را از بخش Releases دریافت کنید.
-
-### 2️⃣ اجرا
-
-NovaPlayer را روی سیستم خود اجرا کنید.
-
-### 3️⃣ اضافه کردن موسیقی
-
-موسیقی‌های مورد نظر خود را به کتابخانه اضافه کنید.
-
-### 4️⃣ ساخت Playlist
-
-Playlistهای دلخواه خود را ایجاد و آهنگ‌های مورد نظر را به آن‌ها اضافه کنید.
-
-### 5️⃣ شروع پخش
-
-حالا فقط کافی است آهنگ مورد علاقه‌ی خود را انتخاب کنید و از موسیقی
-لذت ببرید. 🎧
-
----
-
-# 🧑‍💻 توسعه پروژه
-
-NovaPlayer یک پروژه‌ی در حال توسعه است و قابلیت‌ها و امکانات جدید
-به مرور زمان به آن اضافه خواهند شد.
-
-هدف توسعه این پروژه ایجاد یک موزیک‌پلیر است که در کنار ظاهر مدرن،
-سریع، کاربردی و قابل استفاده برای استفاده‌ی روزمره باشد.
-
----
-
-# 🗂️ ساختار پروژه
-
-ساختار فعلی پروژه به صورت کلی شامل فایل‌های زیر است:
-
-```text
-NovaPlayer/
-│
-├── 📄 README.md
-├── 🌐 index.html
-├── ✨ nova-enhanced.html
-│
-└── ...
-```
-
-ساختار پروژه ممکن است با اضافه شدن قابلیت‌های جدید تغییر کند.
-
----
-
-# 🐛 گزارش باگ
-
-اگر هنگام استفاده از NovaPlayer با مشکلی مواجه شدید،
-لطفاً آن را گزارش کنید.
-
-قبل از ثبت گزارش، مطمئن شوید که از آخرین نسخه استفاده می‌کنید.
-
-هنگام گزارش مشکل، اطلاعات زیر را در اختیار ما قرار دهید:
-
-```text
-نسخه NovaPlayer:
-
-نسخه Windows:
-
-شرح مشکل:
-
-چه چیزی انتظار داشتید اتفاق بیفتد؟
-
-مراحل ایجاد مشکل:
-
-1.
-2.
-3.
-
-اطلاعات اضافی:
-```
-
-### 🐛 [گزارش مشکل در GitHub](https://github.com/Mehdi138iimm/NovaPlayer/issues)
-
----
-
-# 💡 پیشنهاد قابلیت جدید
-
-ایده‌ای برای بهتر شدن NovaPlayer دارید؟
-
-خیلی خوب! 🚀
-
-پیشنهاد خودتان را در بخش Issues ثبت کنید.
-
-برای اینکه پیشنهاد شما بهتر بررسی شود، می‌توانید موارد زیر را توضیح دهید:
-
-- 💡 قابلیت مورد نظر چیست؟
-- 🎯 چه مشکلی را حل می‌کند؟
-- 🧩 نحوه‌ی عملکرد آن چگونه باشد؟
-- 🖼️ آیا نمونه یا تصویر مشابهی دارید؟
-
-### 💡 [ثبت پیشنهاد جدید](https://github.com/Mehdi138iimm/NovaPlayer/issues)
-
----
-
-# 🤝 مشارکت در پروژه
-
-NovaPlayer یک پروژه‌ی Open Source است و از مشارکت توسعه‌دهندگان
-و علاقه‌مندان استقبال می‌کند.
-
-اگر می‌خواهید در توسعه پروژه کمک کنید:
-
-### 1️⃣ پروژه را Fork کنید
-
-یک نسخه از پروژه در حساب GitHub خود ایجاد کنید.
-
-### 2️⃣ یک Branch جدید بسازید
-
-```bash
-git checkout -b feature/new-feature
-```
-
-### 3️⃣ تغییرات خود را انجام دهید
-
-کد، رابط کاربری، عملکرد یا مستندات پروژه را بهبود دهید.
-
-### 4️⃣ تغییرات را Commit کنید
-
-```bash
-git commit -m "Add new feature"
-```
-
-### 5️⃣ تغییرات را Push کنید
-
-```bash
-git push origin feature/new-feature
-```
-
-### 6️⃣ Pull Request ایجاد کنید
-
-تغییرات خود را برای بررسی ارسال کنید و توضیح دهید که چه چیزهایی
-تغییر کرده‌اند.
-
----
-
-# 🗺️ نقشه راه NovaPlayer
-
-NovaPlayer همچنان در حال توسعه است و قابلیت‌های بیشتری می‌توانند
-در نسخه‌های آینده اضافه شوند.
-
-### 🎧 تجربه موسیقی
-
-- [ ] 🎚️ اکولایزر پیشرفته
-- [ ] 🔊 افکت‌های صوتی
-- [ ] 🎵 مدیریت بهتر Queue
-- [ ] 🎧 بهبود تجربه پخش
-
-### 📚 کتابخانه
-
-- [ ] ❤️ سیستم Favorites
-- [ ] 🔎 جستجوی پیشرفته
-- [ ] 🏷️ ویرایش Metadata
-- [ ] 📊 آمار گوش دادن به موسیقی
-
-### 🎨 رابط کاربری
-
-- [ ] 🎨 Themeهای بیشتر
-- [ ] 🌈 Visualizerهای بیشتر
-- [ ] 🖼️ بهبود نمایش Artwork
-- [ ] ✨ انیمیشن‌های بیشتر
-
-### ⚙️ امکانات سیستم
-
-- [ ] ⌨️ Global Media Hotkeys
-- [ ] ⚡ بهینه‌سازی Performance
-- [ ] 🌍 زبان‌های بیشتر
-- [ ] 🪟 بهبود Mini Player
-
-> 🚧 این Roadmap ممکن است در طول توسعه پروژه تغییر کند.
-
----
-
-# 🔐 حریم خصوصی
-
-NovaPlayer با تمرکز بر تجربه‌ی موسیقی محلی طراحی شده است.
-
-موسیقی‌ها و آرشیو شخصی شما متعلق به خود شما هستند.
-
-هدف NovaPlayer این است که امکان مدیریت و پخش موسیقی‌های شما را
-به شکلی ساده و کاربردی فراهم کند.
-
-برای اطلاع دقیق از نحوه‌ی پردازش داده‌ها، همیشه آخرین نسخه‌ی کد و
-مستندات پروژه را بررسی کنید.
-
----
-
-# 🌟 حمایت از NovaPlayer
-
-اگر NovaPlayer را دوست دارید، می‌توانید با چند کار ساده از پروژه
-حمایت کنید. ❤️
-
-### ⭐ به پروژه Star بدهید
-
-یک Star باعث می‌شود پروژه بیشتر دیده شود.
-
-### 🐛 باگ‌ها را گزارش کنید
-
-گزارش هر باگ به بهتر شدن NovaPlayer کمک می‌کند.
-
-### 💡 ایده بدهید
-
-ایده‌های شما می‌توانند در توسعه‌ی قابلیت‌های آینده مؤثر باشند.
-
-### 🤝 مشارکت کنید
-
-کدنویسی، طراحی، تست، مستندسازی و ارائه‌ی بازخورد همگی می‌توانند
-به پروژه کمک کنند.
-
----
-
-# ❤️ درباره سازنده
-
-NovaPlayer با هدف ساخت یک موزیک‌پلیر مدرن و ساده برای استفاده‌ی روزمره
-ساخته شده است.
-
-این پروژه همچنان در حال توسعه است و مسیر آن با اضافه شدن قابلیت‌های
-جدید ادامه پیدا می‌کند.
-
-اگر پروژه را دوست داشتید:
-
-**⭐ یک Star بزنید و NovaPlayer را به دوستانتان معرفی کنید.**
-
----
-
-<div dir="rtl" align="center">
-
-# 🎵 NovaPlayer
-
-### موسیقی تو، کتابخانه‌ی تو، تجربه‌ی تو
-
-یک موزیک‌پلیر مدرن برای ویندوز
-
-<br>
-
-# ❤️ درباره سازندگان
-
-NovaPlayer با همکاری اعضای تیم توسعه، با هدف ساخت یک موزیک‌پلیر مدرن،
-ساده و کاربردی برای استفاده‌ی روزمره ساخته شده است.
-
-این پروژه همچنان در حال توسعه است و مسیر آن با اضافه شدن قابلیت‌های
-جدید ادامه پیدا می‌کند.
-
-### 👨‍💻 سازندگان و توسعه‌دهندگان
-
-- **Mehdi138iimm** — توسعه‌دهنده و سازنده اصلی  
-  [GitHub](https://github.com/Mehdi138iimm)
-
-- **Kasra** — توسعه‌دهنده و مشارکت‌کننده  
-  [GitHub](https://github.com/kasragfxdx)
-
----
-
-<div dir="rtl" align="center">
-
-# 🎵 NovaPlayer
-
-### موسیقی تو، کتابخانه‌ی تو، تجربه‌ی تو
-
-یک موزیک‌پلیر مدرن برای ویندوز
-
-<br>
-
-**ساخته شده با ❤️ توسط [Mehdi138iimm](https://github.com/Mehdi138iimm) و [Kasra](https://github.com/kasragfxdx)**
-
-<br>
-
-[🌐 وب‌سایت](https://mehdi138iimm.github.io/NovaPlayer/) •
-[💻 گیت‌هاب](https://github.com/Mehdi138iimm/NovaPlayer) •
-[🐛 گزارش مشکل](https://github.com/Mehdi138iimm/NovaPlayer/issues)
-
-<br><br>
-
-⭐ **اگر NovaPlayer را دوست داشتی، به پروژه Star بده!**
-
-<br>
-
-🎧 **برای موسیقی ساخته شده است.**
-
-</div>
+## ✨ امکانات
+
+| | |
+|---|---|
+| 🎬 **حالت سینمایی** | دیسک بزرگ، نور کاور و حلقهٔ صدا که به آهنگ واکنش نشون می‌ده |
+| 🎤 **متن هم‌زمان** | فایل LRC خودت رو اضافه کن، متن خط‌به‌خط با آهنگ جلو می‌ره |
+| 🪟 **مینی‌پلیر شناور** | پنجرهٔ کوچیک روی بقیهٔ برنامه‌ها |
+| 📚 **قفسهٔ کاورها** | مجموعه‌ات رو مثل آلبوم ورق بزن |
+| 📂 **آپلود پوشه** | کل یه پوشهٔ موسیقی رو یه‌جا اضافه کن، Drag & Drop هم داره |
+| 🎶 **پلی‌لیست و علاقه‌مندی** | با مرتب‌سازی دستی و جابه‌جایی با کشیدن |
+| 🌗 **تم تیره و روشن** | به‌علاوهٔ حالت کاهش حرکت |
+| 💾 **ذخیرهٔ دائمی** | همه‌چیز روی سیستم خودت می‌مونه |
+
+**فرمت‌ها:** `MP3` `MP4` `M4A` `OGG` `OPUS` `WAV` `FLAC`
+
+## 📥 نصب
+
+1. برو به [صفحهٔ آخرین ریلیز](https://github.com/Mehdi138iimm/NovaPlayer/releases/latest)
+2. فایل نصبی ویندوز (`.exe` یا `.msi`) رو دانلود کن
+3. اجراش کن و آهنگ‌هات رو بکش توی برنامه 🎧
+
+> نمی‌خوای نصب کنی؟ [نسخهٔ وب](https://mehdi138iimm.github.io/NovaPlayer/) رو توی Chrome یا Edge باز کن.
+
+## ⌨️ میان‌برها
+
+| کلید | کار |
+|:---:|---|
+| `Space` | پخش / مکث |
+| `←` `→` | آهنگ قبلی / بعدی |
+| `↑` `↓` | کم و زیاد کردن صدا |
+| `C` | حالت سینمایی |
+| `L` | متن آهنگ |
+| `D` | مینی‌پلیر شناور |
+| `Esc` | برگشت |
+
+## 🛠️ ساخته‌شده با
+
+<p>
+  <img src="https://img.shields.io/badge/Tauri_2-24C8DB?style=for-the-badge&logo=tauri&logoColor=white" alt="Tauri">
+  <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JS">
+  <img src="https://img.shields.io/badge/Web_Audio_API-c8ff00?style=for-the-badge&logoColor=black" alt="Web Audio">
+</p>
+
+## 🤝 مشارکت
+
+باگ دیدی یا ایده داری؟ یه [Issue](https://github.com/Mehdi138iimm/NovaPlayer/issues) باز کن یا Pull Request بفرست. اگه NOVA رو دوست داشتی، یه ⭐ بهش بده، خیلی کمک می‌کنه.
+
+## 👥 سازنده‌ها
+
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/Mehdi138iimm"><img src="https://github.com/Mehdi138iimm.png" width="80" style="border-radius:50%"><br><b>مهدی جعفری</b></a></td>
+    <td align="center"><a href="https://github.com/kasragfxdx"><img src="https://github.com/kasragfxdx.png" width="80" style="border-radius:50%"><br><b>کسری قلیچی</b></a></td>
+  </tr>
+</table>
+
+<p align="center">
+  <a href="https://t.me/NovaPlayerApp"><img src="https://img.shields.io/badge/Telegram-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram"></a>
+  <a href="https://www.instagram.com/kasrakevin9"><img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" alt="Instagram"></a>
+  <a href="https://www.youtube.com/@Sir_Mr_yellow138"><img src="https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube"></a>
+</p>
+
+<p align="center"><sub>ساخته‌شده با 💚 در ایران · Open Source · Offline First</sub></p>
