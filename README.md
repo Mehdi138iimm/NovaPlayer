@@ -1,6 +1,6 @@
-<p align="center">[nova-banner.svg](nova-banner.svg)</p>
-
 <div dir="rtl" align="center">
+
+<p align="center">[nova-banner.svg](nova-banner.svg)</p>
 
 # 🎵 NovaPlayer
 
