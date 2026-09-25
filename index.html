@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOVA Player · پخش‌کننده موسیقی آفلاین برای ویندوز</title>
+  <meta name="description" content="NOVA Player، پخش‌کننده موسیقی سریع، خصوصی و آفلاین برای ویندوز ۱۰ و ۱۱. دانلود رایگان آخرین نسخه، مستقیم از GitHub.">
+  <meta name="theme-color" content="#11130f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23b9ee50'/%3E%3Cpath d='M26 19l19 13-19 13z' fill='%23273016'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://api.github.com" crossorigin>
   <link rel="preconnect" href="https://unpkg.com" />
   <script></script>
   <script></script>
@@ -206,7 +211,7 @@
       <span data-en="Language">زبان</span>
     </button>
   </div>
-  <button class="mobile-cta" data-en="Free download" onclick="window.location.href='https://github.com/Mehdi138iimm/NovaPlayer/releases/download/v1.1.0/NOVA.Player_1.1.0_x64-setup.exe';closeMobileNav()">دانلود رایگان</button>
+  <button type="button" class="mobile-cta" id="mobileDlBtn" data-en="Free download">دانلود رایگان</button>
 </div>
 
 <!-- ══ HERO ══ -->
@@ -214,7 +219,7 @@
   <div class="hero-inner">
     <div class="hero-badge fade-up">
       <span class="hero-badge-dot" aria-hidden="true"></span>
-      <span data-en="Version 1.5.0 is live">نسخه 1.5.0 منتشر شد</span>
+      <span id="nvHeroBadge" data-en="Version 1.5.0 is live">نسخه 1.5.0 منتشر شد</span>
     </div>
     <h1 class="hero-title fade-up d1" id="heroTitle" data-en="Hear your music&lt;br&gt;the &lt;span class=&quot;hero-title-accent&quot;&gt;NOVA&lt;/span&gt; way">
       موزیک خود را<br>با <span class="hero-title-accent">NOVA</span> تجربه کن
@@ -223,7 +228,7 @@
       پخش‌کننده موسیقی محلی با رابط کاربری زیبا، کتابخانه هوشمند و تجربه شنیداری روان — برای ویندوز.
     </p>
     <div class="hero-actions fade-up d3">
-      <a href="https://github.com/Mehdi138iimm/NovaPlayer/releases"
+      <a id="nvHeroDl" href="https://github.com/Mehdi138iimm/NovaPlayer/releases/latest"
          class="btn-primary wipe" aria-label="دانلود Nova Player نسخه 1.5.0 برای ویندوز" data-en-aria="Download Nova Player 1.5.0 for Windows">
         <span class="wipe-base"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download for Windows">دانلود برای ویندوز</span></span>
         <span class="wipe-over over" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download for Windows">دانلود برای ویندوز</span></span>
@@ -234,7 +239,7 @@
       </a>
     </div>
     <div class="hero-meta fade-up d4">
-      <span class="hero-meta-item"><span class="hero-meta-val">v1.5.0</span></span>
+      <span class="hero-meta-item"><span class="hero-meta-val" id="nvHeroVer">v1.5.0</span></span>
       <span class="hero-meta-sep">·</span>
       <span class="hero-meta-item">Windows x64</span>
       <span class="hero-meta-sep">·</span>
@@ -371,35 +376,43 @@
   </div>
 </section>
 
-<!-- ══ DOWNLOAD + GITHUB ══ -->
+<!-- ══ DOWNLOAD + GITHUB · live from GitHub Releases ══ -->
 <section class="download-section section" id="download" aria-labelledby="downloadTitle">
   <div class="section-eyebrow">
     <div class="section-label-line" aria-hidden="true"></div>
-    <span class="section-label" data-en="Download">دانلود</span>
+    <span class="section-label" data-en="Download · Live from GitHub">دانلود · زنده از GitHub</span>
+    <span class="nv-dot" id="nvDot" aria-hidden="true"></span>
   </div>
   <h2 class="section-title reveal" id="downloadTitle" data-en="Ready to download">آماده دانلود</h2>
-  <p class="section-sub reveal d1" data-en="Free, open source, and no sign-up.">رایگان، متن‌باز، و بدون نیاز به ثبت‌نام.</p>
+  <p class="section-sub reveal d1" data-en="Free, open source, and no sign-up. This section reads straight from GitHub Releases, so every new version lands here on its own.">رایگان، متن‌باز، و بدون نیاز به ثبت‌نام. این بخش مستقیم از Releases گیت‌هاب خوانده می‌شود و هر نسخه تازه خودکار همین‌جا قرار می‌گیرد.</p>
 
   <div class="download-layout">
     <div class="dl-card primary surface reveal d2">
       <div class="dl-tag">
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        <span data-en="Latest stable release">آخرین نسخه پایدار</span>
+        <span id="nvTag" data-en="Latest stable release">آخرین نسخه پایدار</span>
       </div>
       <div class="dl-title">NOVA Player</div>
       <div class="dl-sub" data-en="The official installer for Windows 10 and 11. Download it, run it, done.">نصب‌کننده رسمی برای ویندوز ۱۰ و ۱۱ — فقط دانلود کن و اجرا کن.</div>
       <div class="dl-chips">
-        <span class="dl-chip hi">v1.5.0</span>
+        <span class="dl-chip hi" id="nvChipVer">v1.5.0</span>
         <span class="dl-chip">Windows x64</span>
+        <span class="dl-chip" id="nvChipSize" hidden></span>
+        <span class="dl-chip nv-date" id="nvChipDate" hidden></span>
         <span class="dl-chip" data-en="Free">رایگان</span>
       </div>
-      <code class="dl-filename">NOVA.Player_1.5.0_x64-setup.exe</code>
-      <a href="https://github.com/Mehdi138iimm/NovaPlayer/releases/download/v1.5.0/NOVA.Player_1.5.0_x64-setup.exe"
+      <code class="dl-filename" id="nvFile">NOVA.Player_1.5.0_x64-setup.exe</code>
+      <a id="nvDlBtn" href="https://github.com/Mehdi138iimm/NovaPlayer/releases/latest"
          class="btn-download wipe"
-         aria-label="دانلود NOVA Player نسخه ۱.۱.۰ برای ویندوز ۶۴ بیتی" data-en-aria="Download NOVA Player 1.1.0 for Windows x64">
+         aria-label="دانلود آخرین نسخه NOVA Player برای ویندوز ۶۴ بیتی" data-en-aria="Download the latest NOVA Player for Windows x64">
         <span class="wipe-base"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download installer">دانلود نصب‌کننده</span></span>
         <span class="wipe-over over" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download installer">دانلود نصب‌کننده</span></span>
       </a>
+      <div class="nv-assets" id="nvAssets" hidden></div>
+      <details class="nv-notes" id="nvNotesWrap" hidden>
+        <summary id="nvNotesSum">تغییرات این نسخه</summary>
+        <div class="nv-notes-body" id="nvNotes"></div>
+      </details>
       <p class="dl-note" data-en="Or grab it from the &lt;a href=&quot;https://github.com/Mehdi138iimm/NovaPlayer/releases&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;GitHub releases page&lt;/a&gt;">
         یا از
         <a href="https://github.com/Mehdi138iimm/NovaPlayer/releases" target="_blank" rel="noopener">صفحه Releases گیت‌هاب</a>
@@ -407,18 +420,29 @@
       </p>
     </div>
 
-    <div class="dl-card reveal d3">
-      <div class="gh-icon-wrap">
-        <svg viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+    <div class="dl-card nv-vers-card reveal d3">
+      <div class="nv-vers-head">
+        <div class="gh-icon-wrap">
+          <svg viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        </div>
+        <div>
+          <div class="gh-title" data-en="All versions">همه نسخه‌ها</div>
+          <div class="nv-vers-count" id="nvCount">در حال خواندن از GitHub…</div>
+        </div>
       </div>
-      <div class="gh-title" data-en="Open source on GitHub">متن‌باز روی GitHub</div>
-      <div class="gh-sub" data-en="The full source is public. Bug reports, feature ideas, and pull requests are all welcome.">سورس کامل برنامه در دسترس است. گزارش باگ، پیشنهاد ویژگی، و مشارکت خوش‌آمد است.</div>
-      <code class="gh-repo">Mehdi138iimm/NovaPlayer</code>
-      <a href="https://github.com/Mehdi138iimm/NovaPlayer" target="_blank" rel="noopener"
-         class="btn-github" aria-label="مشاهده مخزن Nova Player در GitHub" data-en-aria="View the Nova Player repository on GitHub">
-        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        <span data-en="View on GitHub">مشاهده در GitHub</span>
-      </a>
+      <div class="nv-vers" id="nvVers" aria-live="polite" aria-busy="true">
+        <div class="nv-skel"></div>
+        <div class="nv-skel"></div>
+        <div class="nv-skel"></div>
+      </div>
+      <div class="nv-vers-foot">
+        <code class="gh-repo">Mehdi138iimm/NovaPlayer</code>
+        <a href="https://github.com/Mehdi138iimm/NovaPlayer" target="_blank" rel="noopener"
+           class="btn-github" aria-label="مشاهده مخزن Nova Player در GitHub" data-en-aria="View the Nova Player repository on GitHub">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span data-en="View on GitHub">مشاهده در GitHub</span>
+        </a>
+      </div>
     </div>
   </div>
 </section>
@@ -534,6 +558,7 @@
     hamburgerBtn.classList.remove('open');
     hamburgerBtn.setAttribute('aria-expanded', 'false');
   }
+  window.closeMobileNav = closeMobileNav;
 
   on(hamburgerBtn, 'click', function () {
     var isOpen = !mobileNav.classList.contains('open');
@@ -642,6 +667,386 @@
     var thumb = progBar.querySelector('.preview-prog-thumb');
     if (thumb) thumb.style.left = (pct * 100) + '%';
   });
+}());
+</script>
+<style id="nova-releases-css">
+/* ── NOVA · live GitHub releases (download section) ── */
+#download [hidden]{display:none !important;}
+.nv-dot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--neon);box-shadow:0 0 8px var(--neon-glow);animation:pulse 2.2s ease-in-out infinite;}
+.nv-dot.off{background:var(--muted);box-shadow:none;animation:none;opacity:.6;}
+.dl-chip.nv-date{font-family:var(--sans);font-size:11px;letter-spacing:0;padding:2px 9px;}
+.nv-assets{display:flex;flex-direction:column;gap:6px;margin-top:16px;}
+.nv-asset{display:flex;align-items:center;gap:10px;min-width:0;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:oklch(var(--ink-c) / .4);color:var(--text);text-decoration:none;font-size:12px;transition:border-color .18s,background-color .18s;}
+.nv-asset:hover{border-color:oklch(var(--neon-c) / .4);background:var(--neon-dim);}
+.nv-asset-type{flex:none;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--neon);background:var(--neon-dim);border:1px solid oklch(var(--neon-c) / .22);padding:2px 6px;border-radius:5px;}
+.nv-asset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:11px;direction:ltr;unicode-bidi:isolate;}
+.nv-asset-meta{flex:none;margin-inline-start:auto;font-size:11px;color:var(--muted);white-space:nowrap;}
+.nv-asset svg{flex:none;width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none;opacity:.7;}
+.nv-notes{margin-top:14px;border:1px solid var(--border);border-radius:12px;background:oklch(var(--ink-c) / .4);}
+.nv-notes summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:11px 14px;border-radius:12px;font-size:13px;font-weight:700;color:var(--text);}
+.nv-notes summary::-webkit-details-marker{display:none;}
+.nv-notes summary::after{content:'+';margin-inline-start:auto;font-family:var(--mono);font-size:16px;line-height:1;color:var(--neon);transition:transform .3s var(--ease-out);}
+.nv-notes[open] summary::after{transform:rotate(45deg);}
+.nv-notes summary:focus-visible{outline:1.5px solid var(--neon);outline-offset:2px;}
+.nv-notes-body{padding:0 16px 14px;max-height:260px;overflow:auto;font-size:12.5px;line-height:1.85;color:var(--muted);scrollbar-width:thin;scrollbar-color:var(--border-2) transparent;}
+.nv-notes-body h4{margin:12px 0 4px;font-size:12.5px;font-weight:700;color:var(--text);}
+.nv-notes-body h4:first-child{margin-top:2px;}
+.nv-notes-body ul{padding-inline-start:18px;display:flex;flex-direction:column;gap:2px;}
+.nv-notes-body li::marker{color:var(--neon);}
+.nv-notes-body p{margin:4px 0;}
+.nv-notes-body code{font-family:var(--mono);font-size:.9em;padding:0 5px;border-radius:5px;background:var(--raised);border:1px solid var(--border);direction:ltr;unicode-bidi:isolate;}
+.nv-notes-body blockquote{margin:10px 0 2px;padding:6px 12px;border-inline-start:2px solid var(--neon);border-radius:6px;background:var(--neon-dim);color:var(--text);}
+.nv-notes-body a{color:var(--neon);}
+.nv-vers-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.nv-vers-head .gh-icon-wrap{flex:none;margin-bottom:0;}
+.nv-vers-head .gh-title{margin-bottom:0;line-height:1.3;}
+.nv-vers-count{margin-top:2px;font-size:11px;color:var(--muted);}
+.nv-vers{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
+.nv-ver{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--raised);color:var(--text);text-decoration:none;transition:border-color .18s,background-color .18s,transform .2s var(--ease-out);}
+a.nv-ver:hover{border-color:oklch(var(--neon-c) / .4);background:var(--neon-dim);transform:translateY(-1px);}
+a.nv-ver:hover .nf-ext{opacity:1;}
+a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.5px solid var(--neon);outline-offset:2px;}
+.nv-ver-num{flex:none;font-family:var(--mono);font-size:13px;font-weight:700;direction:ltr;unicode-bidi:isolate;}
+.nv-ver-date{margin-inline-start:auto;font-size:11px;color:var(--muted);white-space:nowrap;}
+.nv-badge{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font-size:10px;font-weight:700;color:var(--muted);white-space:nowrap;}
+.nv-badge.latest{background:var(--neon-dim);border-color:oklch(var(--neon-c) / .3);color:var(--neon);}
+.nv-badge.pre{color:var(--ember);}
+.nv-ver.nv-next{background:transparent;border-style:dashed;}
+.nv-ver.nv-next .nv-ver-num{color:var(--neon);}
+.nv-more{display:block;padding:6px;border-radius:10px;text-align:center;font-size:12px;color:var(--muted);text-decoration:none;transition:color .18s;}
+.nv-more:hover{color:var(--neon);}
+.nv-skel{height:44px;border-radius:12px;background:linear-gradient(90deg,var(--raised) 0%,var(--hover-2) 50%,var(--raised) 100%);background-size:200% 100%;animation:nvSkel 1.3s linear infinite;}
+@keyframes nvSkel{to{background-position:-200% 0;}}
+.nv-err{padding:16px;border-radius:12px;border:1px dashed var(--border-2);font-size:12.5px;line-height:1.9;color:var(--muted);}
+.nv-err a{color:var(--neon);font-weight:700;text-decoration:none;}
+.nv-err a:hover{text-decoration:underline;}
+.nv-vers-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:auto;padding-top:16px;border-top:1px solid var(--border);}
+.nv-vers-foot .gh-repo{margin-bottom:0;}
+.nv-vers-foot .btn-github{margin-top:0;align-self:auto;}
+
+#nvChipSize,.nv-ltr{direction:ltr;unicode-bidi:isolate;}
+@media (min-width:769px) and (max-width:1024px){.download-layout{grid-template-columns:1fr 1fr;}}
+#nvDlBtn{margin-top:0;}
+#download .dl-card.primary .dl-note{margin-top:auto;padding-top:14px;}
+</style>
+<script id="nova-releases-js">
+/* NOVA Player · live download section
+   Reads the GitHub Releases of Mehdi138iimm/NovaPlayer and fills in the download
+   card, the version list, the hero badge and every download button.
+   Publish a new release on GitHub and the site updates itself. */
+(function () {
+  'use strict';
+  var OWNER = 'Mehdi138iimm';
+  var REPO = 'NovaPlayer';
+  var API = 'https://api.github.com/repos/' + OWNER + '/' + REPO + '/releases?per_page=30';
+  var REL_PAGE = 'https://github.com/' + OWNER + '/' + REPO + '/releases';
+  var LATEST_PAGE = REL_PAGE + '/latest';
+  var CACHE_KEY = 'nova-releases-v1';
+  var CACHE_TTL = 10 * 60 * 1000; // ask GitHub at most once every 10 minutes per visitor (API limit is 60/hour per IP)
+  var MAX_ROWS = 6;
+
+  var doc = document, root = doc.documentElement;
+  var state = { list: null, failed: false };
+  var downloadUrl = LATEST_PAGE;
+
+  var EXT_ICON = '<svg class="nf-ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>';
+  var DL_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+
+  function faNum(n) { try { return Number(n).toLocaleString('fa-IR'); } catch (e) { return String(n); } }
+
+  var T = {
+    fa: {
+      badge: function (v) { return 'نسخه ' + v + ' منتشر شد'; },
+      heroAria: function (v) { return 'دانلود Nova Player نسخه ' + v + ' برای ویندوز'; },
+      dlAria: function (v) { return 'دانلود NOVA Player نسخه ' + v + ' برای ویندوز ۶۴ بیتی'; },
+      tagStable: 'آخرین نسخه پایدار',
+      tagPre: 'آخرین نسخه پیش‌نمایش',
+      notes: function (v) { return 'تغییرات نسخه ' + v; },
+      latest: 'آخرین',
+      pre: 'پیش‌نمایش',
+      next: 'نسخه بعدی',
+      soon: 'به‌زودی',
+      count: function (n) { return faNum(n) + ' نسخه منتشر شده'; },
+      more: function (n) { return 'دیدن همه ' + faNum(n) + ' نسخه در GitHub'; },
+      loading: 'در حال خواندن از GitHub…',
+      offline: 'اتصال به GitHub برقرار نشد',
+      err: 'فعلاً به GitHub دسترسی نداریم.',
+      errLink: 'صفحه Releases',
+      empty: 'هنوز نسخه‌ای منتشر نشده است.',
+      kind: { setup: 'نصب‌کننده', msi: 'نصب MSI', portable: 'پرتابل، بدون نصب', file: 'فایل' }
+    },
+    en: {
+      badge: function (v) { return 'Version ' + v + ' is live'; },
+      heroAria: function (v) { return 'Download Nova Player ' + v + ' for Windows'; },
+      dlAria: function (v) { return 'Download NOVA Player ' + v + ' for Windows x64'; },
+      tagStable: 'Latest stable release',
+      tagPre: 'Latest preview release',
+      notes: function (v) { return "What's new in " + v; },
+      latest: 'Latest',
+      pre: 'Preview',
+      next: 'Next up',
+      soon: 'Soon',
+      count: function (n) { return n + (n === 1 ? ' release' : ' releases') + ' published'; },
+      more: function (n) { return 'See all ' + n + ' releases on GitHub'; },
+      loading: 'Reading from GitHub…',
+      offline: 'GitHub is unreachable',
+      err: "Can't reach GitHub right now.",
+      errLink: 'Open the Releases page',
+      empty: 'No releases published yet.',
+      kind: { setup: 'Installer', msi: 'MSI installer', portable: 'Portable, no install', file: 'File' }
+    }
+  };
+
+  function $(id) { return doc.getElementById(id); }
+  function isEn() { return root.getAttribute('data-lang') === 'en'; }
+  function tr() { return isEn() ? T.en : T.fa; }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function setText(id, s) { var el = $(id); if (el) el.textContent = s; return el; }
+  function show(el, on) { if (el) el.hidden = !on; }
+  // keep the site's own FA/EN switcher in sync with the values we write at runtime
+  function setI18n(el, fa, en) {
+    if (!el) return;
+    el.setAttribute('data-fa', esc(fa));
+    el.setAttribute('data-en', esc(en));
+    el.innerHTML = esc(isEn() ? en : fa);
+  }
+  function setAria(el, fa, en) {
+    if (!el) return;
+    el.setAttribute('data-fa-aria', fa);
+    el.setAttribute('data-en-aria', en);
+    el.setAttribute('aria-label', isEn() ? en : fa);
+  }
+
+  function fmtSize(b) { return b ? (b / 1048576).toFixed(1) + ' MB' : ''; }
+  function fmtDate(iso) {
+    var d = new Date(iso);
+    if (!iso || isNaN(d.getTime())) return '';
+    try {
+      return isEn()
+        ? new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(d)
+        : new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Tehran' }).format(d);
+    } catch (e) { return String(iso).slice(0, 10); }
+  }
+  function cleanV(tag) { return String(tag || '').replace(/^v/i, ''); }
+  function nextV(tag) {
+    var m = /(\d+)\.(\d+)(?:\.(\d+))?/.exec(tag || '');
+    if (!m) return '';
+    var a = +m[1], b = +m[2], c = +(m[3] || 0);
+    return c === 0 ? a + '.' + (b + 1) + '.0' : a + '.' + b + '.' + (c + 1);
+  }
+
+  // updater/signature files are for the app, not for people
+  var JUNK = /(\.sig|\.json|\.blockmap|\.sha256|\.txt|\.nsis\.zip|\.msi\.zip|\.tar\.gz)$/i;
+  function files(r) { return (r.assets || []).filter(function (a) { return a && a.name && a.url && !JUNK.test(a.name); }); }
+  function pickMain(list) {
+    var order = [/setup\.exe$/i, /\.exe$/i, /\.msi$/i, /\.zip$/i];
+    for (var i = 0; i < order.length; i++) {
+      for (var j = 0; j < list.length; j++) if (order[i].test(list[j].name)) return list[j];
+    }
+    return list[0] || null;
+  }
+  function kindOf(name) {
+    if (/portable/i.test(name) || /\.zip$/i.test(name)) return 'portable';
+    if (/\.msi$/i.test(name)) return 'msi';
+    if (/\.exe$/i.test(name)) return 'setup';
+    return 'file';
+  }
+  function extOf(name) { var m = /\.([a-z0-9]{1,5})$/i.exec(name); return m ? m[1].toUpperCase() : 'FILE'; }
+
+  function simplify(raw) {
+    return raw.filter(function (r) { return r && !r.draft; }).map(function (r) {
+      return {
+        tag: r.tag_name || '',
+        url: r.html_url || REL_PAGE,
+        pre: !!r.prerelease,
+        date: r.published_at || r.created_at || '',
+        body: String(r.body || '').slice(0, 8000),
+        assets: (r.assets || []).map(function (a) { return { name: a.name, size: a.size, url: a.browser_download_url }; })
+      };
+    }).sort(function (a, b) { return (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0); });
+  }
+
+  // tiny, safe markdown for release notes: headings, lists, quotes, **bold**, `code`, links
+  function inline(s) {
+    return s
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+  }
+  function md(src) {
+    var lines = String(src || '').replace(/\r\n?/g, '\n').replace(/<!--[\s\S]*?-->/g, '').replace(/<\/?[a-z][^>]*>/gi, '').split('\n');
+    var out = [], inList = false, m;
+    function endList() { if (inList) { out.push('</ul>'); inList = false; } }
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line || /^(-{3,}|\*{3,}|_{3,})$/.test(line) || (/^\|?[\s:|-]+\|?$/.test(line) && line.indexOf('-') > -1)) { endList(); continue; }
+      if ((m = /^#{1,6}\s+(.+)$/.exec(line))) { endList(); out.push('<h4 dir="auto">' + inline(esc(m[1])) + '</h4>'); continue; }
+      if ((m = /^(?:[-*+]|\d+[.)])\s+(.+)$/.exec(line))) {
+        if (!inList) { out.push('<ul>'); inList = true; }
+        out.push('<li dir="auto">' + inline(esc(m[1])) + '</li>');
+        continue;
+      }
+      if ((m = /^>\s?(.*)$/.exec(line))) { endList(); if (m[1]) out.push('<blockquote dir="auto">' + inline(esc(m[1])) + '</blockquote>'); continue; }
+      endList();
+      if (line.charAt(0) === '|') {
+        var cells = line.split('|').map(function (c) { return c.trim(); }).filter(Boolean);
+        if (cells.length) out.push('<p dir="auto">' + inline(esc(cells.join('  ·  '))) + '</p>');
+        continue;
+      }
+      out.push('<p dir="auto">' + inline(esc(line)) + '</p>');
+    }
+    endList();
+    return out.join('');
+  }
+
+  function pick(list) {
+    var stable = null, main = null, i;
+    for (i = 0; i < list.length; i++) if (!list[i].pre && files(list[i]).length) { stable = list[i]; break; }
+    main = stable;
+    if (!main) for (i = 0; i < list.length; i++) if (files(list[i]).length) { main = list[i]; break; }
+    return { stable: stable, main: main };
+  }
+
+  function renderAssets(assets, mainFile) {
+    var box = $('nvAssets');
+    if (!box) return;
+    var t = tr(), rest = assets.filter(function (a) { return a !== mainFile; });
+    if (!rest.length) { box.innerHTML = ''; show(box, false); return; }
+    box.innerHTML = rest.map(function (a) {
+      var meta = esc(t.kind[kindOf(a.name)]) + (a.size ? ' · <span class="nv-ltr">' + esc(fmtSize(a.size)) + '</span>' : '');
+      return '<a class="nv-asset" href="' + esc(a.url) + '" rel="noopener">' +
+        '<span class="nv-asset-type">' + esc(extOf(a.name)) + '</span>' +
+        '<span class="nv-asset-name">' + esc(a.name) + '</span>' +
+        '<span class="nv-asset-meta">' + meta + '</span>' + DL_ICON + '</a>';
+    }).join('');
+    show(box, true);
+  }
+
+  function renderMain(main) {
+    var t = tr(), assets = files(main), file = pickMain(assets), v = cleanV(main.tag);
+    if (!file) return;
+    downloadUrl = file.url;
+    setI18n($('nvTag'), main.pre ? T.fa.tagPre : T.fa.tagStable, main.pre ? T.en.tagPre : T.en.tagStable);
+    setText('nvChipVer', main.tag);
+    show(setText('nvChipSize', fmtSize(file.size)), !!file.size);
+    var when = fmtDate(main.date);
+    show(setText('nvChipDate', when), !!when);
+    setText('nvFile', file.name);
+    var btn = $('nvDlBtn');
+    if (btn) { btn.href = file.url; setAria(btn, T.fa.dlAria(v), T.en.dlAria(v)); }
+    renderAssets(assets, file);
+    var notes = $('nvNotes'), wrap = $('nvNotesWrap'), body = md(main.body);
+    if (notes && wrap) { notes.innerHTML = body; setText('nvNotesSum', t.notes(v)); show(wrap, !!body); }
+    setI18n($('nvHeroBadge'), T.fa.badge(v), T.en.badge(v));
+    setText('nvHeroVer', main.tag);
+    var hero = $('nvHeroDl');
+    if (hero) { hero.href = file.url; setAria(hero, T.fa.heroAria(v), T.en.heroAria(v)); }
+  }
+
+  function renderList(list, stable) {
+    var box = $('nvVers');
+    if (!box) return;
+    var t = tr(), html = '';
+    if (!list.length) {
+      html = '<div class="nv-err">' + esc(t.empty) + '</div>';
+    } else {
+      if (stable && list[0] === stable) {
+        var nv = nextV(stable.tag);
+        if (nv) html += '<div class="nv-ver nv-next" aria-hidden="true"><span class="nv-ver-num">v' + esc(nv) + '</span><span class="nv-badge">' + esc(t.next) + '</span><span class="nv-ver-date">' + esc(t.soon) + '</span></div>';
+      }
+      for (var i = 0; i < list.length && i < MAX_ROWS; i++) {
+        var r = list[i];
+        html += '<a class="nv-ver" href="' + esc(r.url) + '" target="_blank" rel="noopener">' +
+          '<span class="nv-ver-num">' + esc(r.tag) + '</span>' +
+          (r === stable ? '<span class="nv-badge latest">' + esc(t.latest) + '</span>' : '') +
+          (r.pre ? '<span class="nv-badge pre">' + esc(t.pre) + '</span>' : '') +
+          '<span class="nv-ver-date">' + esc(fmtDate(r.date)) + '</span>' + EXT_ICON + '</a>';
+      }
+      if (list.length > MAX_ROWS) html += '<a class="nv-more" href="' + REL_PAGE + '" target="_blank" rel="noopener">' + esc(t.more(list.length)) + '</a>';
+    }
+    box.innerHTML = html;
+    box.setAttribute('aria-busy', 'false');
+    setText('nvCount', t.count(list.length));
+  }
+
+  function renderError() {
+    var t = tr(), box = $('nvVers');
+    if (box) {
+      box.innerHTML = '<div class="nv-err">' + esc(t.err) + ' <a href="' + REL_PAGE + '" target="_blank" rel="noopener">' + esc(t.errLink) + ' ↗</a></div>';
+      box.setAttribute('aria-busy', 'false');
+    }
+    setText('nvCount', t.offline);
+    var dot = $('nvDot');
+    if (dot) dot.classList.add('off');
+  }
+
+  function render() {
+    var dot = $('nvDot');
+    if (state.list) {
+      var p = pick(state.list);
+      if (p.main) renderMain(p.main);
+      renderList(state.list, p.stable);
+      if (dot) dot.classList.remove('off');
+    } else if (state.failed) {
+      renderError();
+    } else {
+      setText('nvCount', tr().loading);
+    }
+  }
+
+  function readCache() {
+    try {
+      var c = JSON.parse(localStorage.getItem(CACHE_KEY));
+      if (c && c.t && Array.isArray(c.d)) return c;
+    } catch (e) {}
+    return null;
+  }
+  function writeCache(list) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), d: list })); } catch (e) {}
+  }
+
+  function fetchReleases(done) {
+    if (!window.fetch) { done(null); return; }
+    var finished = false;
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); end(null); }, 9000);
+    function end(v) { if (finished) return; finished = true; clearTimeout(timer); done(v); }
+    fetch(API, ctrl ? { signal: ctrl.signal } : undefined)
+      .then(function (res) { if (!res.ok) throw new Error('GitHub ' + res.status); return res.json(); })
+      .then(function (json) { end(Array.isArray(json) ? simplify(json) : null); })
+      .catch(function () { end(null); });
+  }
+
+  // mobile menu "free download" button always points at the newest installer
+  var mobileBtn = $('mobileDlBtn');
+  if (mobileBtn) {
+    mobileBtn.addEventListener('click', function () {
+      if (typeof window.closeMobileNav === 'function') window.closeMobileNav();
+      window.location.href = downloadUrl;
+    });
+  }
+
+  // re-render in the right language whenever the FA/EN switch is used
+  if (typeof MutationObserver === 'function') {
+    new MutationObserver(function () { render(); }).observe(root, { attributes: true, attributeFilter: ['data-lang'] });
+  }
+
+  var cached = readCache();
+  if (cached) state.list = cached.d;
+  render();
+  var age = cached ? Date.now() - cached.t : Infinity;
+  if (!(age >= 0 && age < CACHE_TTL)) {
+    fetchReleases(function (list) {
+      if (list) { state.list = list; state.failed = false; writeCache(list); }
+      else if (!state.list) { state.failed = true; }
+      render();
+    });
+  }
 }());
 </script>
 </body>
