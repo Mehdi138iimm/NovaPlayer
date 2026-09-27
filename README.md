@@ -173,7 +173,7 @@
 
 ### 🌐 نسخهٔ وب &nbsp;<sub>بدون نصب</sub>
 
-1. **[NOVA Web](https://mehdi138iimm.github.io/NovaPlayer/)** رو باز کن
+1. **[NOVA Web]([https://mehdi138iimm.github.io/NovaPlayer/](https://github.com/Mehdi138iimm/NovaPlayer/releases/download/v1.7.1/novaplayerweb.html))** رو باز کن
 2. بهترین تجربه روی Chrome یا Edge دسکتاپ
 3. فایل‌ها داخل مرورگر خودت ذخیره می‌شن
 
