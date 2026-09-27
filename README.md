@@ -6,7 +6,7 @@
 
 <a href="https://github.com/Mehdi138iimm/NovaPlayer/releases/latest"><img src="https://img.shields.io/badge/DOWNLOAD_FOR_WINDOWS-c8ff00?style=for-the-badge&logo=windows&logoColor=09090f" height="46" alt="Download for Windows"></a>
 &nbsp;
-<a href="https://mehdi138iimm.github.io/NovaPlayer/"><img src="https://img.shields.io/badge/TRY_IT_IN_BROWSER-09090f?style=for-the-badge&logo=googlechrome&logoColor=00d4ff" height="46" alt="Try in browser"></a>
+<a href="https://mehdi138iimm.github.io/NovaPlayer/novaplayerweb.html"><img src="https://img.shields.io/badge/TRY_IT_IN_BROWSER-09090f?style=for-the-badge&logo=googlechrome&logoColor=00d4ff" height="46" alt="Try in browser"></a>
 
 <br><br>
 
@@ -173,9 +173,11 @@
 
 ### 🌐 نسخهٔ وب &nbsp;<sub>بدون نصب</sub>
 
-1. **[NOVA Web]([https://mehdi138iimm.github.io/NovaPlayer/](https://github.com/Mehdi138iimm/NovaPlayer/releases/download/v1.7.1/novaplayerweb.html))** رو باز کن
+1. **[NOVA Web](https://github.com/Mehdi138iimm/NovaPlayer/releases/download/v1.7.1/novaplayerweb.html)** رو باز کن
 2. بهترین تجربه روی Chrome یا Edge دسکتاپ
 3. فایل‌ها داخل مرورگر خودت ذخیره می‌شن
+
+کل نسخهٔ وب فقط یه فایله (`novaplayerweb.html`)؛ می‌تونی دانلودش کنی و آفلاین هم بازش کنی. مینی‌پلیر وینیل هم به‌صورت پنجرهٔ شناور کار می‌کنه.
 
 </td>
 </tr>
