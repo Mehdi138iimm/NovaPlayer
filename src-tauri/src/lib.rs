@@ -148,6 +148,29 @@ async fn read_audio_file(app: tauri::AppHandle, state: State<'_, Arc<AppState>>,
     Ok(tauri::ipc::Response::new(data))
 }
 
+/* v1.7.1: TRENDING previews are downloaded here (no CORS in Rust) and handed to the
+   page as bytes. Played from a same-origin blob: URL, the Web Audio visualizer graph
+   no longer mutes them. Only Apple's preview CDNs are allowed. */
+#[tauri::command]
+async fn fetch_trend_preview(url: String) -> Result<tauri::ipc::Response, String> {
+    let parsed = reqwest::Url::parse(&url).map_err(|e| e.to_string())?;
+    let host = parsed.host_str().unwrap_or("").to_ascii_lowercase();
+    let allowed = parsed.scheme() == "https"
+        && ["apple.com", "mzstatic.com"].iter().any(|d| host == *d || host.ends_with(&format!(".{d}")));
+    if !allowed { return Err("preview host not allowed".into()); }
+    let client = reqwest::Client::builder()
+        .user_agent("NOVA-Player")
+        .timeout(std::time::Duration::from_secs(25))
+        .connect_timeout(std::time::Duration::from_secs(8))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let res = client.get(parsed).send().await.map_err(|e| e.to_string())?;
+    if !res.status().is_success() { return Err(format!("preview http {}", res.status())); }
+    let bytes = res.bytes().await.map_err(|e| e.to_string())?;
+    if bytes.is_empty() || bytes.len() > 20 * 1024 * 1024 { return Err("preview size invalid".into()); }
+    Ok(tauri::ipc::Response::new(bytes.to_vec()))
+}
+
 #[tauri::command]
 fn delete_audio_file(app: tauri::AppHandle, state: State<'_, Arc<AppState>>, path: String) -> Result<(), String> {
     let path = PathBuf::from(path);
@@ -197,7 +220,7 @@ async fn read_dropped_audio(paths: Vec<String>) -> Result<Vec<AudioFile>, String
 #[tauri::command]
 async fn show_mini_player(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(w)=app.get_webview_window("mini") { w.show().map_err(|e|e.to_string())?; w.set_focus().map_err(|e|e.to_string())?; return Ok(()); }
-    WebviewWindowBuilder::new(&app,"mini",WebviewUrl::App("mini.html".into())).title("NOVA Mini").center().inner_size(330.0,430.0).min_inner_size(280.0,360.0).always_on_top(true).decorations(true).resizable(true).build().map_err(|e|e.to_string())?;
+    WebviewWindowBuilder::new(&app,"mini",WebviewUrl::App("mini.html".into())).title("NOVA Mini").center().inner_size(340.0,540.0).min_inner_size(300.0,470.0).always_on_top(true).decorations(true).resizable(true).build().map_err(|e|e.to_string())?;
     Ok(())
 }
 #[tauri::command]
@@ -248,6 +271,6 @@ pub fn run(){
           }
         }
       })
-      .invoke_handler(tauri::generate_handler![update::check_github_update,register_audio_paths,read_dropped_audio,read_audio_file,delete_audio_file,show_mini_player,close_mini_player,set_close_to_tray,start_main_window_drag,control_main_window,set_storage_directory,get_storage_directory,save_audio_file])
+      .invoke_handler(tauri::generate_handler![update::check_github_update,fetch_trend_preview,register_audio_paths,read_dropped_audio,read_audio_file,delete_audio_file,show_mini_player,close_mini_player,set_close_to_tray,start_main_window_drag,control_main_window,set_storage_directory,get_storage_directory,save_audio_file])
       .run(tauri::generate_context!()).expect("NOVA failed to start");
 }
