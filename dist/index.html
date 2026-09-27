@@ -418,6 +418,11 @@ body.nova-cinema .lyrics-panel{width:min(100%,620px);margin-inline:auto}
 .lyrics-heading{font-size:16px;font-weight:700;margin:0}
 .lyrics-caption{font-size:11px;color:var(--muted);margin-top:4px;max-width:46ch;overflow-wrap:anywhere}
 .lyrics-import{background:var(--neon-dim);color:var(--neon);border:0}
+.lyrics-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.lyrics-online[aria-busy="true"]{opacity:.7;cursor:progress}
+.lyrics-auto{font-size:11px;opacity:.75}.lyrics-auto[aria-pressed="true"]{opacity:1;color:var(--neon)}
+.lyric-line.is-plain,.lyric-line.is-plain:hover{cursor:default;background:transparent;color:var(--text);opacity:.85!important;transform:none!important;font-weight:400}
+.lyrics-source{font-size:10px;color:var(--muted);text-align:center;padding:6px 0 2px;opacity:.7}
 .lyrics-window{position:relative;max-height:248px;min-height:128px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--glass-border) transparent;margin-block:16px;scroll-padding-block:70px;direction:rtl}
 .lyrics-empty{min-height:128px;display:grid;align-content:center;text-align:center;gap:8px;padding:20px;color:var(--muted);font-size:13px;line-height:1.9}
 .lyrics-empty strong{font-size:16px;color:var(--text);font-weight:500}
@@ -463,6 +468,76 @@ body{height:auto;min-height:100svh;overflow-x:clip}
 .toast:not(.show){visibility:hidden}
 .toast.show{visibility:visible}
 .lyrics-window,.shelf-rail{overflow-anchor:none}
+/* v1.9.0 fix: the lyrics window's thin scrollbar showed up as a stray "1"-like bar at the top-left once lyrics loaded. Scrolling still works (wheel / touch / keys). */
+.lyrics-window{scrollbar-width:none;-ms-overflow-style:none}
+.lyrics-window::-webkit-scrollbar{display:none;width:0;height:0}
+/* ── v1.9.0 · LYRICS PANEL (pro) ── */
+.lyrics-head{align-items:flex-start}
+.lyrics-title-wrap{min-width:0;flex:1 1 200px}
+.lyrics-heading{display:flex;align-items:center;gap:8px;letter-spacing:-.01em}
+.lyrics-heading svg{width:16px;height:16px;stroke:var(--neon);stroke-width:2;fill:none;flex:none}
+.lyrics-caption{font-size:12px;color:var(--text);opacity:.8;margin-top:6px;max-width:44ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lyrics-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;min-height:0}
+.lyrics-meta:empty{display:none}
+.lyr-chip{display:inline-flex;align-items:center;gap:5px;font:600 10px/1 var(--mono);letter-spacing:.03em;padding:5px 8px;border-radius:999px;border:1px solid var(--glass-border);color:var(--muted);white-space:nowrap}
+.lyr-chip.is-sync{color:var(--neon);border-color:transparent;background:var(--neon-dim)}
+.lyr-chip.is-busy::before{content:"";width:8px;height:8px;border-radius:50%;border:1.5px solid currentColor;border-inline-end-color:transparent;animation:lyrSpin .8s linear infinite}
+.lyrics-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.lyr-seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--glass-border);border-radius:12px;background:var(--frost,transparent)}
+.lyr-seg button{border:0;background:transparent;color:var(--muted);font:500 11.5px var(--sans);padding:0 11px;min-height:32px;border-radius:9px;cursor:pointer;transition:background .2s,color .2s}
+.lyr-seg button:hover{color:var(--text)}
+.lyr-seg button[aria-checked="true"]{background:var(--neon-dim);color:var(--neon);font-weight:700}
+.lyr-seg button:disabled{opacity:.4;cursor:not-allowed}
+.lyr-seg[aria-busy="true"] button[aria-checked="true"]{animation:lyrPulse 1.2s ease-in-out infinite}
+.lyr-icon{width:40px;padding:0}
+.lyr-icon svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none}
+.lyr-icon[aria-expanded="true"]{color:var(--neon);border-color:var(--neon)}
+.lyr-icon:disabled{opacity:.4}
+.lyr-aa{font:700 13px var(--sans);letter-spacing:-.02em}
+.lyrics-sheet{margin-top:14px;padding:14px;border:1px solid var(--glass-border);border-radius:14px;background:var(--frost,transparent);display:grid;gap:12px}
+.lyrics-sheet[hidden]{display:none}
+.lyrics-sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lyr-field{display:grid;gap:5px;font-size:11px;color:var(--muted)}
+.lyr-field input{width:100%;min-height:38px;padding:7px 11px;border-radius:10px;border:1px solid var(--glass-border);background:transparent;color:var(--text);font:13px var(--sans);outline:none;transition:border-color .2s}
+.lyr-field input:focus{border-color:var(--neon)}
+.lyrics-sheet-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.lyr-primary{background:var(--neon);color:var(--on-accent,#111);border-color:transparent;font-weight:700}
+.lyr-primary[aria-busy="true"],.lyrics-online[aria-busy="true"]{opacity:.7;cursor:progress}
+.lyr-spacer{flex:1}
+.lyr-switch{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;color:var(--muted);font:12px var(--sans);cursor:pointer;min-height:36px;padding:0 4px}
+.lyr-switch-track{position:relative;width:30px;height:17px;border-radius:99px;background:var(--glass-border);transition:background .2s;flex:none}
+.lyr-switch-track::after{content:"";position:absolute;top:2px;inset-inline-start:2px;width:13px;height:13px;border-radius:50%;background:var(--text);transition:inset-inline-start .2s var(--ease-out)}
+.lyr-switch[aria-checked="true"]{color:var(--text)}
+.lyr-switch[aria-checked="true"] .lyr-switch-track{background:var(--neon)}
+.lyr-switch[aria-checked="true"] .lyr-switch-track::after{inset-inline-start:15px;background:var(--on-accent,#111)}
+.lyrics-results{display:grid;gap:4px;max-height:220px;overflow-y:auto;scrollbar-width:thin}
+.lyrics-results:empty{display:none}
+.lyr-result{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 10px;text-align:start;width:100%;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--text);padding:8px 10px;cursor:pointer;font:13px var(--sans);transition:background .15s,border-color .15s}
+.lyr-result:hover,.lyr-result:focus-visible{background:var(--neon-dim);border-color:var(--glass-border)}
+.lyr-result-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lyr-result-sub{grid-column:1;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lyr-result-side{grid-row:1/3;grid-column:2;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font:10px var(--mono);color:var(--muted)}
+.lyr-result-note{font-size:12px;color:var(--muted);padding:8px 4px;text-align:center}
+.lyrics-sheet-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:10.5px;color:var(--muted)}
+.lyr-link{border:0;background:transparent;color:var(--ember,#e88);font:12px var(--sans);cursor:pointer;padding:4px 0}
+.lyr-link:disabled{opacity:.4;cursor:not-allowed}
+.lyr-src{font-family:var(--mono);letter-spacing:.03em;opacity:.7;direction:ltr}
+.lyric-line{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.lyric-orig{display:block}
+.lyric-tr{display:block;font-size:.8em;font-weight:400;color:var(--muted);direction:rtl;unicode-bidi:plaintext}
+.lyric-line.is-current .lyric-tr{color:var(--text);opacity:.9}
+.lyrics-panel[data-view="fa"] .lyric-tr{font-size:1em;color:inherit}
+.lyrics-panel[data-size="s"] .lyric-line{font-size:14px}
+.lyrics-panel[data-size="m"] .lyric-line{font-size:16px}
+.lyrics-panel[data-size="l"] .lyric-line{font-size:19px}
+.lyrics-panel[data-size="xl"] .lyric-line{font-size:23px;line-height:1.7}
+.lyrics-panel[data-size="l"] .lyrics-window,.lyrics-panel[data-size="xl"] .lyrics-window{max-height:320px}
+.lyrics-empty .lyr-empty-act{justify-self:center;margin-top:6px}
+.lyrics-empty.is-loading strong::before{content:"";display:inline-block;width:12px;height:12px;margin-inline-end:8px;vertical-align:-1px;border-radius:50%;border:2px solid var(--neon);border-inline-end-color:transparent;animation:lyrSpin .8s linear infinite}
+@keyframes lyrSpin{to{transform:rotate(360deg)}}
+@keyframes lyrPulse{50%{opacity:.55}}
+:root[data-motion="reduce"] .lyr-chip.is-busy::before,:root[data-motion="reduce"] .lyrics-empty.is-loading strong::before{animation:none}
+@media(max-width:520px){.lyrics-sheet-grid{grid-template-columns:1fr}.lyrics-tools{width:100%}.lyr-seg{flex:1}.lyr-seg button{flex:1}}
 
 </style>
 <style id="nova-motion-studio">
@@ -1075,6 +1150,16 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
 #visualizer{contain:strict}
 #loadScreen.out *{animation:none!important}
 </style>
+<style id="nova-sidebar-fill-fix">
+/* v1.9.1 fix: the track list was capped at 380px, leaving a big empty gap under it
+   while the sidebar stretched to the player's height. Now the lists fill the whole
+   card and scroll inside it (flex-basis 0 keeps them from stretching the page). */
+@media(min-width:881px){
+  .sidebar{min-height:0}
+  .library-card,.pl-panel,.trend-panel{flex:1 1 auto;min-height:0}
+  .track-list,.pl-list,.trend-list{flex:1 1 0!important;max-height:none!important;min-height:380px}
+}
+</style>
 </head>
 <body class="nova-custom-titlebar">
 <div class="nova-drag-strip" id="novaDragStrip" role="button" tabindex="0" aria-label="برای جابه‌جایی پنجره بکشید" title="برای جابه‌جایی پنجره بکشید"></div>
@@ -1142,6 +1227,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
     <button type="button" class="experience-btn" id="cinemaBtn" aria-pressed="false" title="حالت سینمایی (C)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><path d="m10 8 6 4-6 4Z"/></svg><span id="cinemaLabel">سینمایی</span></button>
     <button type="button" class="experience-btn" id="orbitBtn" aria-pressed="true" title="حلقهٔ واکنش‌گرا به صدای آهنگ"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8 10v4m4-7v10m4-7v4"/></svg>حلقهٔ صدا</button>
     <button type="button" class="experience-btn" id="lyricsBtn" aria-expanded="false" aria-controls="lyricsPanel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 10h12M4 15h16M4 20h9"/></svg>متن آهنگ</button>
+    <button type="button" class="experience-btn" id="eqBtn" aria-pressed="false" aria-haspopup="dialog" aria-controls="eqModalBg" title="اکولایزر (E)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21v-6M5 11V3M12 21v-9M12 8V3M19 21v-4M19 13V3M2 15h6M9 8h6M16 17h6"/></svg>اکولایزر<span class="eq-btn-dot" aria-hidden="true"></span></button>
   </div>
   <span class="cinema-tip">برای برگشت، Esc بزن</span>
 </div>
@@ -1187,14 +1273,40 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
       </div>
     </div>
 
-    <section class="lyrics-panel" id="lyricsPanel" aria-labelledby="lyricsHeading" hidden>
+    <section class="lyrics-panel" id="lyricsPanel" aria-labelledby="lyricsHeading" data-size="m" hidden>
   <div class="lyrics-head">
-    <div><h2 class="lyrics-heading" id="lyricsHeading">همراهِ کلمات</h2><p class="lyrics-caption" id="lyricsCaption">متن هم‌زمان، از فایل خودت</p></div>
-    <button type="button" class="experience-btn lyrics-import" id="lrcImportBtn" disabled>افزودن LRC</button>
-    <input type="file" id="lrcFile" accept=".lrc,text/plain" aria-label="فایل متن هم‌زمان آهنگ">
+    <div class="lyrics-title-wrap">
+      <h2 class="lyrics-heading" id="lyricsHeading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>متن آهنگ</h2>
+      <p class="lyrics-caption" id="lyricsCaption" dir="auto">یک آهنگ انتخاب کن</p>
+      <div class="lyrics-meta" id="lyricsMeta"></div>
+    </div>
+    <div class="lyrics-tools" role="toolbar" aria-label="ابزار متن آهنگ">
+      <div class="lyr-seg" id="lrcViews" role="radiogroup" aria-label="نمایش متن و ترجمه">
+        <button type="button" role="radio" data-view="orig" aria-checked="true">اصلی</button>
+        <button type="button" role="radio" data-view="both" aria-checked="false">دوزبانه</button>
+        <button type="button" role="radio" data-view="fa" aria-checked="false">فارسی</button>
+      </div>
+      <button type="button" class="experience-btn lyr-icon" id="lrcSizeBtn" title="اندازهٔ متن" aria-label="اندازهٔ متن"><span aria-hidden="true" class="lyr-aa">Aa</span></button>
+      <button type="button" class="experience-btn lyr-icon" id="lrcCopyBtn" title="کپی متن" aria-label="کپی متن" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+      <button type="button" class="experience-btn lyr-icon" id="lrcSheetBtn" title="جستجو و تنظیمات متن" aria-label="جستجو و تنظیمات متن" aria-expanded="false" aria-controls="lrcSheet"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    </div>
+  </div>
+  <div class="lyrics-sheet" id="lrcSheet" hidden>
+    <div class="lyrics-sheet-grid">
+      <label class="lyr-field"><span>نام آهنگ</span><input id="lrcQTitle" type="text" dir="auto" autocomplete="off" spellcheck="false" placeholder="مثلاً Yaavar"></label>
+      <label class="lyr-field"><span>خواننده</span><input id="lrcQArtist" type="text" dir="auto" autocomplete="off" spellcheck="false" placeholder="مثلاً Dariush"></label>
+    </div>
+    <div class="lyrics-sheet-actions">
+      <button type="button" class="experience-btn lyr-primary" id="lrcManualBtn">جستجو و انتخاب</button>
+      <button type="button" class="experience-btn lyrics-online" id="lrcOnlineBtn" disabled title="جستجوی چندمرحله‌ای در LRCLIB و lyrics.ovh و انتخاب خودکار بهترین نتیجه">جستجوی هوشمند</button>
+      <span class="lyr-spacer"></span>
+      <button type="button" class="lyr-switch" id="lrcAutoBtn" role="switch" aria-checked="true" title="وقتی آهنگ متن ندارد، خودکار آنلاین پیدا کن"><span class="lyr-switch-track" aria-hidden="true"></span>پیدا کردن خودکار</button>
+    </div>
+    <div class="lyrics-results" id="lrcResults" aria-live="polite"></div>
+    <div class="lyrics-sheet-foot"><button type="button" class="lyr-link" id="lrcClearBtn" disabled>حذف متن این آهنگ</button><span class="lyr-src">LRCLIB · lyrics.ovh · Google Translate</span></div>
   </div>
   <div class="lyrics-window" id="lyricsWindow" tabindex="0" aria-label="متن آهنگ؛ برای رفتن به زمان هر خط، روی آن بزن">
-    <div class="lyrics-empty"><strong>هر آهنگ، کلمات خودش</strong><span>یک آهنگ انتخاب کن و فایل LRC آن را اضافه کن.</span></div>
+    <div class="lyrics-empty"><strong>هر آهنگ، کلمات خودش</strong><span>یک آهنگ انتخاب کن؛ متن هم‌زمانش خودکار از اینترنت پیدا می‌شود.</span></div>
   </div>
   <div class="lyrics-footer" id="lyricsFooter" hidden>
     <button class="experience-btn" type="button" id="lrcFollowBtn" aria-pressed="true">دنبال‌کردن متن</button>
@@ -1362,7 +1474,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
       <div class="help-hero">
         <div class="help-hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
         <div>
-          <div class="help-hero-title">راهنمای NOVA <span class="help-ver-chip">v1.7.1</span></div>
+          <div class="help-hero-title">راهنمای NOVA <span class="help-ver-chip">v1.9.0</span></div>
           <div class="help-hero-sub">پلیر آفلاین ویندوز: سریع، خصوصی، بدون تبلیغ. هر چیزی که برای شروع لازم داری همین‌جاست.</div>
         </div>
       </div>
@@ -1374,7 +1486,27 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
       </div>
 
       <div class="help-section">
-        <div class="help-sec-title">🔥 ترندها (جدید)</div>
+        <div class="help-sec-title">🎤 متن آهنگ و ترجمه (جدید)</div>
+        <div class="help-item"><span class="help-key">باز کردن</span><span class="help-desc">دکمهٔ «متن آهنگ» در نوار ابزار یا کلید <span class="help-kbd">L</span>. متن هر آهنگ یک بار پیدا و روی همین دستگاه ذخیره می‌شود؛ بعد از آن بدون اینترنت هم نمایش داده می‌شود.</span></div>
+        <div class="help-item"><span class="help-key">پیدا کردن خودکار</span><span class="help-desc">NOVA برچسب‌های داخل فایل (ID3)، نام فایل و مدت آهنگ را می‌خواند، چند جستجو در LRCLIB انجام می‌دهد و نتیجه‌ای را برمی‌دارد که نام، خواننده و مدتش بیشترین تطابق را دارد. اگر متن هم‌زمان نبود، از lyrics.ovh متن ساده می‌گیرد.</span></div>
+        <div class="help-item"><span class="help-key">جستجوی دستی</span><span class="help-desc">ذره‌بین پنل را بزن، نام آهنگ و خواننده را اصلاح کن و از لیست نتایج، نسخهٔ درست را انتخاب کن. برچسب «هم‌زمان» یعنی متن همراه آهنگ حرکت می‌کند. آهنگ‌های فارسی معمولاً با اسم فینگلیش بهتر پیدا می‌شوند.</span></div>
+        <div class="help-item"><span class="help-key">ترجمهٔ فارسی</span><span class="help-desc">بالای پنل یکی را انتخاب کن: «اصلی» فقط متن خود آهنگ، «دوزبانه» ترجمهٔ فارسی زیر هر خط، «فارسی» فقط ترجمه. انتخابت برای آهنگ‌های بعدی هم می‌ماند و ترجمه‌ها ذخیره می‌شوند.</span></div>
+        <div class="help-item"><span class="help-key">نمایش</span><span class="help-desc">با دکمهٔ <span class="help-kbd">Aa</span> اندازهٔ متن را عوض کن (چهار اندازه) و با دکمهٔ کپی، متن یا ترجمه را بردار. خط فعلی در مینی‌پلیر هم به همان حالت نمایش داده می‌شود.</span></div>
+        <div class="help-item"><span class="help-key">زمان‌بندی</span><span class="help-desc">روی هر خط بزن تا به همان لحظه بروی. اگر متن جلوتر یا عقب‌تر است، با −۰٫۵ و +۰٫۵ درستش کن؛ اگر دستی ورق زدی، «برگشت به خط فعلی» را بزن.</span></div>
+        <div class="help-item"><span class="help-key">متن اشتباه</span><span class="help-desc">در همان پنل جستجو، «حذف متن این آهنگ» را بزن و نسخهٔ درست را دستی انتخاب کن. «پیدا کردن خودکار» را هم می‌توانی خاموش کنی.</span></div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-sec-title">🎚 اکولایزر</div>
+        <div class="help-item"><span class="help-key">باز کردن</span><span class="help-desc">دکمهٔ اکولایزر در نوار ابزار سمت چپ صفحه یا کلید <span class="help-kbd">E</span>. تغییرات همان لحظه روی صدا اعمال می‌شوند.</span></div>
+        <div class="help-item"><span class="help-key">پریست‌ها</span><span class="help-desc">۲۱ پریست آماده: تقویت/کاهش بیس و تریبل، وکال، سنتی ایرانی، پاپ، راک، هیپ‌هاپ، الکترونیک، جز، کلاسیک، پادکست و ...</span></div>
+        <div class="help-item"><span class="help-key">۱۰ باند</span><span class="help-desc">هر باند را بکش، با چرخ موس یا کلیدهای جهت تنظیم کن؛ دوبار کلیک آن را صفر می‌کند. نمودار پشت اسلایدرها صدای نهایی را نشان می‌دهد.</span></div>
+        <div class="help-item"><span class="help-key">پریست من</span><span class="help-desc">صدای دلخواهت را بساز، اسم بگذار و ذخیره کن؛ با × کنار آن حذف می‌شود.</span></div>
+        <div class="help-item"><span class="help-key">بدون دیستورشن</span><span class="help-desc">وقتی باندها را بالا می‌بری، «جلوگیری خودکار از دیستورشن» کل صدا را کمی پایین می‌آورد تا صدا نشکند.</span></div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-sec-title">🔥 ترندها</div>
         <div class="help-item"><span class="help-key">تب TRENDING</span><span class="help-desc">چارت داغ موسیقی جهانی هر چند ساعت خودش به‌روز می‌شود؛ کاری نکردن لازم نیست.</span></div>
         <div class="help-item"><span class="help-key">پخش پیش‌نمایش</span><span class="help-desc">روی هر ردیف بزن تا پیش‌نمایش ۳۰ ثانیه‌ای استریم شود. ته هر آهنگ، بعدی خودکار پخش می‌شود و دکمه‌های قبل/بعد هم در چارت کار می‌کنند.</span></div>
         <div class="help-item"><span class="help-key">آفلاین</span><span class="help-desc">آخرین چارت ذخیره می‌شود؛ بدون اینترنت هم لیست را می‌بینی. برای فایل کامل آهنگ، همان نسخهٔ خودت را آپلود کن.</span></div>
@@ -1387,6 +1519,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
         <div class="help-item"><span class="help-key"><span class="help-kbd">↑</span> <span class="help-kbd">↓</span></span><span class="help-desc">افزایش / کاهش صدا</span></div>
         <div class="help-item"><span class="help-key"><span class="help-kbd">T</span></span><span class="help-desc">تغییر تم روز / شب</span></div>
         <div class="help-item"><span class="help-key"><span class="help-kbd">C</span></span><span class="help-desc">حالت سینمایی</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">E</span></span><span class="help-desc">باز و بسته‌کردن اکولایزر</span></div>
         <div class="help-item"><span class="help-key"><span class="help-kbd">L</span></span><span class="help-desc">باز و بسته‌کردن پنل متن آهنگ</span></div>
         <div class="help-item"><span class="help-key"><span class="help-kbd">F</span></span><span class="help-desc">افزودن به علاقه‌مندی‌ها</span></div>
         <div class="help-item"><span class="help-key"><span class="help-kbd">D</span></span><span class="help-desc">باز و بسته‌کردن مینی‌پلیر دسکتاپ</span></div>
@@ -1398,7 +1531,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
         <div class="help-sec-title">🎧 اتاق موسیقی</div>
         <div class="help-item"><span class="help-key">سینمایی</span><span class="help-desc">کتابخانه کنار می‌رود و با دیسک بزرگ و نور کاور گوش می‌دهی. با <span class="help-kbd">Esc</span> برگرد.</span></div>
         <div class="help-item"><span class="help-key">حلقهٔ صدا</span><span class="help-desc">حلقهٔ دور دیسک به صدای واقعی آهنگ واکنش نشان می‌دهد؛ با مکث یا حالت کاهش حرکت متوقف می‌شود.</span></div>
-        <div class="help-item"><span class="help-key">متن آهنگ (LRC)</span><span class="help-desc">فایل LRC را برای هر آهنگ اضافه کن؛ متن هم‌زمان با آهنگ حرکت می‌کند و خط فعلی در مینی‌پلیر هم نمایش داده می‌شود. روی هر خط بزن تا به همان زمان بروی و با −۰٫۵ / +۰٫۵ زمان‌بندی را تنظیم کن.</span></div>
+        <div class="help-item"><span class="help-key">متن آهنگ</span><span class="help-desc">متن هم‌زمان و ترجمهٔ فارسی در حالت سینمایی هم کنار دیسک می‌ماند؛ جزئیات در بخش «متن آهنگ و ترجمه».</span></div>
         <div class="help-item"><span class="help-key">قفسهٔ کاورها</span><span class="help-desc">کاورهای یکسان گروه‌بندی می‌شوند؛ ورق بزن و با انتخاب هر کاور، آهنگ‌هایش را ببین.</span></div>
       </div>
 
@@ -1423,7 +1556,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
         <details class="help-faq"><summary>آهنگی پخش نمی‌شود</summary><p>اگر فایل روی دیسک جابه‌جا یا پاک شده باشد، برنامه پیام می‌دهد. آهنگ را دوباره اضافه کن یا از تنظیمات، محل ذخیره را بررسی کن.</p></details>
         <details class="help-faq"><summary>ترندها نمایش داده نمی‌شوند</summary><p>به‌روزرسانی چارت به اینترنت نیاز دارد. آخرین چارت ذخیره‌شده آفلاین هم نمایش داده می‌شود؛ با دکمهٔ ↻ بالای لیست دوباره تلاش کن.</p></details>
         <details class="help-faq"><summary>نسخهٔ جدید از کجا اعلام می‌شود؟</summary><p>برنامه خودش Releases گیت‌هاب را می‌خواند و با دکمهٔ سبز بالای صفحه خبر می‌دهد؛ از تنظیمات هم می‌توانی دستی بررسی کنی.</p></details>
-        <details class="help-faq"><summary>متن آهنگ از اینترنت می‌آید؟</summary><p>نه؛ متن فقط از فایل LRC خودت خوانده می‌شود و در همان دستگاه ذخیره می‌ماند.</p></details>
+        <details class="help-faq"><summary>متن آهنگ پیدا نمی‌شود یا اشتباه است</summary><p>ذره‌بین پنل متن را بزن، نام آهنگ و خواننده را به انگلیسی یا فینگلیش بنویس و از نتایج انتخاب کن. اگر متن اشتباهی ذخیره شده، اول «حذف متن این آهنگ» را بزن. جستجو و ترجمه به اینترنت نیاز دارند، ولی بعد از اولین بار همه‌چیز آفلاین کار می‌کند.</p></details>
       </div>
     </div>
     <div class="modal-actions" style="margin-top:16px;">
@@ -1490,7 +1623,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
         </section>
         <div class="about-divider"></div>
         <div class="about-app-line">
-          <div><div class="about-app-name">NO<span>VA</span> PLAYER</div><div class="about-ver">VERSION 1.7.1 · WINDOWS DESKTOP</div></div>
+          <div><div class="about-app-name">NO<span>VA</span> PLAYER</div><div class="about-ver">VERSION 1.9.0 · WINDOWS DESKTOP</div></div>
           <span class="about-section-note">OPEN SOURCE · OFFLINE FIRST</span>
         </div>
         <div class="about-tech">
@@ -1917,7 +2050,7 @@ const dbLoadPls=()=>new Promise((res,rej)=>{
 /* ── VISUALIZER ── */
 const initViz=()=>{
   if(audioCtx)return;
-  try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();analyser=audioCtx.createAnalyser();analyser.fftSize=256;dataArr=new Uint8Array(analyser.frequencyBinCount);srcNode=audioCtx.createMediaElementSource(audio);srcNode.connect(analyser);analyser.connect(audioCtx.destination);}catch(e){}
+  try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();analyser=audioCtx.createAnalyser();analyser.fftSize=256;dataArr=new Uint8Array(analyser.frequencyBinCount);srcNode=audioCtx.createMediaElementSource(audio);(window.NovaEQ?window.NovaEQ.attach(audioCtx,srcNode):srcNode).connect(analyser);analyser.connect(audioCtx.destination);}catch(e){}
 };
 const reducedMotion=()=>document.documentElement.dataset.motion==='reduce';
 window.addEventListener('nova-palette-change',()=>refreshVizColor());
@@ -3102,7 +3235,9 @@ button{transition:transform .2s cubic-bezier(.16,1,.3,1)}button:active{transform
 desktopButton.addEventListener('click',toggleDesktop);
 document.addEventListener('keydown',e=>{
   if(e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.matches('input,textarea,[contenteditable="true"]')||document.querySelector('.modal-bg.open'))return;
-  if(e.code==='KeyD'){e.preventDefault();toggleDesktop();}
+  /* v1.8.1 fix: in the Windows app, D went straight to the browser PiP path and showed
+     "browser not supported". Clicking the button lets the native bridge take over. */
+  if(e.code==='KeyD'){e.preventDefault();if(window.__TAURI__?.core?.invoke)desktopButton.click();else toggleDesktop();}
 });
 new MutationObserver(desktopTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','data-motion']});
 window.addEventListener('nova-motion-change',desktopTheme);
@@ -3378,18 +3513,61 @@ const saveSongLyrics=(id,fields)=>new Promise((res,rej)=>{
   req.onsuccess=()=>{if(!req.result)return;exists=true;store.put({...req.result,...fields});};
   tx.oncomplete=()=>exists?res():rej(new Error('song-removed'));tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error);
 });
-let lyricSongId=null,lyricRows=[],lyricShift=0,lyricActive=-2,lyricRequest=0,lyricFollow=true,lyricImportTarget=null,lyricSaving=false,lyricShiftSaving=false;
-const lyricWindow=$('lyricsWindow');
-const setLyricsOpen=open=>{const before=window.NovaMotion?.captureLayout();const panel=$('lyricsPanel');panel.hidden=!open;$('lyricsBtn').setAttribute('aria-expanded',String(open));experienceStore.set('lyrics-open',open);window.NovaMotion?.settleLayout(before,440);if(open){window.NovaMotion?.reveal(panel,20);requestAnimationFrame(()=>syncLyrics(true));}};
-$('lyricsBtn').addEventListener('click',()=>setLyricsOpen($('lyricsPanel').hidden));
+/* ── v1.9.0 · LYRICS ENGINE ──
+   Deep online search (ID3 tags + filename variants → LRCLIB get/search, scored by
+   title/artist similarity and duration, lyrics.ovh as a plain-text fallback), manual
+   search with a pick list, and Persian translation with three views (original,
+   bilingual, Persian only). Everything is cached on the song record, so it works
+   offline afterwards and in the mini player too. */
+let lyricPlain='',lyricPlainLines=[],lyricOnlineBusy=false,lyricOnlineSeq=0,lyricSongId=null,lyricRows=[],lyricShift=0,lyricActive=-2,lyricRequest=0,lyricFollow=true,lyricShiftSaving=false;
+let lyricTrans=null,lyricTransBusy=false,lyricTransFailed=false,lyricIsFa=false,lyricMeta={source:'',label:''},lyricTagCache=new Map();
+const lyricWindow=$('lyricsWindow'),lyricPanel=$('lyricsPanel');
+const LYRIC_VIEWS=['orig','both','fa'],LYRIC_SIZES=['s','m','l','xl'];
+const lyricView=()=>{const v=experienceStore.get('lyrics-view','orig');return LYRIC_VIEWS.includes(v)?v:'orig';};
+const lyricSize=()=>{const v=experienceStore.get('lyrics-size','m');return LYRIC_SIZES.includes(v)?v:'m';};
+const lyrFetch=(url,ms=12000)=>{const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);return fetch(url,{signal:c.signal}).finally(()=>clearTimeout(t));};
+const lyricInvoke=()=>window.__TAURI__?.core?.invoke;
+
+const setLyricsOpen=open=>{const before=window.NovaMotion?.captureLayout();lyricPanel.hidden=!open;$('lyricsBtn').setAttribute('aria-expanded',String(open));experienceStore.set('lyrics-open',open);window.NovaMotion?.settleLayout(before,440);if(open){window.NovaMotion?.reveal(lyricPanel,20);requestAnimationFrame(()=>syncLyrics(true));}};
+$('lyricsBtn').addEventListener('click',()=>setLyricsOpen(lyricPanel.hidden));
 const setFollow=on=>{lyricFollow=on;$('lrcFollowBtn').setAttribute('aria-pressed',String(on));$('lrcFollowBtn').textContent=on?'دنبال‌کردن متن':'برگشت به خط فعلی';if(on)syncLyrics(true);};
 $('lrcFollowBtn').addEventListener('click',()=>setFollow(!lyricFollow));
 ['wheel','touchstart'].forEach(name=>lyricWindow.addEventListener(name,()=>{if(lyricRows.length)setFollow(false);},{passive:true}));
 lyricWindow.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End'].includes(e.key))setFollow(false);});
-const showLyricEmpty=(heading,description)=>{
-  lyricWindow.replaceChildren();const box=document.createElement('div');box.className='lyrics-empty';const title=document.createElement('strong'),caption=document.createElement('span');title.textContent=heading;caption.textContent=description;box.append(title,caption);lyricWindow.append(box);$('lyricsFooter').hidden=true;
+
+const showLyricEmpty=(heading,description,{loading=false,action=null}={})=>{
+  lyricWindow.replaceChildren();const box=document.createElement('div');box.className='lyrics-empty'+(loading?' is-loading':'');
+  const title=document.createElement('strong'),caption=document.createElement('span');title.textContent=heading;caption.textContent=description||'';box.append(title);if(description)box.append(caption);
+  if(action){const b=document.createElement('button');b.type='button';b.className='experience-btn lyr-empty-act';b.textContent=action.label;b.addEventListener('click',action.run);box.append(b);}
+  lyricWindow.append(box);$('lyricsFooter').hidden=true;$('lrcCopyBtn').disabled=true;
 };
 const paintLyricShift=()=>{$('lrcShiftValue').textContent=(lyricShift>0?'+':'')+lyricShift.toFixed(1)+'s';};
+
+/* ---------- lines, translation state, meta ---------- */
+const lyricSourceLines=()=>lyricRows.length?lyricRows.map(r=>r.text):lyricPlainLines;
+const lyricKey=lines=>{let h=5381;const s=lines.join('\n');for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return 'k'+(h>>>0).toString(36)+'.'+lines.length;};
+const lyricLooksFa=lines=>{const real=lines.filter(t=>/\p{L}/u.test(t));if(!real.length)return false;const fa=real.filter(t=>/[\u0600-\u06FF]/.test(t)&&!/[A-Za-z]{3,}/.test(t.replace(/[\u0600-\u06FF]/g,''))).length;return fa/real.length>=.6;};
+const paintLyricMeta=()=>{
+  const box=$('lyricsMeta');box.replaceChildren();
+  const chip=(text,cls='')=>{const c=document.createElement('span');c.className='lyr-chip '+cls;c.textContent=text;box.append(c);};
+  if(lyricRows.length)chip('هم‌زمان','is-sync');else if(lyricPlainLines.length)chip('بدون زمان‌بندی');
+  if(lyricMeta.source)chip(lyricMeta.source);
+  const n=lyricSourceLines().length;if(n)chip(n+' خط');
+  if(lyricTransBusy)chip('در حال ترجمه…','is-busy');else if(lyricTrans)chip('ترجمهٔ فارسی','is-sync');else if(lyricIsFa&&n)chip('متن فارسی');
+  if(lyricOnlineBusy)chip('در حال جستجو…','is-busy');
+};
+const paintLyricViews=()=>{
+  const view=lyricView(),has=lyricSourceLines().length>0;lyricPanel.dataset.view=view;$('lrcViews').hidden=!has;
+  $('lrcViews').setAttribute('aria-busy',String(lyricTransBusy));
+  $('lrcViews').querySelectorAll('button').forEach(b=>{b.setAttribute('aria-checked',String(b.dataset.view===view));b.disabled=b.dataset.view!=='orig'&&(lyricIsFa||!has);b.title=lyricIsFa&&b.dataset.view!=='orig'?'متن این آهنگ خودش فارسی است':'';});
+  paintLyricMeta();
+};
+const lyricTextFor=i=>{
+  const lines=lyricSourceLines(),orig=String(lines[i]??''),tr=lyricTrans&&!lyricIsFa?String(lyricTrans[i]||''):'',view=lyricView();
+  return {orig,tr:view==='orig'?'':tr,showOrig:view!=='fa'||!tr};
+};
+
+/* ---------- drawing & sync ---------- */
 const syncLyrics=(force=false)=>{
   if(!lyricRows.length||Number(currentSong()?.id)!==lyricSongId)return;
   const time=(Number.isFinite(audio.currentTime)?audio.currentTime:0)-lyricShift;
@@ -3398,44 +3576,344 @@ const syncLyrics=(force=false)=>{
   if(active===lyricActive&&!force)return;
   lyricActive=active;
   [...lyricWindow.children].forEach((line,i)=>{line.classList.toggle('is-current',i===active);line.classList.toggle('is-past',i<active);if(i===active)line.setAttribute('aria-current','true');else line.removeAttribute('aria-current');});
-  if(lyricFollow&&!$('lyricsPanel').hidden){
+  if(lyricFollow&&!lyricPanel.hidden){
     const line=lyricWindow.children[Math.max(0,active)];
     if(line){const target=lyricWindow.scrollTop+line.getBoundingClientRect().top-lyricWindow.getBoundingClientRect().top-lyricWindow.clientHeight/2+line.clientHeight/2;lyricWindow.scrollTo({top:Math.max(0,target),behavior:reducedMotion()||force?'instant':'smooth'});}
   }
 };
+const fillLyricLine=(el,i)=>{
+  const {orig,tr,showOrig}=lyricTextFor(i);el.replaceChildren();el.setAttribute('data-i18n-skip','');
+  if(showOrig){const o=document.createElement('span');o.className='lyric-orig';o.dir='auto';o.textContent=orig;el.append(o);}
+  if(tr&&orig!=='♪'){const t=document.createElement('span');t.className='lyric-tr';t.dir='rtl';t.textContent=tr;el.append(t);}
+};
 const drawLyrics=()=>{
-  lyricActive=-2;lyricWindow.replaceChildren();
-  if(!lyricRows.length){showLyricEmpty('کلمات این آهنگ هنوز اینجا نیست','فایل LRC همین آهنگ را اضافه کن؛ همراهش در مرورگر ذخیره می‌شود.');return;}
+  lyricActive=-2;lyricWindow.replaceChildren();paintLyricViews();
+  const has=lyricSourceLines().length>0;$('lrcCopyBtn').disabled=!has;$('lrcClearBtn').disabled=!has&&!lyricMeta.source;
+  if(!lyricRows.length&&lyricPlainLines.length){
+    const fragment=document.createDocumentFragment();
+    lyricPlainLines.forEach((t,i)=>{const row=document.createElement('div');row.className='lyric-line is-plain';fillLyricLine(row,i);fragment.append(row);});
+    lyricWindow.append(fragment);$('lyricsFooter').hidden=true;$('lrcViews').hidden=true;return;
+  }
+  if(!lyricRows.length){showLyricEmpty('هنوز متنی برای این آهنگ نداریم','جستجوی هوشمند را بزن، یا نام آهنگ و خواننده را دستی جستجو کن.',{action:{label:'جستجوی متن',run:()=>{const s=currentSong();if(s)onlineLyrics(s,{auto:false});}}});$('lrcViews').hidden=true;return;}
   const fragment=document.createDocumentFragment();
-  lyricRows.forEach((row,i)=>{const button=document.createElement('button');button.type='button';button.className='lyric-line';button.textContent=row.text;button.dataset.line=String(i);button.title='رفتن به '+fmtTime(Math.max(0,row.time+lyricShift));fragment.append(button);});
+  lyricRows.forEach((row,i)=>{const button=document.createElement('button');button.type='button';button.className='lyric-line';fillLyricLine(button,i);button.dataset.line=String(i);button.title='رفتن به '+fmtTime(Math.max(0,row.time+lyricShift));fragment.append(button);});
   lyricWindow.append(fragment);$('lyricsFooter').hidden=false;paintLyricShift();setFollow(true);syncLyrics(true);
 };
 lyricWindow.addEventListener('click',e=>{const line=e.target.closest('[data-line]');if(!line||!Number.isFinite(audio.duration)||audio.duration<=0||Number(currentSong()?.id)!==lyricSongId)return;const row=lyricRows[Number(line.dataset.line)];if(row){audio.currentTime=Math.max(0,Math.min(audio.duration,row.time+lyricShift));setFollow(true);syncLyrics(true);}});
+
 const loadLyrics=async song=>{
-  const request=++lyricRequest;lyricSongId=song?Number(song.id):null;lyricRows=[];lyricShift=0;lyricActive=-2;
-  $('lrcImportBtn').disabled=!song||lyricSaving;$('lyricsCaption').textContent=song?song.name:'متن هم‌زمان، از فایل خودت';
-  if(!song){showLyricEmpty('هر آهنگ، کلمات خودش','یک آهنگ انتخاب کن و فایل LRC آن را اضافه کن.');return;}
-  showLyricEmpty('در حال بررسی متن…','');
-  try{const record=await getSongRecord(song.id);if(request!==lyricRequest)return;
-    lyricRows=record?.lrc?parseLRC(record.lrc):[];lyricShift=Number.isFinite(record?.lrcShift)?Math.max(-30,Math.min(30,record.lrcShift)):0;
-    if(record?.lrcName)$('lyricsCaption').textContent=record.lrcName+' · '+lyricRows.length+' خط';drawLyrics();
-  }catch{if(request===lyricRequest)showLyricEmpty('متن آهنگ در دسترس نیست','دوباره فایل LRC را انتخاب کن.');}
+  const request=++lyricRequest;lyricSongId=song?Number(song.id):null;lyricRows=[];lyricPlain='';lyricPlainLines=[];lyricShift=0;lyricActive=-2;lyricTrans=null;lyricTransFailed=false;lyricIsFa=false;lyricMeta={source:'',label:''};
+  $('lrcOnlineBtn').disabled=!song||lyricOnlineBusy;$('lyricsCaption').textContent=song?song.name:'یک آهنگ انتخاب کن';
+  $('lrcResults').replaceChildren();if(song&&!$('lrcSheet').hidden)fillLyricQuery(song);
+  if(!song){paintLyricViews();$('lrcClearBtn').disabled=true;showLyricEmpty('هر آهنگ، کلمات خودش','یک آهنگ انتخاب کن؛ متن هم‌زمانش خودکار از اینترنت پیدا می‌شود.');return;}
+  showLyricEmpty('در حال بررسی متن…','',{loading:true});
+  let record=null;
+  try{record=await getSongRecord(song.id);if(request!==lyricRequest)return;
+    lyricRows=record?.lrc?parseLRC(record.lrc):[];lyricPlain=!lyricRows.length&&record?.lrcPlain?String(record.lrcPlain):'';
+    lyricPlainLines=lyricPlain?lyricPlain.split(/\r?\n/).map(t=>t.trim()).filter(Boolean).slice(0,2000):[];
+    lyricShift=Number.isFinite(record?.lrcShift)?Math.max(-30,Math.min(30,record.lrcShift)):0;
+    const lines=lyricSourceLines();lyricIsFa=lyricLooksFa(lines);
+    if(lines.length&&Array.isArray(record?.lrcTrans)&&record.lrcTransKey===lyricKey(lines))lyricTrans=record.lrcTrans.map(t=>String(t||''));
+    const name=String(record?.lrcName||'');lyricMeta={source:record?.lrcSource==='lyrics.ovh'?'lyrics.ovh':record?.lrcSource==='lrclib'||/^LRCLIB/.test(name)?'LRCLIB':record?.lrcSource==='file'?'LRC':'',label:name.replace(/^(LRCLIB|lyrics\.ovh)\s·\s/,'')};
+    if(lyricMeta.label)$('lyricsCaption').textContent=lyricMeta.label;
+    drawLyrics();
+  }catch{if(request===lyricRequest)showLyricEmpty('متن آهنگ در دسترس نیست','دوباره جستجو کن.',{action:{label:'جستجوی متن',run:()=>onlineLyrics(song,{auto:false})}});return;}
+  if(lyricSourceLines().length){if(lyricView()!=='orig'&&!lyricTrans&&!lyricIsFa)translateLyrics({auto:true});return;}
+  /* nothing stored → quietly search online (skipped for 7 days after a clean "not found") */
+  const recentMiss=Number(record?.lrcMiss)>0&&Date.now()-Number(record.lrcMiss)<7*864e5;
+  if(!recentMiss&&lyricAutoOn())onlineLyrics(song,{auto:true,request});
 };
-$('lrcImportBtn').addEventListener('click',()=>{const song=currentSong();if(!song)return;lyricImportTarget={id:Number(song.id),name:song.name};$('lrcFile').value='';$('lrcFile').click();});
-$('lrcFile').addEventListener('change',async()=>{
-  const file=$('lrcFile').files?.[0],target=lyricImportTarget;lyricImportTarget=null;if(!file||!target)return;
-  if(file.size>512*1024){toast('فایل LRC باید کمتر از ۵۱۲ کیلوبایت باشد',true);return;}
-  if(!/\.lrc$/i.test(file.name)){toast('یک فایل با پسوند LRC انتخاب کن',true);return;}
-  lyricSaving=true;$('lrcImportBtn').disabled=true;
-  try{
-    const text=await file.text();const rows=parseLRC(text);
-    if(!rows.length){toast('زمان‌بندی پیدا نشد؛ نمونهٔ درست: [00:12.50] متن آهنگ',true);return;}
-    await saveSongLyrics(target.id,{lrc:text,lrcName:file.name,lrcShift:0});
-    if(Number(currentSong()?.id)===target.id){await loadLyrics(currentSong());setLyricsOpen(true);}
-    toast('متن برای «'+target.name+'» ذخیره شد');
-  }catch(error){toast(error.message==='too-many-lines'?'فایل بیش از ۵۰۰۰ خط زمان‌دار دارد':'ذخیرهٔ متن ممکن نشد؛ آهنگ و دسترسی ذخیره‌سازی را بررسی کن',true);}
-  finally{lyricSaving=false;$('lrcImportBtn').disabled=!currentSong();}
+
+/* ---------- auto toggle, size, copy, views, sheet ---------- */
+const lyricAutoOn=()=>experienceStore.get('lyrics-online','true')==='true';
+const paintLyricAuto=()=>{$('lrcAutoBtn').setAttribute('aria-checked',String(lyricAutoOn()));};
+$('lrcAutoBtn').addEventListener('click',()=>{experienceStore.set('lyrics-online',!lyricAutoOn());paintLyricAuto();toast(lyricAutoOn()?'پیدا کردن خودکار متن روشن شد':'پیدا کردن خودکار متن خاموش شد');if(lyricAutoOn()&&currentSong()&&!lyricSourceLines().length&&!lyricOnlineBusy)onlineLyrics(currentSong(),{auto:false});});
+paintLyricAuto();
+const paintLyricSize=()=>{lyricPanel.dataset.size=lyricSize();};
+$('lrcSizeBtn').addEventListener('click',()=>{const next=LYRIC_SIZES[(LYRIC_SIZES.indexOf(lyricSize())+1)%LYRIC_SIZES.length];experienceStore.set('lyrics-size',next);paintLyricSize();syncLyrics(true);toast('اندازهٔ متن: '+({s:'کوچک',m:'معمولی',l:'بزرگ',xl:'خیلی بزرگ'})[next]);});
+paintLyricSize();
+$('lrcCopyBtn').addEventListener('click',async()=>{
+  const lines=lyricSourceLines();if(!lines.length)return;
+  const text=lines.map((_,i)=>{const {orig,tr,showOrig}=lyricTextFor(i);return [showOrig?orig:'',tr].filter(Boolean).join('\n');}).join('\n');
+  try{await navigator.clipboard.writeText(text);toast('متن آهنگ کپی شد');}catch{toast('کپی انجام نشد',true);}
 });
+$('lrcViews').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-view]');if(!b||b.disabled)return;
+  experienceStore.set('lyrics-view',b.dataset.view);
+  if(b.dataset.view!=='orig'&&!lyricTrans&&!lyricIsFa&&lyricSourceLines().length){paintLyricViews();translateLyrics({auto:false});return;}
+  drawLyrics();
+});
+const fillLyricQuery=song=>{const q=lyricQueryFor(song,lyricTagCache.get(Number(song?.id))||null);$('lrcQTitle').value=q.title||'';$('lrcQArtist').value=q.artist||'';};
+$('lrcSheetBtn').addEventListener('click',()=>{
+  const open=$('lrcSheet').hidden;$('lrcSheet').hidden=!open;$('lrcSheetBtn').setAttribute('aria-expanded',String(open));
+  if(open){const s=currentSong();if(s){fillLyricQuery(s);readSongTags(s).then(tags=>{if(tags&&Number(currentSong()?.id)===Number(s.id)&&!$('lrcSheet').hidden&&document.activeElement?.tagName!=='INPUT')fillLyricQuery(s);});}requestAnimationFrame(()=>$('lrcQTitle').focus());}
+});
+['lrcQTitle','lrcQArtist'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('lrcManualBtn').click();}if(e.key==='Escape'){e.stopPropagation();$('lrcSheetBtn').click();}}));
+$('lrcClearBtn').addEventListener('click',async()=>{
+  const song=currentSong();if(!song)return;const id=Number(song.id);
+  try{await saveSongLyrics(id,{lrc:'',lrcPlain:'',lrcName:'',lrcSource:'',lrcShift:0,lrcTrans:null,lrcTransKey:'',lrcMiss:Date.now()});toast('متن این آهنگ حذف شد');if(Number(currentSong()?.id)===id)loadLyrics(currentSong());}
+  catch{toast('حذف متن انجام نشد',true);}
+});
+
+/* ---------- reading ID3 / MP4 tags for a better query ---------- */
+const decodeTagText=(b,enc)=>{
+  try{
+    if(enc===1||enc===2){let le=enc===1;let p=0;if(b[0]===0xFF&&b[1]===0xFE){le=true;p=2;}else if(b[0]===0xFE&&b[1]===0xFF){le=false;p=2;}return new TextDecoder(le?'utf-16le':'utf-16be').decode(b.subarray(p)).replace(/\0.*$/s,'').trim();}
+    if(enc===3)return new TextDecoder('utf-8').decode(b).replace(/\0.*$/s,'').trim();
+    const cut=b.indexOf(0);const raw=cut>=0?b.subarray(0,cut):b;
+    if([...raw].some(x=>x>0x7f)){const utf=new TextDecoder('utf-8',{fatal:false}).decode(raw);if(!utf.includes('\uFFFD'))return utf.trim();try{return new TextDecoder('windows-1256').decode(raw).trim();}catch{}}
+    return new TextDecoder('latin1').decode(raw).trim();
+  }catch{return '';}
+};
+const parseSongTags=b=>{
+  const out={};
+  if(b[0]===0x49&&b[1]===0x44&&b[2]===0x33&&b[3]>=2&&b[3]<=4){
+    const ver=b[3],size=((b[6]&0x7f)<<21)|((b[7]&0x7f)<<14)|((b[8]&0x7f)<<7)|(b[9]&0x7f),end=Math.min(b.length,10+size);
+    let pos=10;if(b[5]&0x40)pos+=ver>=4?(((b[10]&0x7f)<<21)|((b[11]&0x7f)<<14)|((b[12]&0x7f)<<7)|(b[13]&0x7f)):4+(((b[10]<<24)|(b[11]<<16)|(b[12]<<8)|b[13])>>>0);
+    const hdr=ver===2?6:10,idLen=ver===2?3:4,want=ver===2?{TT2:'title',TP1:'artist',TAL:'album'}:{TIT2:'title',TPE1:'artist',TALB:'album'};
+    let guard=0;
+    while(pos+hdr<=end&&guard++<400){
+      const id=String.fromCharCode(...b.subarray(pos,pos+idLen));if(!/^[A-Z0-9]{3,4}$/.test(id))break;
+      const sz=ver===2?(b[pos+3]<<16)|(b[pos+4]<<8)|b[pos+5]:ver===4?((b[pos+4]&0x7f)<<21)|((b[pos+5]&0x7f)<<14)|((b[pos+6]&0x7f)<<7)|(b[pos+7]&0x7f):((b[pos+4]<<24)|(b[pos+5]<<16)|(b[pos+6]<<8)|b[pos+7])>>>0;
+      if(sz<=0||pos+hdr+sz>end)break;
+      if(want[id]&&sz>1){const data=b.subarray(pos+hdr,pos+hdr+sz);const txt=decodeTagText(data.subarray(1),data[0]).split('\0')[0].trim();if(txt)out[want[id]]=txt;}
+      pos+=hdr+sz;
+    }
+  }
+  if(!out.title){ /* MP4 / M4A: ©nam ©ART ©alb (only when moov sits near the start) */
+    const find=(a,c,d,e)=>{for(let i=0;i<b.length-24;i++)if(b[i]===a&&b[i+1]===c&&b[i+2]===d&&b[i+3]===e&&b[i+8]===0x64&&b[i+9]===0x61&&b[i+10]===0x74&&b[i+11]===0x61){const len=((b[i+4]<<24)|(b[i+5]<<16)|(b[i+6]<<8)|b[i+7])>>>0;if(len>16&&len<2048)return new TextDecoder('utf-8').decode(b.subarray(i+20,i+4+len)).trim();}return '';};
+    const t=find(0xA9,0x6E,0x61,0x6D),a=find(0xA9,0x41,0x52,0x54),al=find(0xA9,0x61,0x6C,0x62);if(t)out.title=t;if(a)out.artist=a;if(al)out.album=al;
+  }
+  return out;
+};
+const readSongTags=async song=>{
+  const id=Number(song?.id);if(!song)return null;if(lyricTagCache.has(id))return lyricTagCache.get(id);
+  let tags=null;
+  try{
+    const src=song.src||(currentSong()===song?audio.currentSrc:'');
+    if(src){const r=await lyrFetch(src,6000);const reader=r.body?.getReader();
+      if(reader){const parts=[];let got=0;while(got<393216){const {done,value}=await reader.read();if(done)break;parts.push(value);got+=value.length;}try{reader.cancel();}catch{}
+        const b=new Uint8Array(got);let o=0;for(const p of parts){b.set(p.subarray(0,Math.min(p.length,got-o)),o);o+=p.length;}tags=parseSongTags(b);}}
+  }catch{tags=null;}
+  if(tags&&!tags.title&&!tags.artist)tags=null;
+  lyricTagCache.set(id,tags);return tags;
+};
+
+/* ---------- query building & scoring ---------- */
+const LYR_JUNK=/\b(official|music|video|audio|lyrics?|visuali[sz]er|hd|hq|4k|full|\d{2,3}\s*kbps|kbps|320|256|192|128|mp3|m4a|flac|remaster(ed)?|explicit|clean|clip|mv|m\/v|original|soundtrack|ost|version|live|remix|edit|mix|cover|prod\.?|spotisaver|spotifydown|spotdl|spotify|youtube|yt|soundcloud|download|dl)\b/i;
+const lyrClean=s=>String(s||'').normalize('NFKC').replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g,' ').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\s+/g,' ').trim();
+const lyrNorm=s=>lyrClean(s).toLowerCase().replace(/[\u064B-\u0652]/g,'').replace(/[’'`´]/g,'').replace(/&/g,' and ').replace(/[^\p{L}\p{N} ]+/gu,' ').replace(/\s+/g,' ').trim();
+const LYR_STOP=new Set(['the','a','an','feat','ft','and','of','با','و']);
+const lyrSim=(a,b)=>{
+  const na=lyrNorm(a),nb=lyrNorm(b);if(!na||!nb)return 0;if(na===nb)return 1;
+  const A=na.split(' ').filter(t=>!LYR_STOP.has(t)),B=nb.split(' ').filter(t=>!LYR_STOP.has(t));if(!A.length||!B.length)return 0;
+  const setB=new Set(B);const hit=A.filter(t=>setB.has(t)).length;const jac=hit/(A.length+B.length-hit);
+  const cont=(na.includes(nb)||nb.includes(na))?.82:0;
+  const sk=t=>t.replace(/kh/g,'x').replace(/gh|q/g,'g').replace(/[aeiouy\s]/g,'').replace(/(.)\1+/g,'$1');const ska=sk(na),skb=sk(nb);const fuzzy=ska.length>=2&&na.length>=4&&ska===skb?.8:0;
+  return Math.max(jac,cont,fuzzy,hit/Math.max(A.length,B.length)*.9);
+};
+const lyricQueryFor=(song,tags=null)=>{
+  const tidy=t=>{
+    let x=lyrClean(t).replace(/\.[a-z0-9]{2,5}$/i,'').replace(/_/g,' ');
+    x=x.replace(/\s*[\(\[【{][^\)\]】}]*[\)\]】}]/g,m=>LYR_JUNK.test(m)||/www\.|https?:|@\w|\.(com|ir|net|org|me|io)\b/i.test(m)||/^\W*(feat|ft)\.?\s/i.test(m.replace(/^[\s\(\[【{]+/,''))?' ':m);
+    x=x.replace(/https?:\/\/\S+|www\.\S+|\b[\w-]+\.(com|ir|net|org|me|io|co)\b/gi,' ').replace(/@\w+/g,' ').replace(/[\(\[【{]\s*[\)\]】}]/g,' ');
+    x=x.replace(/^\s*\d{1,3}\s*[-.)_]\s*/,'');
+    x=x.replace(/\s+(feat|ft)\.?\s.+$/i,'').replace(/\s*[-–—|]\s*(official|lyrics?|audio|video)\b.*$/i,'');
+    return x.replace(/\s+/g,' ').replace(/^[\s\-–—|.]+|[\s\-–—|.]+$/g,'').trim();
+  };
+  const base=tidy(song?.name||'');
+  const cutArtist=a=>String(a||'').replace(/\s*(,|&|\bx\b|×|\bfeat\.?|\bft\.?|و)\s.*$/i,'').trim();
+  let artist=song?.artist&&!/^(NOVA|NOVA Player)$/i.test(song.artist)?tidy(song.artist):'',title=base;const alts=[];
+  const m=base.match(/^(.+?)\s+[-–—|]\s+(.+)$/)||base.match(/^(.+?)[-–—]\s*(.+)$/);
+  if(m){if(!artist){artist=m[1].trim();title=m[2].trim();}alts.push({artist:cutArtist(m[2]),title:m[1].trim()});}
+  if(tags?.title){alts.unshift({artist:cutArtist(artist),title});title=tidy(tags.title)||title;if(tags.artist)artist=tidy(tags.artist);}
+  else if(tags?.artist&&!artist)artist=tidy(tags.artist);
+  artist=cutArtist(artist);
+  const alt=alts.find(a=>a.title&&(a.title!==title||a.artist!==artist))||null;
+  const bare=title.replace(/\s*[\(\[【{][^\)\]】}]*[\)\]】}]/g,'').trim()||title;
+  const folder=String(song?.folder||'').trim();
+  const folderArtist=folder&&!/^(music|musics|download|downloads|songs?|nova|nova player|desktop|new folder|mp3|audio|my music|telegram|📁.*|🔥.*)$/i.test(folder)&&folder.length<40&&lyrSim(folder,title)<.5?folder:'';
+  return {artist,title,bare,alt,alts:alts.filter(a=>a.title&&(a.title!==title||a.artist!==artist)),album:tags?.album||'',folderArtist};
+};
+const lrclibCall=async(endpoint,params)=>{
+  const pairs=Object.entries(params).filter(([,v])=>v!==''&&v!=null&&v!==0).map(([k,v])=>[k,String(v)]);
+  const inv=lyricInvoke();let text;
+  if(inv)text=await inv('fetch_lrclib',{endpoint,params:pairs});
+  else{const r=await lyrFetch('https://lrclib.net/api/'+endpoint+'?'+new URLSearchParams(pairs),12000);if(r.status===404)return null;if(!r.ok)throw new Error('lrclib-http');text=await r.text();}
+  return JSON.parse(text);
+};
+const ovhCall=async(artist,title)=>{
+  const inv=lyricInvoke();let text;
+  if(inv)text=await inv('fetch_lyrics_ovh',{artist,title});
+  else{const r=await lyrFetch('https://api.lyrics.ovh/v1/'+encodeURIComponent(artist)+'/'+encodeURIComponent(title),10000);if(r.status===404)return null;if(!r.ok)throw new Error('ovh-http');text=await r.text();}
+  const j=JSON.parse(text);return j&&typeof j.lyrics==='string'&&j.lyrics.trim()?j.lyrics.replace(/^Paroles de la chanson.*\r?\n/i,'').trim():null;
+};
+const waitSongDuration=(song,forceNow)=>new Promise(res=>{
+  const ok=()=>Number.isFinite(audio.duration)&&audio.duration>0;
+  if(forceNow||(song?.src&&audio.src===song.src&&ok()))return res(ok()?audio.duration:0);
+  let t=0;const done=()=>{clearTimeout(t);audio.removeEventListener('loadedmetadata',done);res(ok()?audio.duration:0);};
+  t=setTimeout(done,6000);audio.addEventListener('loadedmetadata',done);
+});
+const scoreLyricHit=(r,cands,d)=>{
+  if(!r||r.instrumental||!(r.syncedLyrics||r.plainLyrics))return -1;
+  let best=0;for(const c of cands){if(!c.title)continue;const ts=lyrSim(r.trackName,c.title),as=c.artist?lyrSim(r.artistName,c.artist):.45;best=Math.max(best,ts*.62+as*.38);}
+  let s=best*70;
+  const rd=Number(r.duration);if(d&&Number.isFinite(rd)&&rd>0){const diff=Math.abs(rd-d);s+=diff<=2?20:diff<=5?15:diff<=10?6:diff<=20?-12:-45;}
+  if(r.syncedLyrics)s+=10;if(r._exact)s+=12;
+  return s;
+};
+const findOnlineLyrics=async(song,duration)=>{
+  const tags=await readSongTags(song);
+  const q=lyricQueryFor(song,tags);if(!q.title)return null;
+  const d=duration>0?Math.round(duration):0;let failures=0,calls=0;
+  const tryCall=async(ep,p)=>{calls++;try{return await lrclibCall(ep,p);}catch{failures++;return null;}};
+  const cands=[{artist:q.artist,title:q.title},{artist:q.artist,title:q.bare}];
+  q.alts.forEach(a=>cands.push(a));if(q.folderArtist)cands.push({artist:q.folderArtist,title:q.title});
+  const pool=new Map();const add=(r,exact)=>{if(!r||typeof r!=='object')return;const key=r.id??(r.trackName+'|'+r.artistName+'|'+r.duration);const old=pool.get(key);if(!old||exact)pool.set(key,exact?{...r,_exact:true}:r);};
+  const pick=()=>{let best=null,bs=-1;for(const r of pool.values()){const s=scoreLyricHit(r,cands,d);if(s>bs){bs=s;best=r;}}return {best,bs};};
+  /* 1 · exact lookups (fast, precise) */
+  const gets=[];
+  if(d){for(const c of cands)if(c.artist&&c.title)gets.push({track_name:c.title,artist_name:c.artist,album_name:q.album||'',duration:d});}
+  const seenG=new Set();
+  for(const p of gets.slice(0,3)){const k=JSON.stringify(p);if(seenG.has(k))continue;seenG.add(k);add(await tryCall('get',p),true);const {best,bs}=pick();if(best?.syncedLyrics&&bs>=80)return best;}
+  /* 2 · broad searches in parallel, then score everything together */
+  const searches=[],seenS=new Set();const push=p=>{const k=JSON.stringify(p);if(!seenS.has(k)&&Object.values(p).every(Boolean)){seenS.add(k);searches.push(p);}};
+  for(const c of cands)if(c.artist)push({track_name:c.title,artist_name:c.artist});
+  push({q:[q.artist,q.title].filter(Boolean).join(' ')});
+  push({q:[q.artist,q.bare].filter(Boolean).join(' ')});
+  q.alts.forEach(a=>push({q:[a.artist,a.title].filter(Boolean).join(' ')}));
+  push({track_name:q.bare});
+  push({q:q.bare});
+  for(let i=0;i<searches.length;i+=3){
+    const lists=await Promise.all(searches.slice(i,i+3).map(p=>tryCall('search',p)));
+    lists.forEach(list=>Array.isArray(list)&&list.slice(0,25).forEach(r=>add(r,false)));
+    const {best,bs}=pick();if(best?.syncedLyrics&&bs>=75)return best;
+  }
+  const {best,bs}=pick();
+  if(best&&bs>=48&&best.syncedLyrics)return best;
+  /* 3 · plain text: best LRCLIB plain hit, then lyrics.ovh */
+  if(best&&bs>=48)return best;
+  for(const c of cands.slice(0,3)){if(!c.artist||!c.title)continue;calls++;
+    try{const text=await ovhCall(c.artist,c.title);if(text)return {plainLyrics:text,trackName:c.title,artistName:c.artist,_source:'lyrics.ovh'};}catch{failures++;}}
+  if(failures&&failures===calls)throw new Error('lrclib-offline');
+  return null;
+};
+const applyLyricHit=async(id,hit)=>{
+  const synced=hit.syncedLyrics&&parseLRC(hit.syncedLyrics).length?String(hit.syncedLyrics):'';
+  const src=hit._source==='lyrics.ovh'?'lyrics.ovh':'lrclib';
+  const label=(src==='lyrics.ovh'?'lyrics.ovh':'LRCLIB')+' · '+[hit.artistName,hit.trackName].filter(Boolean).join(' - ');
+  await saveSongLyrics(id,synced?{lrc:synced,lrcPlain:'',lrcName:label,lrcShift:0,lrcSource:src,lrcMiss:0,lrcTrans:null,lrcTransKey:''}:{lrc:'',lrcPlain:String(hit.plainLyrics||''),lrcName:label,lrcSource:src,lrcMiss:0,lrcTrans:null,lrcTransKey:''});
+  return !!synced;
+};
+const setOnlineBusy=on=>{lyricOnlineBusy=on;const btn=$('lrcOnlineBtn');btn.disabled=on||!currentSong();if(on){btn.setAttribute('aria-busy','true');btn.textContent='در حال جستجو…';}else{btn.removeAttribute('aria-busy');btn.textContent='جستجوی هوشمند';}paintLyricMeta();};
+const onlineLyrics=async(song,{auto=false,request=lyricRequest}={})=>{
+  if(!song||(lyricOnlineBusy&&!auto))return;const id=Number(song.id),job=++lyricOnlineSeq;
+  const still=()=>request===lyricRequest&&Number(currentSong()?.id)===id;
+  setOnlineBusy(true);
+  if(!lyricSourceLines().length)showLyricEmpty('در حال جستجوی متن…','برچسب‌های فایل، نام آهنگ و خواننده بررسی می‌شوند',{loading:true});
+  try{
+    const duration=await waitSongDuration(song,!auto);if(!still())return;
+    const hit=await findOnlineLyrics(song,duration);
+    if(!hit){
+      await saveSongLyrics(id,{lrcMiss:Date.now()}).catch(()=>{});
+      if(still()&&!lyricSourceLines().length)showLyricEmpty('متنی برای این آهنگ پیدا نشد','نام آهنگ و خواننده را دستی جستجو کن؛ معمولاً با اسم انگلیسی بهتر پیدا می‌شود.',{action:{label:'جستجوی دستی',run:()=>{if($('lrcSheet').hidden)$('lrcSheetBtn').click();}}});
+      if(!auto)toast('متنی برای این آهنگ پیدا نشد',true);return;
+    }
+    const synced=await applyLyricHit(id,hit);
+    if(still()){setOnlineBusy(false);await loadLyrics(currentSong());}
+    if(!auto||still())toast(synced?'متن هم‌زمان پیدا شد':'فقط متن بدون زمان‌بندی پیدا شد');
+  }catch(error){
+    const off=error?.message==='lrclib-offline';
+    if(still()&&!lyricSourceLines().length)showLyricEmpty(off?'اتصال به سرویس متن برقرار نشد':'ذخیرهٔ متن انجام نشد',off?'اینترنت را بررسی کن و دوباره امتحان کن.':'دوباره امتحان کن.',{action:{label:'تلاش دوباره',run:()=>onlineLyrics(song,{auto:false})}});
+    if(!auto)toast(off?'اتصال به سرویس متن برقرار نشد':'ذخیرهٔ متن انجام نشد',true);
+  }finally{if(job===lyricOnlineSeq)setOnlineBusy(false);}
+};
+$('lrcOnlineBtn').addEventListener('click',()=>{const song=currentSong();if(song){lyricTagCache.delete(Number(song.id));onlineLyrics(song,{auto:false});}});
+
+/* ---------- manual search with a pick list ---------- */
+$('lrcManualBtn').addEventListener('click',async()=>{
+  const song=currentSong(),btn=$('lrcManualBtn'),box=$('lrcResults');if(!song||btn.getAttribute('aria-busy')==='true')return;
+  const title=lyrClean($('lrcQTitle').value),artist=lyrClean($('lrcQArtist').value);
+  if(!title&&!artist){toast('نام آهنگ یا خواننده را بنویس',true);$('lrcQTitle').focus();return;}
+  const id=Number(song.id),d=Number.isFinite(audio.duration)&&audio.duration>0?Math.round(audio.duration):0;
+  btn.setAttribute('aria-busy','true');btn.textContent='در حال جستجو…';
+  const note=t=>{box.replaceChildren();const n=document.createElement('div');n.className='lyr-result-note';n.textContent=t;box.append(n);};
+  note('در حال جستجو…');
+  try{
+    const params=[];if(title&&artist)params.push({track_name:title,artist_name:artist});params.push({q:[artist,title].filter(Boolean).join(' ')});if(title)params.push({track_name:title});
+    let fails=0;const lists=await Promise.all(params.map(p=>lrclibCall('search',p).catch(()=>{fails++;return null;})));
+    if(fails===params.length)throw new Error('offline');
+    const pool=new Map();lists.forEach(l=>Array.isArray(l)&&l.forEach(r=>{if(r&&!r.instrumental&&(r.syncedLyrics||r.plainLyrics))pool.set(r.id??(r.trackName+r.artistName+r.duration),r);}));
+    const cands=[{artist,title}];
+    const hits=[...pool.values()].map(r=>({r,s:scoreLyricHit(r,cands,d)})).sort((a,b)=>b.s-a.s).slice(0,15);
+    if(Number(currentSong()?.id)!==id)return;
+    if(!hits.length){note('نتیجه‌ای پیدا نشد؛ املای انگلیسی یا فقط نام آهنگ را امتحان کن.');return;}
+    box.replaceChildren();
+    hits.forEach(({r})=>{
+      const b=document.createElement('button');b.type='button';b.className='lyr-result';b.setAttribute('data-i18n-skip','');
+      const t=document.createElement('span');t.className='lyr-result-title';t.dir='auto';t.textContent=r.trackName||'—';
+      const sub=document.createElement('span');sub.className='lyr-result-sub';sub.dir='auto';sub.textContent=[r.artistName,r.albumName].filter(Boolean).join(' · ');
+      const side=document.createElement('span');side.className='lyr-result-side';
+      const badge=document.createElement('span');badge.className='lyr-chip'+(r.syncedLyrics?' is-sync':'');badge.textContent=r.syncedLyrics?'هم‌زمان':'بدون زمان';
+      const dur=document.createElement('span');dur.textContent=Number(r.duration)>0?fmtTime(Number(r.duration)):'';
+      side.append(badge,dur);b.append(t,sub,side);
+      b.addEventListener('click',async()=>{
+        try{const synced=await applyLyricHit(id,r);if(Number(currentSong()?.id)===id){await loadLyrics(currentSong());}toast(synced?'متن هم‌زمان ذخیره شد':'متن بدون زمان‌بندی ذخیره شد');box.replaceChildren();}
+        catch{toast('ذخیرهٔ متن انجام نشد',true);}
+      });
+      box.append(b);
+    });
+  }catch{note('اتصال به LRCLIB برقرار نشد؛ اینترنت را بررسی کن.');}
+  finally{btn.removeAttribute('aria-busy');btn.textContent='جستجو و انتخاب';}
+});
+
+/* ---------- translation (Persian) ---------- */
+const translateCall=async(provider,text,source)=>{
+  const inv=lyricInvoke();let body;
+  if(inv)body=await inv('fetch_translation',{provider,text,target:'fa',source:source||null});
+  else{
+    const url=provider==='google'?'https://translate.googleapis.com/translate_a/single?client=gtx&sl='+(source||'auto')+'&tl=fa&dt=t&ie=UTF-8&oe=UTF-8&q='+encodeURIComponent(text):'https://api.mymemory.translated.net/get?langpair='+(source||'en')+'|fa&q='+encodeURIComponent(text);
+    const r=await lyrFetch(url,15000);if(!r.ok)throw new Error('translate-http');body=await r.text();
+  }
+  const j=JSON.parse(body);
+  if(provider==='google')return {text:(Array.isArray(j?.[0])?j[0]:[]).map(s=>Array.isArray(s)?String(s[0]??''):'').join(''),src:typeof j?.[2]==='string'?j[2]:''};
+  const t=String(j?.responseData?.translatedText||'');if(!t||/MYMEMORY WARNING|QUERY LENGTH LIMIT/i.test(t))throw new Error('mymemory');return {text:t,src:source||''};
+};
+const translateLines=async lines=>{
+  const flat=lines.map(t=>String(t).replace(/\s*\n+\s*/g,' / ').trim());
+  const need=[...new Set(flat.filter(t=>t&&t!=='♪'&&/\p{L}/u.test(t)&&!/^[\u0600-\u06FF\s\p{P}\d]+$/u.test(t)))];
+  const map=new Map();let src='',fails=0,calls=0;
+  const one=async t=>{calls++;try{const r=await translateCall('google',t,src&&src!=='auto'?src:'');src=src||r.src;map.set(t,r.text.trim());return;}catch{fails++;}
+    try{if(t.length<=480){const r=await translateCall('mymemory',t,src&&src!=='auto'?src:'en');map.set(t,r.text.trim());}}catch{}};
+  const chunks=[];let cur=[],len=0;for(const t of need){if(len+t.length+1>1400&&cur.length){chunks.push(cur);cur=[];len=0;}cur.push(t);len+=t.length+1;}if(cur.length)chunks.push(cur);
+  for(const chunk of chunks){
+    calls++;let ok=false;
+    try{const r=await translateCall('google',chunk.join('\n'),'');src=src||r.src;if(src==='fa')return {fa:true};
+      const parts=r.text.split('\n').map(x=>x.trim());if(parts.length===chunk.length){chunk.forEach((t,i)=>map.set(t,parts[i]));ok=true;}}catch{fails++;}
+    if(!ok){for(let i=0;i<chunk.length;i+=4)await Promise.all(chunk.slice(i,i+4).map(one));}
+  }
+  if(need.length&&!map.size)throw new Error(fails&&fails>=calls?'offline':'empty');
+  return {lines:flat.map(t=>map.get(t)||'')};
+};
+const translateLyrics=async({auto=false}={})=>{
+  const lines=lyricSourceLines();if(!lines.length||lyricIsFa||lyricTransBusy)return;
+  if(auto&&lyricTransFailed)return;
+  const id=lyricSongId,req=lyricRequest,key=lyricKey(lines);
+  lyricTransBusy=true;paintLyricViews();
+  try{
+    const res=await translateLines(lines);
+    if(res.fa){if(req===lyricRequest){lyricIsFa=true;drawLyrics();}if(!auto)toast('متن این آهنگ خودش فارسی است');return;}
+    await saveSongLyrics(id,{lrcTrans:res.lines,lrcTransKey:key,lrcTransLang:'fa'}).catch(()=>{});
+    if(req===lyricRequest&&id===lyricSongId){lyricTrans=res.lines;lyricTransBusy=false;drawLyrics();}
+    if(!auto)toast('ترجمهٔ فارسی آماده شد');
+  }catch(error){
+    if(req===lyricRequest)lyricTransFailed=true;
+    toast(error?.message==='offline'?'اتصال به سرویس ترجمه برقرار نشد':'ترجمه انجام نشد؛ دوباره امتحان کن',true);
+  }finally{if(req===lyricRequest){lyricTransBusy=false;paintLyricViews();}}
+};
+const lyricMiniLine=i=>{const {orig,tr,showOrig}=lyricTextFor(i);const o=orig.replace(/\n+/g,' · ');return showOrig?(tr?o+'  ·  '+tr:o):(tr||o);};
+paintLyricViews();
+
 const adjustLyrics=async delta=>{
   if(!lyricRows.length||lyricShiftSaving)return;const id=lyricSongId,old=lyricShift,next=Math.max(-30,Math.min(30,Math.round((old+delta)*10)/10));
   lyricShiftSaving=true;$('lrcEarlier').disabled=$('lrcLater').disabled=true;lyricShift=next;paintLyricShift();syncLyrics(true);
@@ -3511,8 +3989,9 @@ window.NovaPlayerBridge={
   /* v1.7.0: the mini player also shows shuffle/repeat state, the live synced lyric
      line, and whatever trending preview is on the same audio element. */
   getState(){const trend=window.NovaTrendEngine;const ts=trend?.active?trend.currentSong():null;const song=currentSong();
-    const lyric=!ts&&lyricActive>=0&&lyricRows[lyricActive]?String(lyricRows[lyricActive].text).replace(/\n+/g,' · '):'';
-    return {title:ts?ts.name:(song?.name||'آهنگی انتخاب نشده'),subtitle:ts?ts.artist:(song?.artist||'NOVA'),cover:ts?ts.cover:(song?.cover||'🎵'),playing:(!!ts||!!song)&&!audio.paused&&!audio.ended&&!audio.error,current:Number.isFinite(audio.currentTime)?audio.currentTime:0,duration:Number.isFinite(audio.duration)?audio.duration:0,volume:audio.volume,shuffle,repeat,lyric};},
+    const lyric=!ts&&lyricActive>=0&&lyricRows[lyricActive]?lyricMiniLine(lyricActive):'';
+    return {title:ts?ts.name:(song?.name||'آهنگی انتخاب نشده'),subtitle:ts?ts.artist:(song?.artist||'NOVA'),cover:ts?ts.cover:(song?.cover||'🎵'),playing:(!!ts||!!song)&&!audio.paused&&!audio.ended&&!audio.error,current:Number.isFinite(audio.currentTime)?audio.currentTime:0,duration:Number.isFinite(audio.duration)?audio.duration:0,volume:audio.volume,shuffle,repeat,lyric,hasSong:!!ts||!!song,
+      format:ts?'PREVIEW':(String(song?.referencePath||song?.storagePath||song?.fileName||'').match(/\.([a-z0-9]{2,5})$/i)?.[1]||'').toUpperCase()};},
   command(type,value){if(type==='toggle'){$('playBtn').click();return;}if(type==='prev'){$('prevBtn').click();return;}if(type==='next'){$('nextBtn').click();return;}if(type==='shuffle'){$('shuffleBtn').click();return;}if(type==='repeat'){$('repeatBtn').click();return;}if(type==='volume'&&Number.isFinite(Number(value))){applyVol(value);dbSaveCfg();return;}if(type==='seek'&&Number.isFinite(Number(value))&&Number.isFinite(audio.duration))audio.currentTime=Math.max(0,Math.min(audio.duration,Number(value)));},
   async importReferences(refs){await importReferences(refs);render();}
 };
@@ -4282,24 +4761,43 @@ body.nova-cinema .nova-dock-sep{display:none}
   };
   document.getElementById('filePickLabel')?.addEventListener('click',e=>nativePick(false,e),true);
   document.getElementById('folderPickLabel')?.addEventListener('click',e=>nativePick(true,e),true);
-  let nativeMini=false;
-  const currentState=()=>player.getState();
-  const sendState=()=>{if(nativeMini)T.event.emit('nova-player-state',currentState()).catch(()=>{});};
+  let nativeMini=false,miniOpening=false,lastCoverSent=null;
+  const miniIdleText=status?.textContent||'';
+  /* v1.8.1: the cover is a big data: URL. It used to be re-sent ~4x a second with every
+     timeupdate, which made the mini window stutter. Now it only travels when it changes. */
+  const currentState=force=>{
+    const s=player.getState();
+    try{s.accent=getComputedStyle(document.documentElement).getPropertyValue('--neon').trim();s.theme=document.documentElement.dataset.theme||'dark';}catch{}
+    if(!force&&s.cover===lastCoverSent)delete s.cover;else lastCoverSent=s.cover;
+    return s;
+  };
+  const emitState=force=>{
+    if(!nativeMini)return;
+    const payload=currentState(force);
+    const p=T.event.emitTo?T.event.emitTo('mini','nova-player-state',payload):T.event.emit('nova-player-state',payload);
+    Promise.resolve(p).catch(()=>{lastCoverSent=null;});
+  };
+  const sendState=()=>emitState(false);
+  const setMiniUi=open=>{
+    btn?.classList.toggle('desktop-active',open);
+    btn?.setAttribute('aria-pressed',String(open));
+    if(label)label.textContent=open?'بستن پنجرهٔ دسکتاپ':'روی دسکتاپ';
+    if(status){status.textContent=open?'مینی‌پلیر ویندوز باز است.':miniIdleText;status.classList.remove('desktop-error');}
+  };
   const openNative=async(e)=>{
     if(e){e.preventDefault();e.stopImmediatePropagation();}
+    if(miniOpening)return;
     if(nativeMini){await closeNative();return;}
+    miniOpening=true;
     try{
-      nativeMini=true;
+      nativeMini=true;lastCoverSent=null;
       await invoke('show_mini_player');
-      btn?.classList.add('desktop-active');
-      btn?.setAttribute('aria-pressed','true');
-      if(label)label.textContent='بستن پنجرهٔ دسکتاپ';
-      if(status){status.textContent='مینی‌پلیر ویندوز باز است.';status.classList.remove('desktop-error');}
-      sendState();
+      setMiniUi(true);
+      emitState(true);
     }catch(err){
       nativeMini=false;
       if(status){status.textContent='باز کردن مینی‌پلیر انجام نشد.';status.classList.add('desktop-error');}
-    }
+    }finally{miniOpening=false;}
   };
   const closeNative=async()=>{try{await invoke('close_mini_player');}catch{}};
   if(btn)btn.addEventListener('click',openNative,true);
@@ -4308,13 +4806,10 @@ body.nova-cinema .nova-dock-sep{display:none}
     try{player.command(payload.type,payload.value);}
     finally{setTimeout(sendState,0);}
   });
-  listen('nova-mini-ready',()=>{nativeMini=true;sendState();});
-  listen('nova-mini-closed',()=>{
-    nativeMini=false;
-    btn?.classList.remove('desktop-active');
-    btn?.setAttribute('aria-pressed','false');
-    if(label)label.textContent='روی دسکتاپ';
-  });
+  listen('nova-mini-ready',()=>{nativeMini=true;lastCoverSent=null;setMiniUi(true);emitState(true);});
+  listen('nova-mini-closed',()=>{nativeMini=false;lastCoverSent=null;setMiniUi(false);});
+  /* theme / cover palette changes recolor the mini window too */
+  new MutationObserver(()=>emitState(false)).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','style']});
   ['play','playing','pause','ended','timeupdate','durationchange','loadedmetadata','emptied','volumechange','error'].forEach(ev=>audio.addEventListener(ev,sendState));
   listen('tauri://drag-drop',async({payload})=>{
     const raw=Array.isArray(payload?.paths)?payload.paths:[];
@@ -4619,8 +5114,8 @@ body.nova-cinema .nova-dock-sep{display:none}
   const $=id=>document.getElementById(id);
   window.NovaCustomShortcutsActive=true;
   const invoke=window.__TAURI__?.core?.invoke;
-  const defaults={play:'Space',next:'ArrowRight',prev:'ArrowLeft',theme:'KeyT',cinema:'KeyC'};
-  const labels={play:'پخش / مکث',next:'آهنگ بعدی',prev:'آهنگ قبلی',theme:'تغییر تم',cinema:'حالت سینمایی'};
+  const defaults={play:'Space',next:'ArrowRight',prev:'ArrowLeft',theme:'KeyT',cinema:'KeyC',eq:'KeyE'};
+  const labels={play:'پخش / مکث',next:'آهنگ بعدی',prev:'آهنگ قبلی',theme:'تغییر تم',cinema:'حالت سینمایی',eq:'اکولایزر'};
   let shortcuts={...defaults};let draft={...defaults};let recording=null;
   const read=()=>{try{const x=JSON.parse(localStorage.getItem('nova-shortcuts')||'{}');shortcuts={...defaults,...x};}catch{shortcuts={...defaults};}draft={...shortcuts};};
   const write=()=>{shortcuts={...draft};try{localStorage.setItem('nova-shortcuts',JSON.stringify(shortcuts));}catch{};};
@@ -4656,7 +5151,7 @@ body.nova-cinema .nova-dock-sep{display:none}
     if(e.target.closest('input,textarea,select,[contenteditable="true"]'))return;
     const key=e.code||e.key;const action=Object.keys(shortcuts).find(a=>shortcuts[a]===key);if(!action)return;
     e.preventDefault();e.stopImmediatePropagation();
-    const targets={play:'playBtn',next:'nextBtn',prev:'prevBtn',theme:'themeBtn',cinema:'cinemaBtn'};
+    const targets={play:'playBtn',next:'nextBtn',prev:'prevBtn',theme:'themeBtn',cinema:'cinemaBtn',eq:'eqBtn'};
     $(targets[action])?.click();
   },true);
   read();const trayEnabled=localStorage.getItem('nova-tray-on-close')!=='false';$('trayOnClose').checked=trayEnabled;applyTray(trayEnabled);
@@ -4699,7 +5194,7 @@ body.nova-cinema .nova-dock-sep{display:none}
   const REPO='Mehdi138iimm/NovaPlayer';
   const RELEASES='https://github.com/'+REPO+'/releases';
   const SITE='https://mehdi138iimm.github.io/NovaPlayer/#download';
-  const FALLBACK_VER='1.7.1';
+  const FALLBACK_VER='1.9.0';
   const EVERY=2*3600*1000;
   const T=window.__TAURI__, invoke=T?.core?.invoke;
   const $=id=>document.getElementById(id);
@@ -4993,11 +5488,402 @@ body.nova-cinema .nova-dock-sep{display:none}
   schedule();
 })();
 </script>
+<!-- ══ NOVA EQUALIZER (v1.8.0) ══
+     10-band graphic EQ wired between the media source and the visualizer analyser:
+     source → preamp(gain) → 10 × BiquadFilter → analyser → speakers.
+     State lives in localStorage 'nova-eq-v1'. The UI text is Persian; nova-i18n translates it. -->
+<style id="nova-eq-style">
+#eqBtn[aria-pressed="true"] .eq-btn-dot{opacity:1}
+.eq-btn-dot{width:6px;height:6px;border-radius:50%;background:var(--neon);opacity:0;transition:opacity .2s;flex:none}
+.eq-modal{width:min(780px,calc(100vw - 24px))!important;max-width:min(780px,calc(100vw - 24px))!important;padding:0!important;display:flex;flex-direction:column;overflow:hidden!important}
+.eq-modal .modal-head{padding:20px 24px 14px;border-bottom:1px solid var(--glass-border);align-items:flex-start}
+.eq-modal .modal-title{font-size:21px}
+.eq-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.eq-head-actions{display:flex;align-items:center;gap:12px;flex:none}
+.eq-modal .modal-x{width:34px;height:34px;border-radius:50%;border:1px solid var(--glass-border);background:transparent;color:var(--muted);font-size:18px;line-height:1;cursor:pointer}
+.eq-modal .modal-x:hover{color:var(--text);border-color:var(--neon)}
+.eq-switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--muted);user-select:none}
+.eq-switch input{position:absolute;opacity:0;width:1px;height:1px}
+.eq-switch-track{position:relative;width:38px;height:22px;border-radius:11px;background:var(--glass-border);transition:background .2s}
+.eq-switch-track::after{content:'';position:absolute;top:3px;inset-inline-start:3px;width:16px;height:16px;border-radius:50%;background:var(--text);transition:transform .22s var(--ease-out,ease)}
+.eq-switch input:checked+.eq-switch-track{background:var(--neon)}
+.eq-switch input:checked+.eq-switch-track::after{background:var(--on-accent,#111);transform:translateX(16px)}
+:root[dir="rtl"] .eq-switch input:checked+.eq-switch-track::after{transform:translateX(-16px)}
+.eq-switch input:focus-visible+.eq-switch-track{outline:2px solid var(--neon);outline-offset:3px}
+.eq-switch input:checked~.eq-switch-lbl{color:var(--neon)}
+.eq-body{padding:16px 24px 6px;overflow:auto;min-height:0}
+.eq-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.eq-chip{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:5px 12px;border:1px solid var(--glass-border);border-radius:999px;background:transparent;color:var(--muted);font:12px var(--sans);cursor:pointer;transition:color .15s,border-color .15s,background .15s,transform .2s var(--ease-out,ease)}
+.eq-chip:hover{color:var(--text);border-color:var(--neon)}
+.eq-chip:active{transform:scale(.95)}
+.eq-chip[aria-checked="true"]{background:var(--neon);color:var(--on-accent,#111);border-color:transparent}
+.eq-chip.mine{border-style:dashed}
+.eq-chip .eq-chip-x{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;font-size:12px;line-height:1;opacity:.6;margin-inline-start:-2px}
+.eq-chip .eq-chip-x:hover{opacity:1;background:oklch(0% 0 0 / .15)}
+.eq-chip.custom-chip{font-style:italic}
+.eq-chip.custom-chip[hidden]{display:none}
+.eq-stage{--eq-top:24px;--eq-h:180px;display:flex;gap:14px;direction:ltr;padding:12px 12px 10px;border:1px solid var(--glass-border);border-radius:16px;background:var(--frost);transition:opacity .25s}
+.eq-modal.is-off .eq-stage{opacity:.45}
+.eq-pre{display:flex;padding-inline-end:14px;border-inline-end:1px solid var(--glass-border)}
+.eq-bands{position:relative;flex:1;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:2px}
+.eq-curve{position:absolute;left:0;right:0;top:var(--eq-top);height:var(--eq-h);width:100%;pointer-events:none;z-index:0}
+.eq-band{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;min-width:0}
+.eq-val{height:var(--eq-top);font:10.5px var(--mono);color:var(--muted);display:flex;align-items:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+.eq-val.pos{color:var(--neon)}
+.eq-track{position:relative;width:28px;height:var(--eq-h);cursor:ns-resize;touch-action:none;outline:none;border-radius:8px}
+.eq-track::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:4px;margin-left:-2px;border-radius:2px;background:var(--glass-border)}
+.eq-zero{position:absolute;left:4px;right:4px;top:50%;height:1px;background:var(--muted);opacity:.35}
+.eq-fill{position:absolute;left:50%;width:4px;margin-left:-2px;border-radius:2px;background:var(--neon);opacity:.8}
+.eq-thumb{position:absolute;left:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--surface,#15151c);border:2px solid var(--neon);box-shadow:0 2px 8px oklch(0% 0 0 / .35);transition:transform .15s var(--ease-out,ease)}
+.eq-track:hover .eq-thumb,.eq-track.drag .eq-thumb{transform:scale(1.15)}
+.eq-track:focus-visible{box-shadow:0 0 0 2px var(--neon)}
+.eq-track.drag .eq-thumb{background:var(--neon)}
+.eq-freq{margin-top:8px;font:10.5px var(--mono);color:var(--muted);letter-spacing:.02em}
+.eq-pre .eq-freq{color:var(--text);font-family:var(--sans)}
+.eq-scale{display:flex;flex-direction:column;justify-content:space-between;height:var(--eq-h);margin-top:var(--eq-top);font:9.5px var(--mono);color:var(--muted);opacity:.7;text-align:right}
+.eq-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin-top:14px}
+.eq-hr{font-size:12px;color:var(--muted)}
+.eq-hr b{font:600 12px var(--mono);color:var(--text);direction:ltr;unicode-bidi:isolate}
+.eq-foot .settings-checkbox{margin-top:0}
+.eq-save{display:flex;gap:8px;align-items:center;flex:1 1 260px;justify-content:flex-end}
+.eq-save .modal-input{margin:0!important;min-height:40px;max-width:220px;flex:1}
+.eq-actions{display:flex;justify-content:flex-end;gap:8px;padding:14px 24px 18px;border-top:1px solid var(--glass-border);margin-top:14px}
+@media(max-width:640px){
+  .eq-stage{--eq-h:150px;gap:8px;padding:10px 6px}
+  .eq-pre{padding-inline-end:8px}
+  .eq-scale{display:none}
+  .eq-track{width:22px}
+  .eq-val,.eq-freq{font-size:9px}
+  .eq-modal .modal-head,.eq-body,.eq-actions{padding-inline:16px}
+}
+:root[data-motion="reduce"] .eq-thumb,:root[data-motion="reduce"] .eq-chip{transition:none}
+</style>
+
+<div class="modal-bg" id="eqModalBg">
+  <section class="modal eq-modal" id="eqModal" role="dialog" aria-modal="true" aria-labelledby="eqTitle">
+    <div class="modal-head">
+      <div><h2 class="modal-title" id="eqTitle">اکولایزر</h2><p class="eq-sub">۱۰ باند · تغییرات همان لحظه روی صدا اعمال می‌شود</p></div>
+      <div class="eq-head-actions">
+        <label class="eq-switch"><input type="checkbox" id="eqEnable" checked><span class="eq-switch-track" aria-hidden="true"></span><span class="eq-switch-lbl" id="eqEnableLbl">روشن</span></label>
+        <button type="button" class="modal-x" id="eqClose" aria-label="بستن">×</button>
+      </div>
+    </div>
+    <div class="eq-body">
+      <div class="eq-presets" id="eqPresets" role="radiogroup" aria-label="پریست‌های اکولایزر"></div>
+      <div class="eq-stage">
+        <div class="eq-pre" id="eqPre"></div>
+        <div class="eq-scale" aria-hidden="true"><span>+12</span><span>+6</span><span>0</span><span>−6</span><span>−12</span></div>
+        <div class="eq-bands" id="eqBands"><canvas class="eq-curve" id="eqCurve" aria-hidden="true"></canvas></div>
+      </div>
+      <div class="eq-foot">
+        <label class="settings-checkbox"><input type="checkbox" id="eqAuto" checked> جلوگیری خودکار از دیستورشن</label>
+        <div class="eq-hr" id="eqHr"><span>جبران خودکار</span> <b id="eqHrVal">0.0 dB</b></div>
+        <div class="eq-save"><input class="modal-input" id="eqName" maxlength="24" placeholder="نام پریست من..." autocomplete="off"><button type="button" class="settings-btn" id="eqSave">ذخیره پریست</button></div>
+      </div>
+    </div>
+    <div class="eq-actions"><button type="button" class="settings-btn" id="eqReset">صاف کردن</button><button type="button" class="settings-btn primary" id="eqDone">تمام</button></div>
+  </section>
+</div>
+
+<script id="nova-eq-script">
+(()=>{
+  const $=id=>document.getElementById(id);
+  const KEY='nova-eq-v1';
+  const FREQS=[32,64,125,250,500,1000,2000,4000,8000,16000];
+  const LABELS=['32','64','125','250','500','1K','2K','4K','8K','16K'];
+  const Q=1.41,MAX=12,STEP=.5,FS=48000;
+  /* Built-in presets, dB per band (32 Hz … 16 kHz). */
+  const PRESETS=[
+    {id:'flat',name:'صاف',g:[0,0,0,0,0,0,0,0,0,0]},
+    {id:'bass',name:'تقویت بیس',g:[6,5,4,2.5,.5,0,0,0,0,0]},
+    {id:'bass-cut',name:'کاهش بیس',g:[-6,-5,-4,-2.5,-.5,0,0,0,0,0]},
+    {id:'treble',name:'تقویت تریبل',g:[0,0,0,0,0,.5,2,3.5,5,6]},
+    {id:'treble-cut',name:'کاهش تریبل',g:[0,0,0,0,0,-.5,-2,-3.5,-5,-6]},
+    {id:'vocal',name:'وکال',g:[-2,-2,-1,1,3,4,3.5,2,.5,-1]},
+    {id:'persian',name:'سنتی ایرانی',g:[0,1,1,0,1.5,2.5,3,2,2.5,1.5]},
+    {id:'pop',name:'پاپ',g:[-1,0,2,3.5,4,3,1,0,-.5,-1]},
+    {id:'rock',name:'راک',g:[5,4,3,1,-1,-1,1,3,4,5]},
+    {id:'hiphop',name:'هیپ‌هاپ',g:[5.5,5,2,3,-1,-1,1.5,-.5,2,3]},
+    {id:'electronic',name:'الکترونیک',g:[5,4.5,1.5,0,-2,2,1,1.5,4.5,5]},
+    {id:'dance',name:'دنس',g:[4,6,4.5,0,1,3,4.5,4,3,0]},
+    {id:'jazz',name:'جز',g:[3,2.5,1,2,-1.5,-1.5,0,1.5,3,3.5]},
+    {id:'classical',name:'کلاسیک',g:[4,3,2.5,1.5,-1,-1,0,2,3,3.5]},
+    {id:'acoustic',name:'آکوستیک',g:[4,4,3,1,2,1.5,3,3.5,3,2]},
+    {id:'piano',name:'پیانو',g:[2,1,0,2,3,1.5,3,4,2.5,3]},
+    {id:'deep',name:'عمیق',g:[5,3.5,1.5,1,3,2.5,1.5,-2,-3.5,-4.5]},
+    {id:'loudness',name:'بلندی (Loudness)',g:[6,4,0,0,-2,0,-1,-5,5,1]},
+    {id:'podcast',name:'پادکست / گفتار',g:[-4,-3,-1,1,3,4,4,3,1,-2]},
+    {id:'headphones',name:'هدفون',g:[3,4,2,-1,-1,0,1,3,4,3]},
+    {id:'small',name:'اسپیکر کوچک',g:[-4,4,4.5,3,1,0,0,1,2,1]}
+  ];
+  const say=(m,err=false)=>{try{toast(m,err);}catch{}};
+  const clamp=v=>Math.max(-MAX,Math.min(MAX,Math.round(v/STEP)*STEP));
+  const fmt=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1);
+
+  /* ── state ── */
+  let S={on:true,preset:'flat',gains:FREQS.map(()=>0),preamp:0,auto:true,mine:[]};
+  try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&Array.isArray(x.gains)&&x.gains.length===10){S={...S,...x,gains:x.gains.map(clamp),preamp:clamp(+x.preamp||0),mine:Array.isArray(x.mine)?x.mine.filter(p=>p&&p.name&&Array.isArray(p.g)&&p.g.length===10):[]};}}catch{}
+  let saveT=0;const save=()=>{clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch{}},150);};
+  const allPresets=()=>PRESETS.concat(S.mine);
+  const findPreset=id=>allPresets().find(p=>p.id===id);
+
+  /* ── magnitude response (RBJ cookbook, same formulas Web Audio uses) ── */
+  const coeffs=(type,f0,g)=>{
+    const A=Math.pow(10,g/40),w0=2*Math.PI*f0/FS,c=Math.cos(w0),s=Math.sin(w0);
+    if(type==='peaking'){const al=s/(2*Q);return[1+al*A,-2*c,1-al*A,1+al/A,-2*c,1-al/A];}
+    const al=s/2*Math.SQRT2,sa=2*Math.sqrt(A)*al;
+    if(type==='lowshelf')return[A*((A+1)-(A-1)*c+sa),2*A*((A-1)-(A+1)*c),A*((A+1)-(A-1)*c-sa),(A+1)+(A-1)*c+sa,-2*((A-1)+(A+1)*c),(A+1)+(A-1)*c-sa];
+    return[A*((A+1)+(A-1)*c+sa),-2*A*((A-1)+(A+1)*c),A*((A+1)+(A-1)*c-sa),(A+1)-(A-1)*c+sa,2*((A-1)-(A+1)*c),(A+1)-(A-1)*c-sa];
+  };
+  const typeOf=i=>i===0?'lowshelf':i===9?'highshelf':'peaking';
+  const magDb=(k,f)=>{const w=2*Math.PI*f/FS,c1=Math.cos(w),s1=Math.sin(w),c2=Math.cos(2*w),s2=Math.sin(2*w);
+    const nr=k[0]+k[1]*c1+k[2]*c2,ni=-(k[1]*s1+k[2]*s2),dr=k[3]+k[4]*c1+k[5]*c2,di=-(k[4]*s1+k[5]*s2);
+    return 10*Math.log10((nr*nr+ni*ni)/(dr*dr+di*di));};
+  const response=(gains,freqs)=>{const ks=gains.map((g,i)=>g?coeffs(typeOf(i),FREQS[i],g):null);return freqs.map(f=>ks.reduce((t,k)=>k?t+magDb(k,f):t,0));};
+  const PROBE=Array.from({length:120},(_,i)=>20*Math.pow(1000,i/119));
+  const headroom=()=>{if(!S.auto)return 0;const peak=Math.max(0,...response(S.gains,PROBE));return peak>0?-peak:0;};
+
+  /* ── audio graph ── */
+  let ctx=null,pre=null,filters=[];
+  const setParam=(p,v)=>{if(!ctx)return;try{if(ctx.state==='running'){p.cancelScheduledValues(ctx.currentTime);p.setTargetAtTime(v,ctx.currentTime,.02);}else p.value=v;}catch{p.value=v;}};
+  const applyAudio=()=>{
+    if(!ctx)return;
+    const on=S.on;
+    filters.forEach((f,i)=>setParam(f.gain,on?S.gains[i]:0));
+    const db=on?S.preamp+headroom():0;
+    setParam(pre.gain,Math.pow(10,db/20));
+  };
+  window.NovaEQ={
+    attach(audioCtx,src){
+      try{
+        ctx=audioCtx;pre=ctx.createGain();
+        filters=FREQS.map((f,i)=>{const b=ctx.createBiquadFilter();b.type=typeOf(i);b.frequency.value=f;b.Q.value=Q;b.gain.value=0;return b;});
+        src.connect(pre);let tail=pre;filters.forEach(b=>{tail.connect(b);tail=b;});
+        applyAudio();return tail;
+      }catch(e){ctx=null;return src;}
+    },
+    get state(){return JSON.parse(JSON.stringify(S));},
+    setPreset:id=>selectPreset(id),
+    presets:()=>allPresets().map(p=>({id:p.id,name:p.name}))
+  };
+
+  /* safety net: if the audio graph was built before this script ran, splice the EQ in now */
+  try{if(typeof audioCtx!=='undefined'&&audioCtx&&srcNode&&analyser&&!ctx){srcNode.disconnect();window.NovaEQ.attach(audioCtx,srcNode).connect(analyser);}}catch{}
+
+  /* ── UI ── */
+  const modal=$('eqModal'),bg=$('eqModalBg'),bandsBox=$('eqBands'),preBox=$('eqPre'),chips=$('eqPresets'),canvas=$('eqCurve');
+  const sliders=[];
+  const makeSlider=(box,label,aria,get,set)=>{
+    const col=document.createElement('div');col.className='eq-band';
+    const val=document.createElement('div');val.className='eq-val';
+    const tr=document.createElement('div');tr.className='eq-track';tr.tabIndex=0;tr.setAttribute('role','slider');
+    tr.setAttribute('aria-valuemin',-MAX);tr.setAttribute('aria-valuemax',MAX);tr.setAttribute('aria-orientation','vertical');tr.setAttribute('aria-label',aria);
+    tr.innerHTML='<span class="eq-zero"></span><span class="eq-fill"></span><span class="eq-thumb"></span>';
+    const fq=document.createElement('div');fq.className='eq-freq';fq.textContent=label;
+    col.append(val,tr,fq);box.appendChild(col);
+    const fill=tr.children[1],thumb=tr.children[2];
+    const paint=()=>{const v=get(),p=(MAX-v)/(2*MAX)*100;thumb.style.top=p+'%';fill.style.top=Math.min(p,50)+'%';fill.style.height=Math.abs(p-50)+'%';
+      val.textContent=fmt(v);val.classList.toggle('pos',v>0);tr.setAttribute('aria-valuenow',v);tr.setAttribute('aria-valuetext',fmt(v)+' dB');};
+    const fromY=y=>{const r=tr.getBoundingClientRect();return clamp(MAX-((y-r.top)/r.height)*2*MAX);};
+    let dragging=false;
+    tr.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();tr.focus();dragging=true;tr.classList.add('drag');tr.setPointerCapture(e.pointerId);set(fromY(e.clientY));});
+    tr.addEventListener('pointermove',e=>{if(dragging)set(fromY(e.clientY));});
+    const end=()=>{dragging=false;tr.classList.remove('drag');};
+    tr.addEventListener('pointerup',end);tr.addEventListener('pointercancel',end);
+    tr.addEventListener('dblclick',()=>set(0));
+    tr.addEventListener('wheel',e=>{e.preventDefault();set(clamp(get()+(e.deltaY<0?STEP:-STEP)));},{passive:false});
+    tr._key=e=>{const k=e.key,v=get();let n=null;
+      if(k==='ArrowUp'||k==='ArrowRight')n=v+STEP;else if(k==='ArrowDown'||k==='ArrowLeft')n=v-STEP;
+      else if(k==='PageUp')n=v+3;else if(k==='PageDown')n=v-3;else if(k==='Home')n=MAX;else if(k==='End')n=-MAX;else if(k==='0'||k==='Delete'||k==='Backspace')n=0;
+      if(n===null)return false;set(clamp(n));return true;};
+    const s={paint,tr};sliders.push(s);return s;
+  };
+  /* Arrow keys on a band would otherwise hit the global next/prev/volume shortcuts:
+     a window-level capture listener runs before every document-level one. */
+  window.addEventListener('keydown',e=>{
+    if(!bg.classList.contains('open')||e.ctrlKey||e.metaKey||e.altKey)return;
+    const tr=e.target.closest&&e.target.closest('.eq-track');
+    if(tr){if(tr._key(e)){e.preventDefault();e.stopImmediatePropagation();}return;}
+    /* inside the EQ window, arrows must not skip tracks or change the volume */
+    if(/^Arrow/.test(e.key)&&!e.target.closest('input,textarea'))e.stopImmediatePropagation();
+  },true);
+
+  const bandSliders=FREQS.map((f,i)=>makeSlider(bandsBox,LABELS[i],(f>=1000?f/1000+' kHz':f+' Hz'),()=>S.gains[i],v=>{if(S.gains[i]===v)return;stopTween();S.gains[i]=v;S.preset=matchPreset();changed();}));
+  const preSlider=makeSlider(preBox,'پیش‌تقویت','پیش‌تقویت',()=>S.preamp,v=>{if(S.preamp===v)return;S.preamp=v;changed();});
+
+  const matchPreset=()=>{const p=allPresets().find(p=>p.g.every((g,i)=>g===S.gains[i]));return p?p.id:'custom';};
+
+  const renderChips=()=>{
+    chips.innerHTML='';
+    const add=(p,mine)=>{const b=document.createElement('button');b.type='button';b.className='eq-chip'+(mine?' mine':'');b.setAttribute('role','radio');b.dataset.id=p.id;
+      const t=document.createElement('span');t.textContent=p.name;b.appendChild(t);
+      if(mine){const x=document.createElement('span');x.className='eq-chip-x';x.textContent='×';x.setAttribute('role','button');x.setAttribute('aria-label','حذف پریست '+p.name);x.title='حذف';
+        x.addEventListener('click',e=>{e.stopPropagation();S.mine=S.mine.filter(m=>m.id!==p.id);if(S.preset===p.id)S.preset=matchPreset();renderChips();syncChips();save();say('پریست «'+p.name+'» حذف شد');});b.appendChild(x);}
+      b.addEventListener('click',()=>selectPreset(p.id));chips.appendChild(b);};
+    PRESETS.forEach(p=>add(p,false));S.mine.forEach(p=>add(p,true));
+    const c=document.createElement('button');c.type='button';c.className='eq-chip custom-chip';c.setAttribute('role','radio');c.dataset.id='custom';c.textContent='سفارشی';c.tabIndex=-1;chips.appendChild(c);
+  };
+  const syncChips=()=>{[...chips.children].forEach(b=>{const on=b.dataset.id===S.preset;b.setAttribute('aria-checked',String(on));if(b.classList.contains('custom-chip'))b.hidden=S.preset!=='custom';});};
+
+  /* smooth glide between presets */
+  let tw=0,twSafe=0;const stopTween=()=>{clearTimeout(twSafe);if(tw){cancelAnimationFrame(tw);tw=0;}};
+  const selectPreset=id=>{
+    const p=findPreset(id);if(!p)return;stopTween();S.preset=id;
+    const from=S.gains.slice(),to=p.g.map(clamp);
+    if(!S.on){S.on=true;$('eqEnable').checked=true;}
+    const reduce=document.documentElement.dataset.motion==='reduce'||!bg.classList.contains('open');
+    if(reduce){S.gains=to;changed();return;}
+    const t0=performance.now(),D=240;
+    const step=now=>{const k=Math.min(1,(now-t0)/D),e=1-Math.pow(1-k,3);S.gains=from.map((f,i)=>k===1?to[i]:f+(to[i]-f)*e);paintAll();if(k<1)tw=requestAnimationFrame(step);else{tw=0;S.gains=to;changed();}};
+    applyAudioTo(to);syncChips();tw=requestAnimationFrame(step);
+    /* rAF is throttled in hidden windows: make sure the glide always lands */
+    twSafe=setTimeout(()=>{if(tw){cancelAnimationFrame(tw);tw=0;S.gains=to;changed();}},D+160);
+  };
+  const applyAudioTo=gains=>{const keep=S.gains;S.gains=gains;applyAudio();S.gains=keep;};
+
+  /* frequency-response curve drawn behind the sliders */
+  const xOf=(f,w)=>{const a=bandsBox.clientWidth/10;return a/2+Math.log2(f/32)/Math.log2(16000/32)*(w-a);};
+  let curveColor='';
+  const drawCurve=()=>{
+    if(!bg.classList.contains('open'))return;
+    const dpr=Math.min(2,window.devicePixelRatio||1),w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
+    if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}
+    const g=canvas.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+    curveColor=getComputedStyle(document.documentElement).getPropertyValue('--neon').trim()||'#b8f34a';
+    const N=160,fs=Array.from({length:N},(_,i)=>16*Math.pow(1500,i/(N-1)));
+    const r=response(S.gains,fs),yOf=d=>h/2-Math.max(-MAX,Math.min(MAX,d))/MAX*(h/2);
+    g.beginPath();fs.forEach((f,i)=>{const x=xOf(f,w),y=yOf(r[i]);i?g.lineTo(x,y):g.moveTo(x,y);});
+    g.lineWidth=2;g.strokeStyle=curveColor;g.globalAlpha=S.on?.9:.4;g.lineJoin='round';g.stroke();
+    g.lineTo(w+20,h/2);g.lineTo(-20,h/2);g.closePath();g.globalAlpha=S.on?.14:.06;g.fillStyle=curveColor;g.fill();g.globalAlpha=1;
+  };
+  const paintHr=()=>{const hr=S.on?headroom():0;$('eqHrVal').textContent=fmt(hr)+' dB';$('eqHr').style.visibility=S.auto?'visible':'hidden';};
+  const paintAll=()=>{sliders.forEach(s=>s.paint());drawCurve();};
+  const syncBtn=()=>{const active=S.on&&(S.preamp!==0||S.gains.some(g=>g!==0));const b=$('eqBtn');if(b)b.setAttribute('aria-pressed',String(active));};
+  const changed=()=>{paintAll();syncChips();paintHr();applyAudio();syncBtn();save();};
+  const syncSwitch=()=>{$('eqEnable').checked=S.on;$('eqEnableLbl').textContent=S.on?'روشن':'خاموش';modal.classList.toggle('is-off',!S.on);$('eqAuto').checked=S.auto;};
+
+  $('eqEnable').addEventListener('change',e=>{S.on=e.target.checked;syncSwitch();changed();});
+  $('eqAuto').addEventListener('change',e=>{S.auto=e.target.checked;changed();});
+  $('eqReset').addEventListener('click',()=>{S.preamp=0;selectPreset('flat');});
+  const saveMine=()=>{
+    const inp=$('eqName'),name=inp.value.trim();
+    if(!name){inp.focus();say('یک نام برای پریست بنویس',true);return;}
+    const ex=S.mine.find(m=>m.name===name);
+    if(ex)ex.g=S.gains.slice();else S.mine.push({id:'mine-'+Date.now().toString(36),name,g:S.gains.slice()});
+    S.preset=(ex||S.mine.at(-1)).id;inp.value='';renderChips();changed();say('پریست «'+name+'» ذخیره شد');
+  };
+  $('eqSave').addEventListener('click',saveMine);
+  $('eqName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveMine();}});
+
+  /* open / close */
+  let returnTo=null;
+  const open=()=>{returnTo=document.activeElement;syncSwitch();renderChips();syncChips();paintHr();bg.classList.add('open');requestAnimationFrame(()=>{paintAll();(chips.querySelector('[aria-checked="true"]')||chips.firstChild)?.focus();});};
+  const close=()=>{bg.classList.remove('open');stopTween();};
+  new MutationObserver(()=>{if(!bg.classList.contains('open')){stopTween();if(returnTo&&document.contains(returnTo))returnTo.focus();returnTo=null;}}).observe(bg,{attributes:true,attributeFilter:['class']});
+  $('eqBtn')?.addEventListener('click',()=>bg.classList.contains('open')?close():open());
+  $('eqClose').addEventListener('click',close);$('eqDone').addEventListener('click',close);
+  bg.addEventListener('click',e=>{if(e.target===bg)close();});
+  bg.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close();}});
+  window.addEventListener('resize',drawCurve);
+  window.addEventListener('nova-palette-change',drawCurve);
+  new MutationObserver(drawCurve).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','data-cover-theme','dir']});
+
+  syncBtn();paintAll();
+})();
+</script>
+
+<!-- NOVA - LEFT SIDE DOCK (v1.8.0): Listening Room tools as an icon rail on the empty left edge -->
+<style id="nova-side-dock-css">
+.nova-side-dock{position:fixed;z-index:3900;left:16px;top:50%;transform:translate(-8px,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px 9px;direction:ltr;
+  border-radius:26px;background:var(--surface);border:1px solid var(--glass-border);
+  box-shadow:0 2px 0 oklch(100% 0 0 / .04) inset,0 18px 44px oklch(10% .012 120 / .5);
+  opacity:0;pointer-events:none;transition:opacity .45s var(--ease-out),transform .45s var(--ease-out)}
+:root[data-theme="light"] .nova-side-dock{box-shadow:0 1px 0 oklch(100% 0 0 / .7) inset,0 14px 34px oklch(20% .012 120 / .12)}
+.nova-side-dock.ready{opacity:1;pointer-events:auto;transform:translate(0,-50%)}
+.nova-side-dock::after{content:'';position:absolute;top:26px;bottom:26px;left:-1px;width:1px;border-radius:1px;
+  background:linear-gradient(180deg,transparent,var(--neon-dim),transparent);opacity:.7;pointer-events:none}
+.nova-side-dock .experience-btn{position:relative;width:44px;height:44px;min-height:44px;padding:0;gap:0;
+  border-radius:15px;border:1px solid transparent;background:transparent;color:var(--muted);
+  font-size:0!important;line-height:0;flex:0 0 auto;
+  transition:transform 240ms var(--ease-out),background-color 200ms var(--ease-out),color 200ms var(--ease-out),border-color 200ms var(--ease-out)}
+.nova-side-dock .experience-btn svg{width:19px;height:19px;stroke-width:1.9}
+.nova-side-dock .experience-btn:hover,.nova-side-dock .experience-btn:focus-visible{background:var(--frost);border-color:var(--glass-border);color:var(--neon);transform:translateX(3px)}
+.nova-side-dock .experience-btn:focus-visible{outline:2px solid var(--neon);outline-offset:3px}
+.nova-side-dock .experience-btn:active{transform:scale(.93)}
+.nova-side-dock .experience-btn[aria-pressed="true"],.nova-side-dock .experience-btn[aria-expanded="true"]{background:var(--neon);color:var(--on-accent);border-color:transparent}
+.nova-side-dock .experience-btn[aria-pressed="true"]:hover{color:var(--on-accent);background:var(--neon)}
+.nova-side-dock .eq-btn-dot{position:absolute;top:7px;right:7px;width:6px;height:6px;border:1.5px solid var(--surface);box-sizing:content-box}
+.nova-side-dock #eqBtn[aria-pressed="true"] .eq-btn-dot{background:var(--on-accent)}
+.nova-side-sep{width:24px;height:1px;background:var(--glass-border);margin:2px 0}
+.nova-side-label{position:absolute;left:calc(100% + 12px);top:0;padding:5px 11px;border-radius:10px;
+  background:var(--raised);border:1px solid var(--glass-border);color:var(--text);
+  font:500 12px/1.5 var(--sans);white-space:nowrap;pointer-events:none;opacity:0;
+  transform:translate3d(-6px,calc(var(--y,0px) - 50%),0) scale(.94);transform-origin:0 50%;
+  box-shadow:0 8px 22px oklch(10% .012 120 / .35);transition:opacity 180ms var(--ease-out),transform 260ms var(--ease-out)}
+.nova-side-label.on{opacity:1;transform:translate3d(0,calc(var(--y,0px) - 50%),0) scale(1)}
+/* The Listening Room row keeps its label and the Esc tip; its buttons now live on the rail */
+body.has-side-dock .experience-tools .experience-actions{display:none}
+/* narrow desktop windows: keep the page clear of the rail */
+@media(min-width:881px) and (max-width:1300px){body.has-side-dock .shell{padding-left:96px!important}}
+:root[data-motion="reduce"] .nova-side-dock,:root[data-motion="reduce"] .nova-side-dock .experience-btn{transition:opacity .2s}
+:root[data-motion="reduce"] .nova-side-dock .experience-btn:hover{transform:none}
+</style>
+<script id="nova-side-dock-script">
+(function(){
+  var home=document.querySelector('.experience-actions');if(!home)return;
+  var ids=['cinemaBtn','orbitBtn','lyricsBtn','eqBtn'];
+  var btns=ids.map(function(id){return document.getElementById(id);}).filter(Boolean);
+  var rail=document.createElement('nav');rail.className='nova-side-dock';rail.id='novaSideDock';rail.setAttribute('aria-label','LISTENING ROOM');
+  var label=document.createElement('span');label.className='nova-side-label';label.setAttribute('aria-hidden','true');
+  var sep=document.createElement('span');sep.className='nova-side-sep';sep.setAttribute('aria-hidden','true');
+  document.body.appendChild(rail);
+  var mq=window.matchMedia('(min-width:881px)');
+  var KEYS={cinemaBtn:'C',lyricsBtn:'L',eqBtn:'E'};
+  function text(b){var t=(b.textContent||'').replace(/\s+/g,' ').trim()||b.getAttribute('aria-label')||'';
+    if(b.id==='cinemaBtn'&&b.getAttribute('aria-pressed')==='true')return t+'  ·  Esc';
+    return KEYS[b.id]?t+'  ·  '+KEYS[b.id]:t;}
+  function place(){
+    var side=mq.matches;
+    document.body.classList.toggle('has-side-dock',side);
+    btns.forEach(function(b,i){
+      if(side){if(b.id==='eqBtn')rail.appendChild(sep);rail.appendChild(b);}
+      else home.appendChild(b);
+    });
+    if(side){rail.appendChild(label);btns.forEach(function(b){b.removeAttribute('title');});}else label.classList.remove('on');
+  }
+  function show(b){
+    var r=b.getBoundingClientRect(),d=rail.getBoundingClientRect();
+    label.textContent=text(b);label.style.setProperty('--y',(r.top+r.height/2-d.top)+'px');label.classList.add('on');
+  }
+  function hide(){label.classList.remove('on');}
+  btns.forEach(function(b){
+    /* the native title tooltip would double up with ours; keep it as the accessible description */
+    var strip=function(){if(b.hasAttribute('title')&&rail.contains(b))b.removeAttribute('title');};
+    new MutationObserver(strip).observe(b,{attributes:true,attributeFilter:['title']});
+    b.addEventListener('mouseenter',function(){if(rail.contains(b))show(b);});
+    b.addEventListener('mouseleave',hide);
+    b.addEventListener('focus',function(){if(rail.contains(b)&&b.matches(':focus-visible'))show(b);});
+    b.addEventListener('blur',hide);
+    b.addEventListener('click',function(){if(rail.contains(b)&&label.classList.contains('on'))setTimeout(function(){show(b);},30);});
+  });
+  place();
+  (mq.addEventListener?mq.addEventListener('change',place):mq.addListener(place));
+  var app=document.getElementById('app');
+  function reveal(){rail.classList.add('ready');}
+  if(app&&getComputedStyle(app).opacity==='0'){
+    var mo=new MutationObserver(function(){if(getComputedStyle(app).opacity!=='0'){mo.disconnect();setTimeout(reveal,220);}});
+    mo.observe(app,{attributes:true,attributeFilter:['style']});
+    setTimeout(function(){try{mo.disconnect()}catch(e){}reveal();},4500);
+  }else setTimeout(reveal,120);
+})();
+</script>
+
 <script id="nova-i18n">
 /* NOVA i18n: runtime fa <-> en, no rewiring of the app logic */
 (function(){
-  var DICT={"سینمایی": "Cinema", "خروج از سینما": "Exit cinema", "حلقهٔ صدا": "Audio ring", "متن آهنگ": "Lyrics", "برای برگشت، Esc بزن": "Press Esc to go back", "آهنگی انتخاب نشده": "No track selected", "همراهِ کلمات": "Along the words", "متن هم‌زمان، از فایل خودت": "Synced lyrics, from your own file", "افزودن LRC": "Add LRC", "هر آهنگ، کلمات خودش": "Every track, its own words", "یک آهنگ انتخاب کن و فایل LRC آن را اضافه کن.": "Pick a track, then add its LRC file.", "دنبال‌کردن متن": "Follow lyrics", "برگشت به خط فعلی": "Back to current line", "زمان متن": "Lyrics timing", "−۰٫۵": "−0.5", "+۰٫۵": "+0.5", "روی دسکتاپ": "On desktop", "پنجرهٔ شناور روی برنامه‌های دیگر؛ Chrome یا Edge دسکتاپ. تب اصلی باید باز بماند.": "A floating window above your other apps; desktop Chrome or Edge. Keep this tab open.", "کلمات این آهنگ هنوز اینجا نیست": "No lyrics for this track yet", "فایل LRC همین آهنگ را اضافه کن؛ همراهش در مرورگر ذخیره می‌شود.": "Add an LRC file for this track; it is stored with it in your browser.", "در حال بررسی متن…": "Checking lyrics…", "متن آهنگ در دسترس نیست": "Lyrics unavailable", "دوباره فایل LRC را انتخاب کن.": "Pick the LRC file again.", "فایل LRC باید کمتر از ۵۱۲ کیلوبایت باشد": "The LRC file must be smaller than 512 KB", "یک فایل با پسوند LRC انتخاب کن": "Choose a file with an .lrc extension", "زمان‌بندی پیدا نشد؛ نمونهٔ درست: [00:12.50] متن آهنگ": "No timings found. Correct format: [00:12.50] lyric line", "فایل بیش از ۵۰۰۰ خط زمان‌دار دارد": "The file has more than 5000 timed lines", "ذخیرهٔ متن ممکن نشد؛ آهنگ و دسترسی ذخیره‌سازی را بررسی کن": "Could not save the lyrics. Check the track and your storage permissions", "تنظیم زمان ذخیره نشد": "Timing offset was not saved", "آپلود موسیقی": "Upload music", "فایل": "Files", "پوشه": "Folder", "📁 فایل": "📁 Files", "📂 پوشه": "📂 Folder", "۰ آهنگ": "0 tracks", "آهنگ": "tracks", "مرتب‌سازی": "Sort", "جدید": "Newest", "حجم": "Size", "دستی": "Manual", "لیست آهنگ‌ها": "Track list", "قفسهٔ کاورها": "Cover shelf", "کاورهای یکسان کنار هم؛ مجموعه‌ات را ورق بزن.": "Matching covers side by side; flip through your collection.", "مجموعهٔ کاور مشترک": "Shared cover set", "کاوری با این جستجو پیدا نشد.": "No cover matches that search.", "آهنگ اضافه کن تا قفسه‌ات شکل بگیره.": "Add tracks to build your shelf.", "آهنگی یافت نشد": "No tracks found", "برای جابجایی، اول جستجو را خالی کن": "Clear the search first to reorder", "بکش و جابجا کن": "Drag to reorder", "حذف": "Delete", "تغییر نام": "Rename", "+ جدید": "+ New", "پلی‌لیست جدید": "New playlist", "انصراف": "Cancel", "ایجاد": "Create", "ذخیره": "Save", "افزودن به پلی‌لیست": "Add to playlist", "① انتخاب پلی‌لیست مقصد": "① Choose a target playlist", "② انتخاب آهنگ‌ها": "② Choose tracks", "افزودن": "Add", "هنوز پلی‌لیستی نداری": "No playlists yet", "از صفحهٔ اصلی آهنگ اضافه کن": "Add tracks from the main page", "نام وارد کن": "Enter a name", "✅ ذخیره شد": "✅ Saved", "پلی‌لیست حذف شد": "Playlist deleted", "ابتدا یک پلی‌لیست بساز": "Create a playlist first", "پلی‌لیست مقصد انتخاب نشده": "No target playlist selected", "پلی‌لیست پیدا نشد": "Playlist not found", "پایان پلی‌لیست": "End of playlist", "داده صوتی این آهنگ در دیتابیس پیدا نشد — لطفاً دوباره آپلود کنید": "Audio data for this track was not found. Please upload it again", "خطا در پخش؛ فایل آهنگ را بررسی کن": "Playback error. Check the audio file", "خطا در پخش": "Playback error", "ابتدا آهنگ آپلود کنید": "Upload a track first", "تکرار خاموش": "Repeat off", "🔂 تکرار یک آهنگ": "🔂 Repeat one", "🔁 تکرار کل لیست": "🔁 Repeat all", "🔀 پخش تصادفی فعال": "🔀 Shuffle on", "پخش تصادفی غیرفعال": "Shuffle off", "فرمت پشتیبانی نمیشود": "Unsupported format", "فقط MP3، MP4، M4A، OGG و OPUS قابل افزودن هستند.": "Only MP3, MP4, M4A, OGG and OPUS can be added.", "در حال نوشتن روی حافظهٔ مرورگر...": "Writing to browser storage...", "ذخیره نشد": "Not saved", "به کتابخانه اضافه شد و آمادهٔ پخشه.": "Added to your library and ready to play.", "آهنگ پیدا نشد": "Track not found", "خطا در حذف": "Delete failed", "حذف شد": "Deleted", "همه آهنگ‌ها پاک شدند": "All tracks cleared", "در حال پخش": "Now playing", "آمادهٔ پخش": "Ready to play", "مکث": "Pause", "پخش": "Play", "در حال آماده‌سازی": "Getting ready", "دسترسی به کتابخانه ممکن نشد": "Could not reach the library", "فایل را در مرورگر معمولی باز کن و مجوز ذخیره‌سازی را بررسی کن": "Open the file in a normal browser window and check storage permissions", "ذخیره‌سازی مرورگر در دسترس نیست؛ صفحه را پس از بررسی مجوزها دوباره باز کن": "Browser storage is unavailable. Check permissions, then reload the page", "کاهش حرکت فعال است": "Reduced motion is on", "کاهش حرکت": "Reduced motion", "موقعیت پخش": "Playback position", "بلندی صدا": "Volume", "جستجوی آهنگ": "Search tracks", "پنجرهٔ NOVA": "NOVA window", "فعال کردن تم روشن": "Switch to light theme", "فعال کردن تم تیره": "Switch to dark theme", "ابزارهای سریع": "Quick tools", "بستن اعلان": "Dismiss notification", "این فایل را دانلود کن و مستقیم در Chrome یا Edge دسکتاپ باز کن؛ پیش‌نمایش داخل صفحه اجازهٔ پنجرهٔ شناور نمی‌دهد.": "Download this file and open it directly in desktop Chrome or Edge; an in-page preview cannot open a floating window.", "برای پنجرهٔ دسکتاپ، فایل را مستقیم در Chrome یا Edge باز کن یا از HTTPS / localhost اجرا کن.": "For the desktop window, open the file directly in Chrome or Edge, or serve it over HTTPS / localhost.", "این مرورگر پنجرهٔ دسکتاپ را پشتیبانی نمی‌کند؛ Chrome یا Edge به‌روزِ کامپیوتر را امتحان کن.": "This browser does not support the desktop window. Try an up-to-date desktop Chrome or Edge.", "در حال باز کردن پنجرهٔ دسکتاپ…": "Opening the desktop window…", "پنجره بسته شد؛ پخش موسیقی از همین صفحه ادامه دارد.": "Window closed. Playback continues from this page.", "بازگشت به پلیر": "Back to player", "پخش انجام نشد؛ فایل آهنگ را در صفحهٔ اصلی بررسی کن.": "Playback failed. Check the audio file on the main page.", "بستن پنجرهٔ دسکتاپ": "Close the desktop window", "مینی‌پلیر روی دسکتاپ باز است؛ می‌توانی مرورگر را کوچک کنی، ولی این تب را نبند.": "The desktop mini player is open. You can minimize the browser, but keep this tab open.", "پنجره باز نشد. فایل را مستقیم در Chrome یا Edge به‌روزِ دسکتاپ باز کن و دوباره دکمه را بزن؛ تنظیمات مرورگر ممکن است این قابلیت را مسدود کرده باشند.": "The window did not open. Open the file directly in an up-to-date desktop Chrome or Edge and press the button again; browser settings may be blocking it.", "برای مینی‌پلیر روی دسکتاپ، فایل را مستقیم در Chrome یا Edge به‌روزِ کامپیوتر باز کن.": "For the desktop mini player, open the file directly in an up-to-date desktop Chrome or Edge.", "روی برنامه‌های دیگر می‌ماند؛ تب اصلی را باز نگه دار.": "Stays above other apps; keep the main tab open.", "مینی‌پلیر ویندوز باز است.": "The Windows mini player is open.", "باز کردن مینی‌پلیر انجام نشد.": "Could not open the mini player.", "📖 راهنمای NOVA": "📖 NOVA guide", "اتاق موسیقی": "Listening room", "C / سینمایی": "C / Cinema", "کتابخانه را کنار بگذار و با دیسک بزرگ و نور کاور گوش بده. با Esc یا «خروج از سینما» برگرد.": "Set the library aside and listen with a big disc and cover glow. Press Esc or “Exit cinema” to return.", "حلقهٔ دور دیسک به صدای واقعی آهنگ واکنش نشان می‌دهد. هنگام مکث و در حالت کاهش حرکت، متوقف می‌شود.": "The ring around the disc reacts to the real audio. It stops on pause and with reduced motion.", "تعویض سینمایی": "Cinematic transitions", "دیسک با شتاب نرم راه می‌افتد و آرام می‌ایستد؛ کاور، متن و چیدمان سینما با حرکت پیوسته جابه‌جا می‌شوند. این حرکت‌ها با تنظیم کاهش حرکت خاموش می‌شوند.": "The disc spins up smoothly and eases to a stop; cover, lyrics and cinema layout move as one. Reduced motion turns these off.", "L / متن آهنگ": "L / Lyrics", "آهنگ را انتخاب کن، «متن آهنگ» و سپس «افزودن LRC» را بزن. متن فقط برای همین آهنگ در مرورگر ذخیره می‌شود؛ دریافت خودکار از اینترنت انجام نمی‌شود.": "Pick a track, hit “Lyrics”, then “Add LRC”. The lyrics are stored in your browser for that track only; nothing is fetched from the internet.", "زمان‌بندی متن": "Lyrics timing", "روی هر خط بزن تا به همان زمان بروی. با −۰٫۵ و +۰٫۵ متن را زودتر یا دیرتر کن. اگر متن را دستی ورق زدی، «برگشت به خط فعلی» دنبال‌کردن را فعال می‌کند.": "Tap a line to jump to its time. Use −0.5 and +0.5 to shift lyrics earlier or later. If you scroll manually, “Back to current line” re-enables following.", "کنار نمای لیست، کاورها را ورق بزن. کاورهای یکسان گروه می‌شوند؛ با انتخاب هر کاور، آهنگ‌هایش نمایش داده می‌شوند. جستجو، مرتب‌سازی و پلی‌لیست روی هر دو نما کار می‌کنند.": "Next to the list view, flip through covers. Identical covers are grouped; pick one to see its tracks. Search, sort and playlists work in both views.", "یک یا چند فایل صوتی انتخاب کن (MP3, MP4, M4A, OGG, OPUS)": "Pick one or more audio files (MP3, MP4, M4A, OGG, OPUS)", "کل یه پوشه موسیقی رو آپلود کن — همه فایل‌های صوتی داخلش اضافه میشن": "Upload a whole music folder: every audio file inside gets added", "فایل‌ها رو مستقیم روی بخش آپلود بکش و رها کن": "Drag files straight onto the upload area and drop them", "کنترل پخش": "Playback controls", "D / روی دسکتاپ": "D / On desktop", "مینی‌پلیر را در پنجره‌ای روی برنامه‌های دیگر باز یا بسته کن. فایل را مستقیم در Chrome یا Edge به‌روزِ کامپیوتر باز کن. تب اصلی باید باز بماند؛ بستن پنجرهٔ کوچک پخش را متوقف نمی‌کند.": "Open or close the mini player in a window above your other apps. Open the file directly in an up-to-date desktop Chrome or Edge. Keep the main tab open; closing the small window does not stop playback.", "پخش / مکث": "Play / pause", "آهنگ قبلی / بعدی": "Previous / next track", "افزایش / کاهش صدا": "Volume up / down", "🔀 تصادفی": "🔀 Shuffle", "پخش آهنگ‌ها به صورت تصادفی": "Play tracks in random order", "🔁 تکرار": "🔁 Repeat", "کلیک اول: تکرار یک آهنگ · کلیک دوم: تکرار کل لیست · کلیک سوم: خاموش": "First click: repeat one · second click: repeat all · third click: off", "کتابخانه": "Library", "جستجو": "Search", "نام آهنگ یا پوشه رو تایپ کن — لیست فیلتر میشه": "Type a track or folder name and the list filters", "مرتب‌سازی بر اساس نام": "Sort by name", "جدیدترین آهنگ‌های اضافه‌شده اول": "Most recently added first", "مرتب‌سازی بر اساس حجم فایل": "Sort by file size", "ترتیب دلخواه خودت — با کشیدن آهنگ‌ها ساخته و ذخیره میشه": "Your own order, built and saved by dragging tracks", "⠿ جابجایی": "⠿ Reorder", "دستگیره سمت هر آهنگ رو با ماوس یا لمس بگیر و بالا/پایین بکش تا ترتیب عوض بشه": "Grab the handle next to a track with mouse or touch and drag it up or down", "حذف یک آهنگ از کتابخانه (روی آهنگ هاور کن)": "Remove a track from the library (hover the track)", "پلی‌لیست": "Playlists", "PLAYLISTS تب": "PLAYLISTS tab", "برو به بخش پلی‌لیست‌ها": "Go to the playlists section", "یه پلی‌لیست جدید بساز": "Create a new playlist", "کلیک روی پلی‌لیست": "Click a playlist", "پلی‌لیست رو باز کن و فقط آهنگ‌های اون نمایش داده میشه": "Open it and only its tracks are shown", "تغییر نام یا حذف پلی‌لیست": "Rename or delete a playlist", "دکمه +": "+ button", "انتخاب آهنگ و پلی‌لیست مقصد برای افزودن": "Pick tracks and a target playlist to add them to", "ذخیره‌سازی": "Storage", "💾 دائمی": "💾 Persistent", "همه آهنگ‌ها و پلی‌لیست‌ها در مرورگر ذخیره میشن — بعد از بستن و باز کردن هم هستن": "Tracks and playlists are stored in the browser; they survive closing and reopening", "🗑 حذف همه": "🗑 Clear all", "از آیکون سطل زباله در هدر برای پاک‌کردن همه آهنگ‌ها استفاده کن": "Use the trash icon in the header to clear all tracks", "عکس آهنگ": "Cover art", "اگه فایل MP3 کاور آرت داشته باشه، خودبه‌خود نمایش داده میشه": "If the MP3 has embedded cover art, it shows automatically", "متوجه شدم 👍": "Got it 👍", "مهدی جعفری و کسری قلیچی": "Mehdi Jafari & Kasra Ghelichi", "@mehdijafari · سازنده NOVA": "@mehdijafari · NOVA creator", "علاقه‌مند به موسیقی و توسعه نرم‌افزار.": "Into music and software development.", "NOVA رو ساختیم تا یه تجربه پخش موسیقی ساده، سریع و آفلاین داشته باشیم.": "We built NOVA for a simple, fast, offline music player experience.", "بدون تبلیغ، بدون اینترنت، فقط موسیقی.": "No ads, no internet, just music.", "بستن": "Close", "لینک‌های سازنده": "Creator links", "اینستاگرام سازنده": "Creator's Instagram", "گیت‌هاب سازنده": "Creator's GitHub", "درباره سازنده": "About the creator", "تنظیمات NOVA": "NOVA settings", "تنظیمات و میانبرها": "Settings & shortcuts", "میانبرهای قابل تغییر": "Custom shortcuts", "روی کلید هر فرمان بزن، سپس کلید موردنظر را فشار بده.": "Click a command's key, then press the key you want.", "رفتار برنامه": "App behavior", "تنظیمات این بخش روی همین دستگاه ذخیره می‌شوند.": "These settings are saved on this device.", "بستن پنجره یعنی رفتن به Tray": "Closing the window sends it to the tray", "Portable هم تنظیماتش را در پوشهٔ کاربر ویندوز ذخیره می‌کند و با حذف برنامه از بین نمی‌روند.": "The portable build also stores its settings in your Windows user folder, and they survive uninstalling.", "بازنشانی میانبرها": "Reset shortcuts", "ذخیره و بستن": "Save & close", "کلیدی را بزن": "Press a key", "میانبرهای پیش‌فرض آماده شد؛ برای ثبت، ذخیره و بستن را بزن.": "Defaults restored. Hit Save & close to apply.", "این میانبر قبلاً استفاده شده؛ یک کلید دیگر انتخاب کن.": "That shortcut is already taken. Pick another key.", "آهنگ بعدی": "Next track", "آهنگ قبلی": "Previous track", "تغییر تم": "Toggle theme", "حالت سینمایی": "Cinema mode", "زبان": "Language", "زبان رابط کاربری": "Interface language", "انتخاب زبان روی همین دستگاه ذخیره می‌شود.": "Your language choice is saved on this device.", "برای جابه‌جایی پنجره بکشید": "Drag to move the window", "کنترل پنجره": "Window controls", "کمینه کردن": "Minimize", "بزرگ‌نمایی": "Maximize", "بازگردانی": "Restore", "در حال بارگذاری": "Loading", "راهنما": "Help", "تم روز/شب": "Light / dark theme", "پاک‌کردن همه": "Clear all", "حالت سینمایی (C)": "Cinema mode (C)", "خروج از حالت سینمایی (Esc)": "Exit cinema mode (Esc)", "حلقهٔ واکنش‌گرا به صدای آهنگ": "Ring that reacts to the audio", "تصادفی": "Shuffle", "قبلی": "Previous", "بعدی": "Next", "تکرار": "Repeat", "فایل متن هم‌زمان آهنگ": "Synced lyrics file", "متن آهنگ؛ برای رفتن به زمان هر خط، روی آن بزن": "Lyrics; tap a line to jump to its time", "نمایش متن نیم ثانیه زودتر": "Show lyrics half a second earlier", "نمایش متن نیم ثانیه دیرتر": "Show lyrics half a second later", "مینی‌پلیر روی دسکتاپ (D)": "Desktop mini player (D)", "جستجو...": "Search...", "مرتب‌سازی کتابخانه": "Sort the library", "نمای کتابخانه": "Library view", "کاورهای سمت چپ": "Covers to the left", "کاورهای سمت راست": "Covers to the right", "انتخاب مجموعهٔ کاورها": "Choose a cover set", "اعلان‌های آپلود": "Upload notifications", "نام پلی‌لیست...": "Playlist name...", "فایل‌های موسیقی": "Music files", "آهنگ‌ها از مسیر اصلی خودشان پخش می‌شوند و هیچ کپی اضافه‌ای ساخته نمی‌شود.": "Tracks play from their original location; no extra copies are made.", "اگر فایل اصلی جابه‌جا یا حذف شود، باید دوباره آن را به کتابخانه معرفی کنی.": "If the original file is moved or deleted, add it to the library again.", "به‌روزرسانی برنامه": "App updates", "NOVA هنگام اجرا نسخه‌های جدید GitHub را بررسی می‌کند.": "NOVA checks GitHub for new versions on launch.", "بررسی نسخهٔ جدید": "Check for updates", "در حال بررسی…": "Checking…", "در حال بررسی نسخهٔ جدید…": "Checking for a new version…", "نسخهٔ نصب‌شده به‌روز است.": "You're on the latest version.", "بررسی یا نصب نسخهٔ جدید انجام نشد.": "Couldn't check or install the update.", "در حال نصب…": "Installing…", "لینک‌های رسمی NOVA": "Official NOVA links", "وب‌سایت رسمی": "Official website", "انتخاب آهنگ انجام نشد": "Couldn't pick tracks", "این آهنگ‌ها قبلاً به کتابخانه اضافه شده‌اند": "These tracks are already in your library", "علاقه‌مندی": "Favorite", "در علاقه‌مندی‌ها": "Favorited", "افزودن به علاقه‌مندی‌ها": "Add to favorites", "حذف از علاقه‌مندی‌ها": "Remove from favorites", "♥ به علاقه‌مندی‌ها اضافه شد": "♥ Added to favorites", "از علاقه‌مندی‌ها حذف شد": "Removed from favorites", "هنوز آهنگی رو لایک نکردی": "No favorites yet", "روی قلب کنار هر آهنگ بزن تا اینجا جمع بشه": "Tap the heart next to any track to collect it here", "موسیقی خود را وارد کنید": "Upload your music", "روی دکمه‌های فایل یا پوشه کلیک کنید یا فایل‌ها را به این‌جا بکشید.": "Click the File or Folder button, or drag and drop files here.", "LIBRARY: تمام آهنگ‌ها": "LIBRARY: All tracks", "کتابخانهٔ موسیقی خود را مشاهده کنید. جستجو، مرتب‌سازی و دستی جابجا کنید.": "See your music library. Search, sort, and drag to reorder.", "FAVORITES: آهنگ‌های مورد علاقه": "FAVORITES: Your liked tracks", "روی قلب کلیک کنید یا F را فشار دهید تا آهنگ‌ها را لایک کنید.": "Click the heart or press F to like tracks.", "PLAYLISTS: مجموعه‌های شخصی": "PLAYLISTS: Custom collections", "پلی‌لیست بسازید و آهنگ‌ها را گروه‌بندی کنید.": "Create playlists and organize tracks.", "میانبرهای کلیدی": "Keyboard shortcuts", "Space = پخش/توقف · ← → = آهنگ قبل/بعد · ↑↓ = صدا": "Space = play/pause · ← → = prev/next · ↑↓ = volume", "مینی‌پلیر": "Mini player", "دکمهٔ NOVA MINI رو بزن تا موسیقی در پنجرهٔ کوچیک دسکتاپ ادامه پیدا کند.": "Click NOVA MINI to continue in a small desktop window.", "تنظیمات": "Settings", "میانبرها را تغییر دهید، میانبرهای دسکتاپ را انتخاب کنید و آپدیت‌ها را بررسی کنید.": "Change shortcuts, configure desktop hotkeys, check for updates.", "شروع کنید!": "Let's go!", "اکنون آماده‌اید. آهنگ‌های مورد علاقهٔ خود را آپلود کنید و لذت ببرید!": "You're ready. Upload your favorite tracks and enjoy!", "راهنمای کاربری": "Getting started", "آموزش مرحله‌به‌مرحله برای شروع.": "Step-by-step guide on first launch.", "دوباره نشان بده": "Show again"};
-  var RULES=[["^(\\d+)\\s*آهنگ$", "$1 tracks"], ["^(\\d+)\\s*فایل اضافه شد$", "$1 files added"], ["^ذخیره\\s*(\\d+)\\s*فایل$", "Saving $1 files"], ["^(.+)\\s·\\s(\\d+)\\s*خط$", "$1 · $2 lines"], ["^پخش\\s+(.+)$", "Play $1"], ["^رفتن به\\s+(.+)$", "Jump to $1"], ["^ثبت شد:\\s*(.+)$", "Set: $1"], ["^متن برای\\s*«(.+)»\\s*ذخیره شد$", "Lyrics saved for “$1”"], ["^✅\\s*(\\d+)\\s*آهنگ به \"(.+)\" اضافه شد$", "✅ $1 tracks added to \"$2\""], ["^همه آهنگ‌ها قبلاً در \"(.+)\" بودن$", "All tracks were already in \"$1\""], ["^(.+)،\\s*(\\d+)\\s*آهنگ$", "$1, $2 tracks"]].map(function(r){return [new RegExp(r[0]),r[1]]});
+  var DICT={"متن آهنگ و ترجمه (جدید)": "Lyrics & translation (new)","🎤 متن آهنگ و ترجمه (جدید)": "🎤 Lyrics & translation (new)","🎚 اکولایزر": "🎚 Equalizer","یک آهنگ انتخاب کن": "Pick a track","ابزار متن آهنگ": "Lyrics tools","نمایش متن و ترجمه": "Lyrics & translation view","اصلی": "Original","دوزبانه": "Bilingual","فارسی": "Persian","اندازهٔ متن": "Text size","کپی متن": "Copy lyrics","جستجو و تنظیمات متن": "Search & lyrics settings","نام آهنگ": "Title","خواننده": "Artist","مثلاً Yaavar": "e.g. Yaavar","مثلاً Dariush": "e.g. Dariush","جستجو و انتخاب": "Search & pick","جستجوی هوشمند": "Smart search","جستجوی چندمرحله‌ای در LRCLIB و lyrics.ovh و انتخاب خودکار بهترین نتیجه": "Multi-step search on LRCLIB and lyrics.ovh that picks the best match automatically","پیدا کردن خودکار": "Auto-find","وقتی آهنگ متن ندارد، خودکار آنلاین پیدا کن": "When a track has no lyrics, find them online automatically","حذف متن این آهنگ": "Remove this track’s lyrics","هم‌زمان": "Synced","بدون زمان‌بندی": "Unsynced","بدون زمان": "Unsynced","در حال ترجمه…": "Translating…","ترجمهٔ فارسی": "Persian translation","متن فارسی": "Persian lyrics","در حال جستجو…": "Searching…","متن این آهنگ خودش فارسی است": "These lyrics are already in Persian","هنوز متنی برای این آهنگ نداریم": "No lyrics for this track yet","جستجوی هوشمند را بزن، یا نام آهنگ و خواننده را دستی جستجو کن.": "Run a smart search, or look up the title and artist yourself.","جستجوی متن": "Find lyrics","دوباره جستجو کن.": "Search again.","در حال بررسی متن…": "Checking lyrics…","در حال جستجوی متن…": "Searching for lyrics…","برچسب‌های فایل، نام آهنگ و خواننده بررسی می‌شوند": "Checking file tags, title and artist","متنی برای این آهنگ پیدا نشد": "No lyrics found for this track","نام آهنگ و خواننده را دستی جستجو کن؛ معمولاً با اسم انگلیسی بهتر پیدا می‌شود.": "Search the title and artist yourself; English spellings usually work best.","جستجوی دستی": "Manual search","اتصال به سرویس متن برقرار نشد": "Could not reach the lyrics service","ذخیرهٔ متن انجام نشد": "Could not save the lyrics","اینترنت را بررسی کن و دوباره امتحان کن.": "Check your internet and try again.","دوباره امتحان کن.": "Try again.","تلاش دوباره": "Try again","متن هم‌زمان پیدا شد": "Synced lyrics found","فقط متن بدون زمان‌بندی پیدا شد": "Only unsynced lyrics were found","متن هم‌زمان ذخیره شد": "Synced lyrics saved","متن بدون زمان‌بندی ذخیره شد": "Unsynced lyrics saved","پیدا کردن خودکار متن روشن شد": "Auto-find lyrics is on","پیدا کردن خودکار متن خاموش شد": "Auto-find lyrics is off","متن آهنگ کپی شد": "Lyrics copied","کپی انجام نشد": "Copy failed","متن این آهنگ حذف شد": "Lyrics removed for this track","حذف متن انجام نشد": "Could not remove the lyrics","نام آهنگ یا خواننده را بنویس": "Type a title or artist","نتیجه‌ای پیدا نشد؛ املای انگلیسی یا فقط نام آهنگ را امتحان کن.": "No results. Try an English spelling or just the title.","اتصال به LRCLIB برقرار نشد؛ اینترنت را بررسی کن.": "Could not reach LRCLIB. Check your internet.","ترجمهٔ فارسی آماده شد": "Persian translation ready","اتصال به سرویس ترجمه برقرار نشد": "Could not reach the translation service","ترجمه انجام نشد؛ دوباره امتحان کن": "Translation failed, try again","اندازهٔ متن: کوچک": "Text size: small","اندازهٔ متن: معمولی": "Text size: normal","اندازهٔ متن: بزرگ": "Text size: large","اندازهٔ متن: خیلی بزرگ": "Text size: extra large","متن آهنگ پیدا نمی‌شود یا اشتباه است": "Lyrics missing or wrong","ذره‌بین پنل متن را بزن، نام آهنگ و خواننده را به انگلیسی یا فینگلیش بنویس و از نتایج انتخاب کن. اگر متن اشتباهی ذخیره شده، اول «حذف متن این آهنگ» را بزن. جستجو و ترجمه به اینترنت نیاز دارند، ولی بعد از اولین بار همه‌چیز آفلاین کار می‌کند.": "Tap the magnifier in the lyrics panel, type the title and artist in English and pick a result. If wrong lyrics were saved, hit “Remove this track’s lyrics” first. Search and translation need internet, but everything works offline after the first time.","متن هم‌زمان و ترجمهٔ فارسی در حالت سینمایی هم کنار دیسک می‌ماند؛ جزئیات در بخش «متن آهنگ و ترجمه».": "Synced lyrics and the Persian translation stay beside the disc in cinema mode too; see “Lyrics & translation” for details.","متن هم‌زمان هر آهنگ خودکار از LRCLIB پیدا و ذخیره می‌شود؛": "Each track’s synced lyrics are found on LRCLIB and saved;","پیدا کردن خودکار ": "Auto-find ","جستجوی دستی ": "Manual search ","ترجمهٔ فارسی ": "Persian translation ","نمایش": "Display","زمان‌بندی": "Timing","متن اشتباه": "Wrong lyrics","دکمهٔ «متن آهنگ» در نوار ابزار یا کلید": "The “Lyrics” button on the toolbar, or the key",". متن هر آهنگ یک بار پیدا و روی همین دستگاه ذخیره می‌شود؛ بعد از آن بدون اینترنت هم نمایش داده می‌شود.": ". Each track’s lyrics are found once and saved on this device, then shown even without internet.","NOVA برچسب‌های داخل فایل (ID3)، نام فایل و مدت آهنگ را می‌خواند، چند جستجو در LRCLIB انجام می‌دهد و نتیجه‌ای را برمی‌دارد که نام، خواننده و مدتش بیشترین تطابق را دارد. اگر متن هم‌زمان نبود، از lyrics.ovh متن ساده می‌گیرد.": "NOVA reads the file’s ID3 tags, the file name and the duration, runs several LRCLIB searches and keeps the result whose title, artist and length match best. If no synced lyrics exist, it falls back to plain lyrics from lyrics.ovh.","ذره‌بین پنل را بزن، نام آهنگ و خواننده را اصلاح کن و از لیست نتایج، نسخهٔ درست را انتخاب کن. برچسب «هم‌زمان» یعنی متن همراه آهنگ حرکت می‌کند. آهنگ‌های فارسی معمولاً با اسم فینگلیش بهتر پیدا می‌شوند.": "Tap the magnifier, fix the title and artist, and pick the right version from the results. “Synced” means the lyrics move with the music. Persian songs are usually easier to find with Latin spellings.","بالای پنل یکی را انتخاب کن: «اصلی» فقط متن خود آهنگ، «دوزبانه» ترجمهٔ فارسی زیر هر خط، «فارسی» فقط ترجمه. انتخابت برای آهنگ‌های بعدی هم می‌ماند و ترجمه‌ها ذخیره می‌شوند.": "Pick a view at the top of the panel: “Original” shows the lyrics only, “Bilingual” adds the Persian translation under each line, “Persian” shows only the translation. Your choice sticks for the next tracks and translations are saved.","با دکمهٔ": "Use the","اندازهٔ متن را عوض کن (چهار اندازه) و با دکمهٔ کپی، متن یا ترجمه را بردار. خط فعلی در مینی‌پلیر هم به همان حالت نمایش داده می‌شود.": "button to change the text size (four sizes) and the copy button to grab the lyrics or translation. The mini player shows the current line in the same view.","روی هر خط بزن تا به همان لحظه بروی. اگر متن جلوتر یا عقب‌تر است، با −۰٫۵ و +۰٫۵ درستش کن؛ اگر دستی ورق زدی، «برگشت به خط فعلی» را بزن.": "Tap a line to jump there. If the lyrics run early or late, fix them with −0.5 and +0.5; if you scrolled manually, hit “Back to current line”.","در همان پنل جستجو، «حذف متن این آهنگ» را بزن و نسخهٔ درست را دستی انتخاب کن. «پیدا کردن خودکار» را هم می‌توانی خاموش کنی.": "In the search panel, hit “Remove this track’s lyrics” and pick the right version yourself. You can also turn “Auto-find” off.","متن آهنگ (آنلاین)": "Lyrics (online)","بله؛ متن هم‌زمان از LRCLIB (رایگان) گرفته می‌شود و بعد از اولین بار روی همین دستگاه ذخیره می‌ماند تا آفلاین هم کار کند.": "Yes; synced lyrics come from LRCLIB (free) and are saved on this device after the first time, so they work offline too.","آنلاین خودکار": "Auto online","آنلاین خودکار: خاموش": "Auto online: off","جستجوی آنلاین": "Search online","در حال جستجو…": "Searching…","وقتی آهنگ متن ندارد، خودکار از LRCLIB بگیر": "When a track has no lyrics, fetch them from LRCLIB automatically","جستجوی متن هم‌زمان در LRCLIB": "Search synced lyrics on LRCLIB","یک آهنگ انتخاب کن؛ متن هم‌زمانش خودکار از اینترنت پیدا می‌شود.": "Pick a track; its synced lyrics are found online automatically.","«جستجوی آنلاین» را بزن تا متن این آهنگ پیدا شود.": "Hit “Search online” to find this track’s lyrics.","در حال جستجوی متن آنلاین…": "Searching lyrics online…","برای این آهنگ متنی در LRCLIB پیدا نشد": "No lyrics for this track on LRCLIB","دوباره «جستجوی آنلاین» را بزن.": "Try “Search online” again or add this track’s LRC file.","متنی برای این آهنگ پیدا نشد": "No lyrics found for this track","متن هم‌زمان از LRCLIB اضافه شد": "Synced lyrics added from LRCLIB","فقط متن بدون زمان‌بندی پیدا شد": "Only unsynced lyrics were found","متن بدون زمان‌بندی · LRCLIB": "Unsynced lyrics · LRCLIB","اتصال به LRCLIB برقرار نشد": "Could not reach LRCLIB","اینترنت را بررسی کن و «جستجوی آنلاین» را بزن.": "Check your internet and hit “Search online”.","متن آنلاین ذخیره نشد": "Could not save online lyrics","دوباره «جستجوی آنلاین» را بزن.": "Hit “Search online” again.","اکولایزر": "Equalizer", "اکولایزر (E)": "Equalizer (E)", "۱۰ باند · تغییرات همان لحظه روی صدا اعمال می‌شود": "10 bands · changes apply to the sound instantly", "روشن": "On", "خاموش": "Off", "پریست‌های اکولایزر": "Equalizer presets", "جلوگیری خودکار از دیستورشن": "Auto headroom (prevents distortion)", "جبران خودکار": "Auto compensation", "نام پریست من...": "My preset name...", "ذخیره پریست": "Save preset", "صاف کردن": "Flatten", "تمام": "Done", "پیش‌تقویت": "Preamp", "سفارشی": "Custom", "حذف": "Delete", "یک نام برای پریست بنویس": "Type a name for the preset", "صاف": "Flat", "تقویت بیس": "Bass Boost", "کاهش بیس": "Bass Reducer", "تقویت تریبل": "Treble Boost", "کاهش تریبل": "Treble Reducer", "وکال": "Vocal", "سنتی ایرانی": "Persian Traditional", "پاپ": "Pop", "راک": "Rock", "هیپ‌هاپ": "Hip-Hop", "الکترونیک": "Electronic", "دنس": "Dance", "جز": "Jazz", "کلاسیک": "Classical", "آکوستیک": "Acoustic", "پیانو": "Piano", "عمیق": "Deep", "بلندی (Loudness)": "Loudness", "پادکست / گفتار": "Podcast / Speech", "هدفون": "Headphones", "اسپیکر کوچک": "Small Speakers", "🎚 اکولایزر (جدید)": "🎚 Equalizer (new)", "🔥 ترندها": "🔥 Trending", "باز کردن": "Open", "پریست‌ها": "Presets", "۱۰ باند": "10 bands", "پریست من": "My presets", "بدون دیستورشن": "No distortion", "دکمهٔ اکولایزر در نوار ابزار سمت چپ صفحه یا کلید": "The equalizer button on the left-side toolbar, or the key", ". تغییرات همان لحظه روی صدا اعمال می‌شوند.": ". Changes apply to the sound instantly.", "۲۱ پریست آماده: تقویت/کاهش بیس و تریبل، وکال، سنتی ایرانی، پاپ، راک، هیپ‌هاپ، الکترونیک، جز، کلاسیک، پادکست و ...": "21 ready-made presets: bass and treble boost/cut, vocal, Persian traditional, pop, rock, hip-hop, electronic, jazz, classical, podcast and more.", "هر باند را بکش، با چرخ موس یا کلیدهای جهت تنظیم کن؛ دوبار کلیک آن را صفر می‌کند. نمودار پشت اسلایدرها صدای نهایی را نشان می‌دهد.": "Drag any band, or use the mouse wheel or arrow keys; double-click resets it to zero. The curve behind the sliders shows the final sound.", "صدای دلخواهت را بساز، اسم بگذار و ذخیره کن؛ با × کنار آن حذف می‌شود.": "Shape your sound, name it and save it; the × next to it deletes it.", "وقتی باندها را بالا می‌بری، «جلوگیری خودکار از دیستورشن» کل صدا را کمی پایین می‌آورد تا صدا نشکند.": "When you boost bands, “Auto headroom” lowers the overall level a little so the sound never clips.", "باز و بسته‌کردن اکولایزر": "Open / close the equalizer", "سینمایی": "Cinema", "خروج از سینما": "Exit cinema", "حلقهٔ صدا": "Audio ring", "متن آهنگ": "Lyrics", "برای برگشت، Esc بزن": "Press Esc to go back", "آهنگی انتخاب نشده": "No track selected", "همراهِ کلمات": "Along the words", "متن هم‌زمان، آنلاین از LRCLIB": "Synced lyrics, online from LRCLIB", "افزودن LRC": "Add LRC", "هر آهنگ، کلمات خودش": "Every track, its own words", "یک آهنگ انتخاب کن و فایل LRC آن را اضافه کن.": "Pick a track, then add its LRC file.", "دنبال‌کردن متن": "Follow lyrics", "برگشت به خط فعلی": "Back to current line", "زمان متن": "Lyrics timing", "−۰٫۵": "−0.5", "+۰٫۵": "+0.5", "روی دسکتاپ": "On desktop", "پنجرهٔ شناور روی برنامه‌های دیگر؛ Chrome یا Edge دسکتاپ. تب اصلی باید باز بماند.": "A floating window above your other apps; desktop Chrome or Edge. Keep this tab open.", "کلمات این آهنگ هنوز اینجا نیست": "No lyrics for this track yet", "فایل LRC همین آهنگ را اضافه کن؛ همراهش در مرورگر ذخیره می‌شود.": "Add an LRC file for this track; it is stored with it in your browser.", "در حال بررسی متن…": "Checking lyrics…", "متن آهنگ در دسترس نیست": "Lyrics unavailable", "دوباره فایل LRC را انتخاب کن.": "Pick the LRC file again.", "فایل LRC باید کمتر از ۵۱۲ کیلوبایت باشد": "The LRC file must be smaller than 512 KB", "یک فایل با پسوند LRC انتخاب کن": "Choose a file with an .lrc extension", "زمان‌بندی پیدا نشد؛ نمونهٔ درست: [00:12.50] متن آهنگ": "No timings found. Correct format: [00:12.50] lyric line", "فایل بیش از ۵۰۰۰ خط زمان‌دار دارد": "The file has more than 5000 timed lines", "ذخیرهٔ متن ممکن نشد؛ آهنگ و دسترسی ذخیره‌سازی را بررسی کن": "Could not save the lyrics. Check the track and your storage permissions", "تنظیم زمان ذخیره نشد": "Timing offset was not saved", "آپلود موسیقی": "Upload music", "فایل": "Files", "پوشه": "Folder", "📁 فایل": "📁 Files", "📂 پوشه": "📂 Folder", "۰ آهنگ": "0 tracks", "آهنگ": "tracks", "مرتب‌سازی": "Sort", "جدید": "Newest", "حجم": "Size", "دستی": "Manual", "لیست آهنگ‌ها": "Track list", "قفسهٔ کاورها": "Cover shelf", "کاورهای یکسان کنار هم؛ مجموعه‌ات را ورق بزن.": "Matching covers side by side; flip through your collection.", "مجموعهٔ کاور مشترک": "Shared cover set", "کاوری با این جستجو پیدا نشد.": "No cover matches that search.", "آهنگ اضافه کن تا قفسه‌ات شکل بگیره.": "Add tracks to build your shelf.", "آهنگی یافت نشد": "No tracks found", "برای جابجایی، اول جستجو را خالی کن": "Clear the search first to reorder", "بکش و جابجا کن": "Drag to reorder", "حذف": "Delete", "تغییر نام": "Rename", "+ جدید": "+ New", "پلی‌لیست جدید": "New playlist", "انصراف": "Cancel", "ایجاد": "Create", "ذخیره": "Save", "افزودن به پلی‌لیست": "Add to playlist", "① انتخاب پلی‌لیست مقصد": "① Choose a target playlist", "② انتخاب آهنگ‌ها": "② Choose tracks", "افزودن": "Add", "هنوز پلی‌لیستی نداری": "No playlists yet", "از صفحهٔ اصلی آهنگ اضافه کن": "Add tracks from the main page", "نام وارد کن": "Enter a name", "✅ ذخیره شد": "✅ Saved", "پلی‌لیست حذف شد": "Playlist deleted", "ابتدا یک پلی‌لیست بساز": "Create a playlist first", "پلی‌لیست مقصد انتخاب نشده": "No target playlist selected", "پلی‌لیست پیدا نشد": "Playlist not found", "پایان پلی‌لیست": "End of playlist", "داده صوتی این آهنگ در دیتابیس پیدا نشد — لطفاً دوباره آپلود کنید": "Audio data for this track was not found. Please upload it again", "خطا در پخش؛ فایل آهنگ را بررسی کن": "Playback error. Check the audio file", "خطا در پخش": "Playback error", "ابتدا آهنگ آپلود کنید": "Upload a track first", "تکرار خاموش": "Repeat off", "🔂 تکرار یک آهنگ": "🔂 Repeat one", "🔁 تکرار کل لیست": "🔁 Repeat all", "🔀 پخش تصادفی فعال": "🔀 Shuffle on", "پخش تصادفی غیرفعال": "Shuffle off", "فرمت پشتیبانی نمیشود": "Unsupported format", "فقط MP3، MP4، M4A، OGG و OPUS قابل افزودن هستند.": "Only MP3, MP4, M4A, OGG and OPUS can be added.", "در حال نوشتن روی حافظهٔ مرورگر...": "Writing to browser storage...", "ذخیره نشد": "Not saved", "به کتابخانه اضافه شد و آمادهٔ پخشه.": "Added to your library and ready to play.", "آهنگ پیدا نشد": "Track not found", "خطا در حذف": "Delete failed", "حذف شد": "Deleted", "همه آهنگ‌ها پاک شدند": "All tracks cleared", "در حال پخش": "Now playing", "آمادهٔ پخش": "Ready to play", "مکث": "Pause", "پخش": "Play", "در حال آماده‌سازی": "Getting ready", "دسترسی به کتابخانه ممکن نشد": "Could not reach the library", "فایل را در مرورگر معمولی باز کن و مجوز ذخیره‌سازی را بررسی کن": "Open the file in a normal browser window and check storage permissions", "ذخیره‌سازی مرورگر در دسترس نیست؛ صفحه را پس از بررسی مجوزها دوباره باز کن": "Browser storage is unavailable. Check permissions, then reload the page", "کاهش حرکت فعال است": "Reduced motion is on", "کاهش حرکت": "Reduced motion", "موقعیت پخش": "Playback position", "بلندی صدا": "Volume", "جستجوی آهنگ": "Search tracks", "پنجرهٔ NOVA": "NOVA window", "فعال کردن تم روشن": "Switch to light theme", "فعال کردن تم تیره": "Switch to dark theme", "ابزارهای سریع": "Quick tools", "بستن اعلان": "Dismiss notification", "این فایل را دانلود کن و مستقیم در Chrome یا Edge دسکتاپ باز کن؛ پیش‌نمایش داخل صفحه اجازهٔ پنجرهٔ شناور نمی‌دهد.": "Download this file and open it directly in desktop Chrome or Edge; an in-page preview cannot open a floating window.", "برای پنجرهٔ دسکتاپ، فایل را مستقیم در Chrome یا Edge باز کن یا از HTTPS / localhost اجرا کن.": "For the desktop window, open the file directly in Chrome or Edge, or serve it over HTTPS / localhost.", "این مرورگر پنجرهٔ دسکتاپ را پشتیبانی نمی‌کند؛ Chrome یا Edge به‌روزِ کامپیوتر را امتحان کن.": "This browser does not support the desktop window. Try an up-to-date desktop Chrome or Edge.", "در حال باز کردن پنجرهٔ دسکتاپ…": "Opening the desktop window…", "پنجره بسته شد؛ پخش موسیقی از همین صفحه ادامه دارد.": "Window closed. Playback continues from this page.", "بازگشت به پلیر": "Back to player", "پخش انجام نشد؛ فایل آهنگ را در صفحهٔ اصلی بررسی کن.": "Playback failed. Check the audio file on the main page.", "بستن پنجرهٔ دسکتاپ": "Close the desktop window", "مینی‌پلیر روی دسکتاپ باز است؛ می‌توانی مرورگر را کوچک کنی، ولی این تب را نبند.": "The desktop mini player is open. You can minimize the browser, but keep this tab open.", "پنجره باز نشد. فایل را مستقیم در Chrome یا Edge به‌روزِ دسکتاپ باز کن و دوباره دکمه را بزن؛ تنظیمات مرورگر ممکن است این قابلیت را مسدود کرده باشند.": "The window did not open. Open the file directly in an up-to-date desktop Chrome or Edge and press the button again; browser settings may be blocking it.", "برای مینی‌پلیر روی دسکتاپ، فایل را مستقیم در Chrome یا Edge به‌روزِ کامپیوتر باز کن.": "For the desktop mini player, open the file directly in an up-to-date desktop Chrome or Edge.", "روی برنامه‌های دیگر می‌ماند؛ تب اصلی را باز نگه دار.": "Stays above other apps; keep the main tab open.", "مینی‌پلیر ویندوز باز است.": "The Windows mini player is open.", "باز کردن مینی‌پلیر انجام نشد.": "Could not open the mini player.", "📖 راهنمای NOVA": "📖 NOVA guide", "اتاق موسیقی": "Listening room", "C / سینمایی": "C / Cinema", "کتابخانه را کنار بگذار و با دیسک بزرگ و نور کاور گوش بده. با Esc یا «خروج از سینما» برگرد.": "Set the library aside and listen with a big disc and cover glow. Press Esc or “Exit cinema” to return.", "حلقهٔ دور دیسک به صدای واقعی آهنگ واکنش نشان می‌دهد. هنگام مکث و در حالت کاهش حرکت، متوقف می‌شود.": "The ring around the disc reacts to the real audio. It stops on pause and with reduced motion.", "تعویض سینمایی": "Cinematic transitions", "دیسک با شتاب نرم راه می‌افتد و آرام می‌ایستد؛ کاور، متن و چیدمان سینما با حرکت پیوسته جابه‌جا می‌شوند. این حرکت‌ها با تنظیم کاهش حرکت خاموش می‌شوند.": "The disc spins up smoothly and eases to a stop; cover, lyrics and cinema layout move as one. Reduced motion turns these off.", "L / متن آهنگ": "L / Lyrics", "آهنگ را انتخاب کن، «متن آهنگ» و سپس «افزودن LRC» را بزن. متن فقط برای همین آهنگ در مرورگر ذخیره می‌شود؛ دریافت خودکار از اینترنت انجام نمی‌شود.": "Pick a track, hit “Lyrics”, then “Add LRC”. The lyrics are stored in your browser for that track only; nothing is fetched from the internet.", "زمان‌بندی متن": "Lyrics timing", "روی هر خط بزن تا به همان زمان بروی. با −۰٫۵ و +۰٫۵ متن را زودتر یا دیرتر کن. اگر متن را دستی ورق زدی، «برگشت به خط فعلی» دنبال‌کردن را فعال می‌کند.": "Tap a line to jump to its time. Use −0.5 and +0.5 to shift lyrics earlier or later. If you scroll manually, “Back to current line” re-enables following.", "کنار نمای لیست، کاورها را ورق بزن. کاورهای یکسان گروه می‌شوند؛ با انتخاب هر کاور، آهنگ‌هایش نمایش داده می‌شوند. جستجو، مرتب‌سازی و پلی‌لیست روی هر دو نما کار می‌کنند.": "Next to the list view, flip through covers. Identical covers are grouped; pick one to see its tracks. Search, sort and playlists work in both views.", "یک یا چند فایل صوتی انتخاب کن (MP3, MP4, M4A, OGG, OPUS)": "Pick one or more audio files (MP3, MP4, M4A, OGG, OPUS)", "کل یه پوشه موسیقی رو آپلود کن — همه فایل‌های صوتی داخلش اضافه میشن": "Upload a whole music folder: every audio file inside gets added", "فایل‌ها رو مستقیم روی بخش آپلود بکش و رها کن": "Drag files straight onto the upload area and drop them", "کنترل پخش": "Playback controls", "D / روی دسکتاپ": "D / On desktop", "مینی‌پلیر را در پنجره‌ای روی برنامه‌های دیگر باز یا بسته کن. فایل را مستقیم در Chrome یا Edge به‌روزِ کامپیوتر باز کن. تب اصلی باید باز بماند؛ بستن پنجرهٔ کوچک پخش را متوقف نمی‌کند.": "Open or close the mini player in a window above your other apps. Open the file directly in an up-to-date desktop Chrome or Edge. Keep the main tab open; closing the small window does not stop playback.", "پخش / مکث": "Play / pause", "آهنگ قبلی / بعدی": "Previous / next track", "افزایش / کاهش صدا": "Volume up / down", "🔀 تصادفی": "🔀 Shuffle", "پخش آهنگ‌ها به صورت تصادفی": "Play tracks in random order", "🔁 تکرار": "🔁 Repeat", "کلیک اول: تکرار یک آهنگ · کلیک دوم: تکرار کل لیست · کلیک سوم: خاموش": "First click: repeat one · second click: repeat all · third click: off", "کتابخانه": "Library", "جستجو": "Search", "نام آهنگ یا پوشه رو تایپ کن — لیست فیلتر میشه": "Type a track or folder name and the list filters", "مرتب‌سازی بر اساس نام": "Sort by name", "جدیدترین آهنگ‌های اضافه‌شده اول": "Most recently added first", "مرتب‌سازی بر اساس حجم فایل": "Sort by file size", "ترتیب دلخواه خودت — با کشیدن آهنگ‌ها ساخته و ذخیره میشه": "Your own order, built and saved by dragging tracks", "⠿ جابجایی": "⠿ Reorder", "دستگیره سمت هر آهنگ رو با ماوس یا لمس بگیر و بالا/پایین بکش تا ترتیب عوض بشه": "Grab the handle next to a track with mouse or touch and drag it up or down", "حذف یک آهنگ از کتابخانه (روی آهنگ هاور کن)": "Remove a track from the library (hover the track)", "پلی‌لیست": "Playlists", "PLAYLISTS تب": "PLAYLISTS tab", "برو به بخش پلی‌لیست‌ها": "Go to the playlists section", "یه پلی‌لیست جدید بساز": "Create a new playlist", "کلیک روی پلی‌لیست": "Click a playlist", "پلی‌لیست رو باز کن و فقط آهنگ‌های اون نمایش داده میشه": "Open it and only its tracks are shown", "تغییر نام یا حذف پلی‌لیست": "Rename or delete a playlist", "دکمه +": "+ button", "انتخاب آهنگ و پلی‌لیست مقصد برای افزودن": "Pick tracks and a target playlist to add them to", "ذخیره‌سازی": "Storage", "💾 دائمی": "💾 Persistent", "همه آهنگ‌ها و پلی‌لیست‌ها در مرورگر ذخیره میشن — بعد از بستن و باز کردن هم هستن": "Tracks and playlists are stored in the browser; they survive closing and reopening", "🗑 حذف همه": "🗑 Clear all", "از آیکون سطل زباله در هدر برای پاک‌کردن همه آهنگ‌ها استفاده کن": "Use the trash icon in the header to clear all tracks", "عکس آهنگ": "Cover art", "اگه فایل MP3 کاور آرت داشته باشه، خودبه‌خود نمایش داده میشه": "If the MP3 has embedded cover art, it shows automatically", "متوجه شدم 👍": "Got it 👍", "مهدی جعفری و کسری قلیچی": "Mehdi Jafari & Kasra Ghelichi", "@mehdijafari · سازنده NOVA": "@mehdijafari · NOVA creator", "علاقه‌مند به موسیقی و توسعه نرم‌افزار.": "Into music and software development.", "NOVA رو ساختیم تا یه تجربه پخش موسیقی ساده، سریع و آفلاین داشته باشیم.": "We built NOVA for a simple, fast, offline music player experience.", "بدون تبلیغ، بدون اینترنت، فقط موسیقی.": "No ads, no internet, just music.", "بستن": "Close", "لینک‌های سازنده": "Creator links", "اینستاگرام سازنده": "Creator's Instagram", "گیت‌هاب سازنده": "Creator's GitHub", "درباره سازنده": "About the creator", "تنظیمات NOVA": "NOVA settings", "تنظیمات و میانبرها": "Settings & shortcuts", "میانبرهای قابل تغییر": "Custom shortcuts", "روی کلید هر فرمان بزن، سپس کلید موردنظر را فشار بده.": "Click a command's key, then press the key you want.", "رفتار برنامه": "App behavior", "تنظیمات این بخش روی همین دستگاه ذخیره می‌شوند.": "These settings are saved on this device.", "بستن پنجره یعنی رفتن به Tray": "Closing the window sends it to the tray", "Portable هم تنظیماتش را در پوشهٔ کاربر ویندوز ذخیره می‌کند و با حذف برنامه از بین نمی‌روند.": "The portable build also stores its settings in your Windows user folder, and they survive uninstalling.", "بازنشانی میانبرها": "Reset shortcuts", "ذخیره و بستن": "Save & close", "کلیدی را بزن": "Press a key", "میانبرهای پیش‌فرض آماده شد؛ برای ثبت، ذخیره و بستن را بزن.": "Defaults restored. Hit Save & close to apply.", "این میانبر قبلاً استفاده شده؛ یک کلید دیگر انتخاب کن.": "That shortcut is already taken. Pick another key.", "آهنگ بعدی": "Next track", "آهنگ قبلی": "Previous track", "تغییر تم": "Toggle theme", "حالت سینمایی": "Cinema mode", "زبان": "Language", "زبان رابط کاربری": "Interface language", "انتخاب زبان روی همین دستگاه ذخیره می‌شود.": "Your language choice is saved on this device.", "برای جابه‌جایی پنجره بکشید": "Drag to move the window", "کنترل پنجره": "Window controls", "کمینه کردن": "Minimize", "بزرگ‌نمایی": "Maximize", "بازگردانی": "Restore", "در حال بارگذاری": "Loading", "راهنما": "Help", "تم روز/شب": "Light / dark theme", "پاک‌کردن همه": "Clear all", "حالت سینمایی (C)": "Cinema mode (C)", "خروج از حالت سینمایی (Esc)": "Exit cinema mode (Esc)", "حلقهٔ واکنش‌گرا به صدای آهنگ": "Ring that reacts to the audio", "تصادفی": "Shuffle", "قبلی": "Previous", "بعدی": "Next", "تکرار": "Repeat", "فایل متن هم‌زمان آهنگ": "Synced lyrics file", "متن آهنگ؛ برای رفتن به زمان هر خط، روی آن بزن": "Lyrics; tap a line to jump to its time", "نمایش متن نیم ثانیه زودتر": "Show lyrics half a second earlier", "نمایش متن نیم ثانیه دیرتر": "Show lyrics half a second later", "مینی‌پلیر روی دسکتاپ (D)": "Desktop mini player (D)", "جستجو...": "Search...", "مرتب‌سازی کتابخانه": "Sort the library", "نمای کتابخانه": "Library view", "کاورهای سمت چپ": "Covers to the left", "کاورهای سمت راست": "Covers to the right", "انتخاب مجموعهٔ کاورها": "Choose a cover set", "اعلان‌های آپلود": "Upload notifications", "نام پلی‌لیست...": "Playlist name...", "فایل‌های موسیقی": "Music files", "آهنگ‌ها از مسیر اصلی خودشان پخش می‌شوند و هیچ کپی اضافه‌ای ساخته نمی‌شود.": "Tracks play from their original location; no extra copies are made.", "اگر فایل اصلی جابه‌جا یا حذف شود، باید دوباره آن را به کتابخانه معرفی کنی.": "If the original file is moved or deleted, add it to the library again.", "به‌روزرسانی برنامه": "App updates", "NOVA هنگام اجرا نسخه‌های جدید GitHub را بررسی می‌کند.": "NOVA checks GitHub for new versions on launch.", "بررسی نسخهٔ جدید": "Check for updates", "در حال بررسی…": "Checking…", "در حال بررسی نسخهٔ جدید…": "Checking for a new version…", "نسخهٔ نصب‌شده به‌روز است.": "You're on the latest version.", "بررسی یا نصب نسخهٔ جدید انجام نشد.": "Couldn't check or install the update.", "در حال نصب…": "Installing…", "لینک‌های رسمی NOVA": "Official NOVA links", "وب‌سایت رسمی": "Official website", "انتخاب آهنگ انجام نشد": "Couldn't pick tracks", "این آهنگ‌ها قبلاً به کتابخانه اضافه شده‌اند": "These tracks are already in your library", "علاقه‌مندی": "Favorite", "در علاقه‌مندی‌ها": "Favorited", "افزودن به علاقه‌مندی‌ها": "Add to favorites", "حذف از علاقه‌مندی‌ها": "Remove from favorites", "♥ به علاقه‌مندی‌ها اضافه شد": "♥ Added to favorites", "از علاقه‌مندی‌ها حذف شد": "Removed from favorites", "هنوز آهنگی رو لایک نکردی": "No favorites yet", "روی قلب کنار هر آهنگ بزن تا اینجا جمع بشه": "Tap the heart next to any track to collect it here", "موسیقی خود را وارد کنید": "Upload your music", "روی دکمه‌های فایل یا پوشه کلیک کنید یا فایل‌ها را به این‌جا بکشید.": "Click the File or Folder button, or drag and drop files here.", "LIBRARY: تمام آهنگ‌ها": "LIBRARY: All tracks", "کتابخانهٔ موسیقی خود را مشاهده کنید. جستجو، مرتب‌سازی و دستی جابجا کنید.": "See your music library. Search, sort, and drag to reorder.", "FAVORITES: آهنگ‌های مورد علاقه": "FAVORITES: Your liked tracks", "روی قلب کلیک کنید یا F را فشار دهید تا آهنگ‌ها را لایک کنید.": "Click the heart or press F to like tracks.", "PLAYLISTS: مجموعه‌های شخصی": "PLAYLISTS: Custom collections", "پلی‌لیست بسازید و آهنگ‌ها را گروه‌بندی کنید.": "Create playlists and organize tracks.", "میانبرهای کلیدی": "Keyboard shortcuts", "Space = پخش/توقف · ← → = آهنگ قبل/بعد · ↑↓ = صدا": "Space = play/pause · ← → = prev/next · ↑↓ = volume", "مینی‌پلیر": "Mini player", "دکمهٔ NOVA MINI رو بزن تا موسیقی در پنجرهٔ کوچیک دسکتاپ ادامه پیدا کند.": "Click NOVA MINI to continue in a small desktop window.", "تنظیمات": "Settings", "میانبرها را تغییر دهید، میانبرهای دسکتاپ را انتخاب کنید و آپدیت‌ها را بررسی کنید.": "Change shortcuts, configure desktop hotkeys, check for updates.", "شروع کنید!": "Let's go!", "اکنون آماده‌اید. آهنگ‌های مورد علاقهٔ خود را آپلود کنید و لذت ببرید!": "You're ready. Upload your favorite tracks and enjoy!", "راهنمای کاربری": "Getting started", "آموزش مرحله‌به‌مرحله برای شروع.": "Step-by-step guide on first launch.", "دوباره نشان بده": "Show again"};
+  var RULES=[["^پریست\\s*«(.+)»\\s*ذخیره شد$", "Preset “$1” saved"], ["^پریست\\s*«(.+)»\\s*حذف شد$", "Preset “$1” removed"], ["^حذف پریست\\s+(.+)$", "Delete preset $1"], ["^(\\d+)\\s*آهنگ$", "$1 tracks"], ["^(\\d+)\\s*فایل اضافه شد$", "$1 files added"], ["^ذخیره\\s*(\\d+)\\s*فایل$", "Saving $1 files"], ["^(.+)\\s·\\s(\\d+)\\s*خط$", "$1 · $2 lines"], ["^پخش\\s+(.+)$", "Play $1"], ["^رفتن به\\s+(.+)$", "Jump to $1"], ["^ثبت شد:\\s*(.+)$", "Set: $1"], ["^متن برای\\s*«(.+)»\\s*ذخیره شد$", "Lyrics saved for “$1”"], ["^✅\\s*(\\d+)\\s*آهنگ به \"(.+)\" اضافه شد$", "✅ $1 tracks added to \"$2\""], ["^همه آهنگ‌ها قبلاً در \"(.+)\" بودن$", "All tracks were already in \"$1\""], ["^(.+)،\\s*(\\d+)\\s*آهنگ$", "$1, $2 tracks"]].map(function(r){return [new RegExp(r[0]),r[1]]});
   var ATTRS=['title','placeholder','aria-label','alt'];
   var SKIP={SCRIPT:1,STYLE:1,NOSCRIPT:1,SVG:1};
   var texts=new WeakMap(),attrs=new WeakMap();
@@ -5015,6 +5901,7 @@ body.nova-cinema .nova-dock-sep{display:none}
   function faText(n){
     if(lang!=='en')return;
     var cur=n.nodeValue; if(!cur||!/[\u0600-\u06FF]/.test(cur))return;
+    if(n.parentElement&&n.parentElement.closest('[data-i18n-skip]'))return;
     var en=tr(cur); if(en==null)return;
     texts.set(n,cur); n.nodeValue=en;
   }

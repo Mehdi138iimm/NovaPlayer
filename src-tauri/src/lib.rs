@@ -171,6 +171,91 @@ async fn fetch_trend_preview(url: String) -> Result<tauri::ipc::Response, String
     Ok(tauri::ipc::Response::new(bytes.to_vec()))
 }
 
+/* v1.8.1: online synced lyrics from LRCLIB (free, no API key). Done in Rust so CORS and
+   WebView quirks never matter; only lrclib.net /api/get and /api/search are reachable. */
+#[tauri::command]
+async fn fetch_lrclib(endpoint: String, params: Vec<(String, String)>) -> Result<String, String> {
+    let path = match endpoint.as_str() { "get" => "api/get", "search" => "api/search", _ => return Err("lrclib endpoint not allowed".into()) };
+    let allowed = ["track_name", "artist_name", "album_name", "duration", "q"];
+    let clean: Vec<(String, String)> = params.into_iter()
+        .filter(|(k, v)| allowed.contains(&k.as_str()) && !v.trim().is_empty() && v.len() <= 300)
+        .collect();
+    if clean.is_empty() { return Err("empty lyrics query".into()); }
+    let mut url = reqwest::Url::parse("https://lrclib.net/").map_err(|e| e.to_string())?.join(path).map_err(|e| e.to_string())?;
+    url.query_pairs_mut().extend_pairs(clean.iter().map(|(k, v)| (k.as_str(), v.as_str())));
+    let client = reqwest::Client::builder()
+        .user_agent(concat!("NOVA-Player/", env!("CARGO_PKG_VERSION"), " (https://github.com/Mehdi138iimm/NovaPlayer)"))
+        .timeout(std::time::Duration::from_secs(12))
+        .connect_timeout(std::time::Duration::from_secs(6))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let res = client.get(url).send().await.map_err(|e| e.to_string())?;
+    let status = res.status();
+    if status == reqwest::StatusCode::NOT_FOUND { return Ok("null".into()); }
+    if !status.is_success() { return Err(format!("lrclib http {}", status)); }
+    let body = res.text().await.map_err(|e| e.to_string())?;
+    if body.len() > 4 * 1024 * 1024 { return Err("lrclib response too large".into()); }
+    Ok(body)
+}
+
+/* v1.9.0: second lyrics source (plain text only) when LRCLIB has nothing. Only
+   api.lyrics.ovh/v1/{artist}/{title} is reachable. */
+#[tauri::command]
+async fn fetch_lyrics_ovh(artist: String, title: String) -> Result<String, String> {
+    let (artist, title) = (artist.trim().to_string(), title.trim().to_string());
+    if artist.is_empty() || title.is_empty() || artist.len() > 200 || title.len() > 200 { return Err("lyrics query invalid".into()); }
+    let mut url = reqwest::Url::parse("https://api.lyrics.ovh/v1/").map_err(|e| e.to_string())?;
+    url.path_segments_mut().map_err(|_| "lyrics url invalid".to_string())?.pop_if_empty().push(&artist).push(&title);
+    let client = reqwest::Client::builder()
+        .user_agent(concat!("NOVA-Player/", env!("CARGO_PKG_VERSION"), " (https://github.com/Mehdi138iimm/NovaPlayer)"))
+        .timeout(std::time::Duration::from_secs(10))
+        .connect_timeout(std::time::Duration::from_secs(6))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let res = client.get(url).send().await.map_err(|e| e.to_string())?;
+    let status = res.status();
+    if status == reqwest::StatusCode::NOT_FOUND { return Ok("null".into()); }
+    if !status.is_success() { return Err(format!("lyrics.ovh http {}", status)); }
+    let body = res.text().await.map_err(|e| e.to_string())?;
+    if body.len() > 1024 * 1024 { return Err("lyrics response too large".into()); }
+    Ok(body)
+}
+
+/* v1.9.0: lyric translation (default: Persian). Google's free "gtx" endpoint first,
+   MyMemory as a fallback. Only these two hosts are reachable; text is capped per call. */
+#[tauri::command]
+async fn fetch_translation(provider: String, text: String, target: String, source: Option<String>) -> Result<String, String> {
+    if text.trim().is_empty() || text.len() > 6000 { return Err("translation text size invalid".into()); }
+    let lang = |v: &str| -> String { v.chars().filter(|c| c.is_ascii_alphabetic() || *c == '-').take(10).collect() };
+    let target = lang(&target);
+    if target.is_empty() { return Err("translation target invalid".into()); }
+    let source = source.map(|v| lang(&v)).filter(|v| !v.is_empty() && v != "auto");
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) NOVA-Player")
+        .timeout(std::time::Duration::from_secs(15))
+        .connect_timeout(std::time::Duration::from_secs(6))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let req = match provider.as_str() {
+        "google" => {
+            let sl = source.clone().unwrap_or_else(|| "auto".into());
+            client.get("https://translate.googleapis.com/translate_a/single")
+                .query(&[("client", "gtx"), ("sl", sl.as_str()), ("tl", target.as_str()), ("dt", "t"), ("ie", "UTF-8"), ("oe", "UTF-8"), ("q", text.as_str())])
+        }
+        "mymemory" => {
+            if text.len() > 500 { return Err("mymemory text too long".into()); }
+            let pair = format!("{}|{}", source.unwrap_or_else(|| "en".into()), target);
+            client.get("https://api.mymemory.translated.net/get").query(&[("q", text.as_str()), ("langpair", pair.as_str())])
+        }
+        _ => return Err("translation provider not allowed".into()),
+    };
+    let res = req.send().await.map_err(|e| e.to_string())?;
+    if !res.status().is_success() { return Err(format!("translate http {}", res.status())); }
+    let body = res.text().await.map_err(|e| e.to_string())?;
+    if body.len() > 2 * 1024 * 1024 { return Err("translation response too large".into()); }
+    Ok(body)
+}
+
 #[tauri::command]
 fn delete_audio_file(app: tauri::AppHandle, state: State<'_, Arc<AppState>>, path: String) -> Result<(), String> {
     let path = PathBuf::from(path);
@@ -219,8 +304,10 @@ async fn read_dropped_audio(paths: Vec<String>) -> Result<Vec<AudioFile>, String
    Windows (white window + frozen app). Async commands run off the main thread. */
 #[tauri::command]
 async fn show_mini_player(app: tauri::AppHandle) -> Result<(), String> {
-    if let Some(w)=app.get_webview_window("mini") { w.show().map_err(|e|e.to_string())?; w.set_focus().map_err(|e|e.to_string())?; return Ok(()); }
-    WebviewWindowBuilder::new(&app,"mini",WebviewUrl::App("mini.html".into())).title("NOVA Mini").center().inner_size(340.0,540.0).min_inner_size(300.0,470.0).always_on_top(true).decorations(true).resizable(true).build().map_err(|e|e.to_string())?;
+    if let Some(w)=app.get_webview_window("mini") { let _=w.unminimize(); w.show().map_err(|e|e.to_string())?; w.set_focus().map_err(|e|e.to_string())?; return Ok(()); }
+    /* v1.8.1: mini.html draws its own title bar (drag, pin, minimize, close), so the native
+       frame is off. With decorations on, Windows showed two title bars and a maximize button. */
+    WebviewWindowBuilder::new(&app,"mini",WebviewUrl::App("mini.html".into())).title("NOVA Mini").center().inner_size(340.0,540.0).min_inner_size(300.0,470.0).always_on_top(true).decorations(false).shadow(true).maximizable(false).resizable(true).focused(true).build().map_err(|e|e.to_string())?;
     Ok(())
 }
 #[tauri::command]
@@ -271,6 +358,6 @@ pub fn run(){
           }
         }
       })
-      .invoke_handler(tauri::generate_handler![update::check_github_update,fetch_trend_preview,register_audio_paths,read_dropped_audio,read_audio_file,delete_audio_file,show_mini_player,close_mini_player,set_close_to_tray,start_main_window_drag,control_main_window,set_storage_directory,get_storage_directory,save_audio_file])
+      .invoke_handler(tauri::generate_handler![update::check_github_update,fetch_trend_preview,fetch_lrclib,fetch_lyrics_ovh,fetch_translation,register_audio_paths,read_dropped_audio,read_audio_file,delete_audio_file,show_mini_player,close_mini_player,set_close_to_tray,start_main_window_drag,control_main_window,set_storage_directory,get_storage_directory,save_audio_file])
       .run(tauri::generate_context!()).expect("NOVA failed to start");
 }

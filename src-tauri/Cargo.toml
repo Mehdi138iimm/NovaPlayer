@@ -1,6 +1,6 @@
 [package]
 name = "nova-player"
-version = "1.7.1"
+version = "1.9.0"
 description = "NOVA offline music player for Windows"
 authors = ["NOVA"]
 edition = "2021"

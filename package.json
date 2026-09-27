@@ -1,7 +1,7 @@
 {
   "name": "nova-player-windows",
   "private": true,
-  "version": "1.7.1",
+  "version": "1.9.0",
   "type": "module",
   "scripts": {
     "frontend": "node scripts/build.mjs",
