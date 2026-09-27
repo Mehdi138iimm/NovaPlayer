@@ -1,0 +1,19 @@
+{
+  "name": "nova-player-windows",
+  "private": true,
+  "version": "1.6.0",
+  "type": "module",
+  "scripts": {
+    "frontend": "node scripts/build.mjs",
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "dependencies": {
+    "@tauri-apps/plugin-dialog": "^2.4.0",
+    "@tauri-apps/plugin-opener": "^2.5.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.8.0"
+  }
+}
