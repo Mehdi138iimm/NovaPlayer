@@ -1,6 +1,6 @@
 [package]
 name = "nova-player"
-version = "1.10.0"
+version = "1.11.0"
 description = "NOVA offline music player for Windows"
 authors = ["NOVA"]
 edition = "2021"
@@ -22,6 +22,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # update notification: GitHub Releases API + releases.atom fallback
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+# v1.11.0 search downloads: cancel / stall watchdog (already in the tree through tauri)
+tokio = { version = "1", features = ["time"] }
 
 # Perf: smaller, faster native binary (less RAM, quicker start)
 [profile.release]

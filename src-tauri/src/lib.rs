@@ -3,6 +3,7 @@ use std::{collections::HashSet, fs, path::{Path, PathBuf}, sync::{Arc, atomic::{
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
 mod update;
+mod search;
 
 #[derive(Default)]
 struct AppState {
@@ -492,6 +493,6 @@ pub fn run(){
           }
         }
       })
-      .invoke_handler(tauri::generate_handler![update::check_github_update,fetch_trend_preview,fetch_lrclib,fetch_lyrics_ovh,fetch_translation,register_audio_paths,read_dropped_audio,read_audio_file,delete_audio_file,show_mini_player,close_mini_player,set_close_to_tray,start_main_window_drag,control_main_window,set_storage_directory,get_storage_directory,save_audio_file,take_launch_files,probe_audio_paths,scan_audio_folder,read_text_file,write_text_file,net_probe])
+      .invoke_handler(tauri::generate_handler![update::check_github_update,search::search_http_get,search::search_download,search::search_cancel,fetch_trend_preview,fetch_lrclib,fetch_lyrics_ovh,fetch_translation,register_audio_paths,read_dropped_audio,read_audio_file,delete_audio_file,show_mini_player,close_mini_player,set_close_to_tray,start_main_window_drag,control_main_window,set_storage_directory,get_storage_directory,save_audio_file,take_launch_files,probe_audio_paths,scan_audio_folder,read_text_file,write_text_file,net_probe])
       .run(tauri::generate_context!()).expect("NOVA failed to start");
 }
