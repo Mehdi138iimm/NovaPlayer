@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NOVA Player · پخش‌کننده موسیقی آفلاین برای ویندوز</title>
-  <meta name="description" content="NOVA Player، پخش‌کننده موسیقی سریع، خصوصی و آفلاین برای ویندوز ۱۰ و ۱۱؛ با چارت ترندهای جهانی، متن هم‌زمان آهنگ با ترجمهٔ فارسی و مینی‌پلیر وینیل. دانلود رایگان آخرین نسخه، مستقیم از GitHub.">
+  <title>NOVA Player · پخش‌کننده موسیقی آفلاین برای ویندوز، مک و لینوکس</title>
+  <meta name="description" content="NOVA Player، پخش‌کننده موسیقی سریع، خصوصی و آفلاین برای ویندوز، مک و لینوکس؛ با چارت ترندهای جهانی، متن هم‌زمان آهنگ با ترجمهٔ فارسی و مینی‌پلیر وینیل. دانلود رایگان آخرین نسخه، مستقیم از GitHub.">
   <meta name="theme-color" content="#11130f">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23b9ee50'/%3E%3Cpath d='M26 19l19 13-19 13z' fill='%23273016'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://api.github.com" crossorigin>
@@ -251,7 +251,7 @@
     <div class="hero-meta fade-up d4">
       <span class="hero-meta-item"><span class="hero-meta-val" id="nvHeroVer">v1.11.0</span></span>
       <span class="hero-meta-sep">·</span>
-      <span class="hero-meta-item">Windows x64</span>
+      <span class="hero-meta-item">Windows · macOS · Linux</span>
       <span class="hero-meta-sep">·</span>
       <span class="hero-meta-item" data-en="Free and open source">رایگان و متن‌باز</span>
     </div>
@@ -481,10 +481,10 @@
         <span id="nvTag" data-en="Latest stable release">آخرین نسخه پایدار</span>
       </div>
       <div class="dl-title">NOVA Player</div>
-      <div class="dl-sub" data-en="The official installer for Windows 10 and 11. Download it, run it, done.">نصب‌کننده رسمی برای ویندوز ۱۰ و ۱۱ — فقط دانلود کن و اجرا کن.</div>
+      <div class="dl-sub" data-en="Official builds for Windows 10/11, macOS (Apple Silicon and Intel) and Linux. The button picks the right file for your system.">نسخهٔ رسمی برای ویندوز ۱۰ و ۱۱، مک (Apple Silicon و Intel) و لینوکس. دکمه خودش فایل مناسب سیستم تو را برمی‌دارد.</div>
       <div class="dl-chips">
         <span class="dl-chip hi" id="nvChipVer">v1.11.0</span>
-        <span class="dl-chip">Windows x64</span>
+        <span class="dl-chip" id="nvChipOs">Windows x64</span>
         <span class="dl-chip" id="nvChipSize" hidden></span>
         <span class="dl-chip nv-date" id="nvChipDate" hidden></span>
         <span class="dl-chip" data-en="Free">رایگان</span>
@@ -867,7 +867,7 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
       err: 'فعلاً به GitHub دسترسی نداریم.',
       errLink: 'صفحه Releases',
       empty: 'هنوز نسخه‌ای منتشر نشده است.',
-      kind: { setup: 'نصب‌کننده', msi: 'نصب MSI', portable: 'پرتابل، بدون نصب', file: 'فایل' }
+      kind: { setup: 'ویندوز · نصب‌کننده', msi: 'ویندوز · MSI', portable: 'پرتابل، بدون نصب', macArm: 'مک · Apple Silicon (M1 به بعد)', macIntel: 'مک · Intel', mac: 'مک', appimage: 'لینوکس · AppImage', deb: 'لینوکس · Ubuntu/Debian', rpm: 'لینوکس · Fedora', file: 'فایل' }
     },
     en: {
       badge: function (v) { return 'Version ' + v + ' is live'; },
@@ -887,7 +887,7 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
       err: "Can't reach GitHub right now.",
       errLink: 'Open the Releases page',
       empty: 'No releases published yet.',
-      kind: { setup: 'Installer', msi: 'MSI installer', portable: 'Portable, no install', file: 'File' }
+      kind: { setup: 'Windows · installer', msi: 'Windows · MSI', portable: 'Portable, no install', macArm: 'macOS · Apple Silicon', macIntel: 'macOS · Intel', mac: 'macOS', appimage: 'Linux · AppImage', deb: 'Linux · Ubuntu/Debian', rpm: 'Linux · Fedora', file: 'File' }
     }
   };
 
@@ -956,14 +956,22 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
   // updater/signature files are for the app, not for people
   var JUNK = /(\.sig|\.json|\.blockmap|\.sha256|\.txt|\.nsis\.zip|\.msi\.zip|\.tar\.gz)$/i;
   function files(r) { return (r.assets || []).filter(function (a) { return a && a.name && a.url && !JUNK.test(a.name); }); }
+  var UA = navigator.userAgent || '';
+  var OS = /Mac|iPhone|iPad/i.test(UA) ? 'mac' : (/Linux|X11/i.test(UA) && !/Android/i.test(UA) ? 'linux' : 'win');
   function pickMain(list) {
-    var order = [/setup\.exe$/i, /\.exe$/i, /\.msi$/i, /\.zip$/i];
+    var order = OS === 'mac' ? [/aarch64\.dmg$/i, /\.dmg$/i]
+      : OS === 'linux' ? [/\.AppImage$/i, /\.deb$/i, /\.rpm$/i] : [];
+    order = order.concat([/setup\.exe$/i, /\.exe$/i, /\.msi$/i, /\.zip$/i]);
     for (var i = 0; i < order.length; i++) {
       for (var j = 0; j < list.length; j++) if (order[i].test(list[j].name)) return list[j];
     }
     return list[0] || null;
   }
   function kindOf(name) {
+    if (/\.dmg$/i.test(name)) return /aarch64|arm64/i.test(name) ? 'macArm' : (/universal/i.test(name) ? 'mac' : 'macIntel');
+    if (/\.AppImage$/i.test(name)) return 'appimage';
+    if (/\.deb$/i.test(name)) return 'deb';
+    if (/\.rpm$/i.test(name)) return 'rpm';
     if (/portable/i.test(name) || /\.zip$/i.test(name)) return 'portable';
     if (/\.msi$/i.test(name)) return 'msi';
     if (/\.exe$/i.test(name)) return 'setup';
@@ -1051,6 +1059,8 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
     var when = fmtDate(main.date);
     show(setText('nvChipDate', when), !!when);
     setText('nvFile', file.name);
+    var ko = kindOf(file.name);
+    setText('nvChipOs', /^mac/.test(ko) ? 'macOS' : (/appimage|deb|rpm/.test(ko) ? 'Linux' : 'Windows x64'));
     var btn = $('nvDlBtn');
     if (btn) { btn.href = file.url; setAria(btn, T.fa.dlAria(v), T.en.dlAria(v)); }
     renderAssets(assets, file);

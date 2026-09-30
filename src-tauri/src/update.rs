@@ -110,6 +110,18 @@ fn pick_asset(assets: &[serde_json::Value], suffix: &str) -> Option<String> {
     })
 }
 
+/// installer that fits the OS this build runs on
+fn pick_for_os(assets: &[serde_json::Value]) -> Option<String> {
+    let order: &[&str] = if cfg!(target_os = "macos") {
+        if cfg!(target_arch = "aarch64") { &["aarch64.dmg", "universal.dmg", ".dmg"] } else { &["x64.dmg", "universal.dmg", ".dmg"] }
+    } else if cfg!(target_os = "linux") {
+        &[".appimage", ".deb", ".rpm"]
+    } else {
+        &["setup.exe", ".exe", ".msi"]
+    };
+    order.iter().find_map(|s| pick_asset(assets, s))
+}
+
 async fn from_api(c: &reqwest::Client) -> Result<Vec<Rel>, String> {
     let r = c
         .get(format!("https://api.github.com/repos/{REPO}/releases?per_page=30"))
@@ -127,9 +139,7 @@ async fn from_api(c: &reqwest::Client) -> Result<Vec<Rel>, String> {
         .filter(|x| !x["draft"].as_bool().unwrap_or(false))
         .filter_map(|x| {
             let assets = x["assets"].as_array().cloned().unwrap_or_default();
-            let download_url = pick_asset(&assets, "setup.exe")
-                .or_else(|| pick_asset(&assets, ".exe"))
-                .or_else(|| pick_asset(&assets, ".msi"));
+            let download_url = pick_for_os(&assets);
             Some(Rel {
                 tag: x["tag_name"].as_str()?.to_string(),
                 url: x["html_url"].as_str().unwrap_or_default().to_string(),

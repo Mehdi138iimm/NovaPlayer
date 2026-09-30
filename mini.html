@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NOVA Mini</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0d0d12;--card:#131318;--stage:#0a0a0e;--line:#26262e;--text:#f2f2f7;--muted:#8b8b98;--quiet:#6a6a76;--neon:#c8ff00;--neon-soft:rgba(200,255,0,.14);--ease:cubic-bezier(.16,1,.3,1)}
+    *{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:"Segoe UI",Tahoma,sans-serif}button{font:inherit}
+    .shell{height:100%;width:100%;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto auto;gap:10px;padding:12px 14px 14px;background:radial-gradient(circle at 12% -6%,rgba(200,255,0,.07),transparent 46%),radial-gradient(circle at 110% 110%,rgba(70,90,160,.10),transparent 52%),var(--card)}
+
+    .shell>*{min-width:0;max-width:100%}
+    /* ── top bar ── */
+    .topbar{display:flex;align-items:center;justify-content:space-between;direction:ltr;min-height:28px;user-select:none}
+    .drag{display:flex;align-items:center;gap:9px;flex:1;min-width:0;height:30px;cursor:grab}.drag:active{cursor:grabbing}
+    .brand-dot{width:8px;height:8px;border-radius:50%;background:var(--neon);box-shadow:0 0 14px var(--neon)}
+    .brand{font:700 11px/1 Consolas,monospace;letter-spacing:.19em;color:var(--neon)}
+    .live{font:600 9px/1 Consolas,monospace;letter-spacing:.08em;color:var(--quiet);border:1px solid var(--line);border-radius:99px;padding:5px 7px}
+    .window-actions{display:flex;gap:4px}
+    .window-actions button{width:28px;height:28px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;transition:background .18s var(--ease),color .18s var(--ease)}
+    .window-actions button:hover{background:var(--line);color:var(--text)}
+    .window-actions button:focus-visible{outline:2px solid var(--neon);outline-offset:2px}
+    .window-actions button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
+    .window-actions button.on{color:var(--neon)}
+    .window-actions #close:hover{background:#e5484d;color:#fff}
+    .drag *{pointer-events:none}
+    .live.off{color:#ff8a8a;border-color:#5a2a2a}
+
+    /* ── vinyl stage ── */
+    .stage{position:relative;cursor:pointer;min-height:0;min-width:0;user-select:none;touch-action:none;display:grid;place-items:center;border:1px solid var(--line);border-radius:22px;background:linear-gradient(180deg,#101016,var(--stage));overflow:hidden}
+    .stage::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,rgba(90,110,200,.10),transparent 60%);pointer-events:none}
+    .vinyl{position:relative;width:min(58%,210px);aspect-ratio:1}
+    .vinyl::before{content:"";position:absolute;inset:-14%;border-radius:50%;background:var(--neon);filter:blur(30px);opacity:.08;transition:opacity .4s var(--ease)}
+    .playing .vinyl::before{opacity:.2}
+    .vinyl-disc{position:absolute;inset:0;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,#1a1a21 0 2px,#0a0a0f 2px 4.5px);box-shadow:0 18px 40px #000c,inset 0 0 0 1px #ffffff14;animation:vinylSpin 6s linear infinite;animation-play-state:paused}
+    .playing .vinyl-disc{animation-play-state:running}
+    @keyframes vinylSpin{to{transform:rotate(360deg)}}
+    .vinyl-sheen{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 210deg,transparent 0deg,#ffffff0f 24deg,transparent 60deg,transparent 180deg,#ffffff09 204deg,transparent 240deg);pointer-events:none}
+    .vinyl-label{position:absolute;inset:31%;border-radius:50%;display:grid;place-items:center;background:var(--neon);box-shadow:inset 0 0 0 2px #00000030,0 0 22px rgba(200,255,0,.35);overflow:hidden}
+    .vinyl-label img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .vinyl-label .note{font-size:26px;filter:grayscale(1) brightness(.15)}
+    .vinyl-label.has-image .note{display:none}
+    .vinyl-label::after{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;border-radius:50%;background:var(--stage);transform:translate(-50%,-50%);box-shadow:0 0 0 2px #00000055}
+    .hifi{position:absolute;top:12px;right:12px;z-index:3;font:700 9px/1 Consolas,monospace;letter-spacing:.14em;color:var(--neon);background:#0a0a0ecc;border:1px solid var(--line);border-radius:6px;padding:5px 7px}
+    .eq{position:absolute;z-index:3;bottom:12px;left:12px;display:flex;align-items:flex-end;gap:3px;height:22px;direction:ltr}
+    .eq i{width:3px;border-radius:4px;background:var(--neon);height:8px;animation:equalize 900ms ease-in-out infinite alternate paused}
+    .playing .eq i{animation-play-state:running}
+    .eq i:nth-child(2){height:16px;animation-delay:-240ms}.eq i:nth-child(3){height:11px;animation-delay:-510ms}.eq i:nth-child(4){height:20px;animation-delay:-130ms}.eq i:nth-child(5){height:13px;animation-delay:-380ms}
+    @keyframes equalize{to{transform:scaleY(.35)}}
+
+    /* ── track meta ── */
+    .meta{display:flex;flex-direction:column;align-items:stretch;gap:4px;text-align:center;padding:0 6px;min-height:44px;width:100%;min-width:0;overflow:hidden}
+    .title{font-size:17px;font-weight:750;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;min-width:0;max-width:100%}
+    .title .tt{white-space:nowrap}
+    /* long titles: slow ping-pong scroll instead of breaking the layout */
+    .title.marquee{text-overflow:clip;text-align:start;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
+    .title.marquee .tt{display:inline-block;padding:0 14px;animation:titleScroll var(--mq-time,10s) ease-in-out infinite alternate}
+    @keyframes titleScroll{0%,18%{transform:translateX(0)}82%,100%{transform:translateX(var(--mq,0px))}}
+    .lyric{color:var(--neon);font-size:11px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;min-width:0;max-width:100%;opacity:.85}
+    .lyric.sub{color:var(--muted);font-family:Consolas,monospace;font-size:10.5px;letter-spacing:.04em}
+
+    /* ── transport ── */
+    .transport{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-width:0}
+    .stage.moving{cursor:grabbing}
+    .progress-area{display:grid;gap:5px;direction:ltr}
+    .bar{position:relative;height:5px;border-radius:99px;background:var(--line);cursor:pointer;transition:height .15s}
+    .bar:hover,.bar.dragging{height:7px}
+    .bar.dragging .fill{transition:none}
+    .bar.disabled{cursor:default;opacity:.6}
+    .tip{position:absolute;bottom:14px;left:0;transform:translateX(-50%);padding:3px 6px;border-radius:6px;background:#000c;border:1px solid var(--line);color:var(--text);font:9px Consolas,monospace;pointer-events:none;opacity:0;transition:opacity .12s;white-space:nowrap}
+    .bar:hover .tip,.bar.dragging .tip{opacity:1}
+    .bar.disabled .tip{display:none}
+    .fill{position:absolute;inset:0 auto 0 0;width:0;border-radius:inherit;background:var(--neon);box-shadow:0 0 10px color-mix(in srgb,var(--neon) 40%,transparent);transition:width .1s linear}
+    .thumb{position:absolute;top:50%;left:0;width:12px;height:12px;border:3px solid var(--card);border-radius:50%;background:var(--neon);transform:translate(-50%,-50%);box-shadow:0 0 8px color-mix(in srgb,var(--neon) 55%,transparent)}
+    .times{display:flex;justify-content:space-between;color:var(--quiet);font:9px Consolas,monospace}
+    .controls{display:flex;align-items:center;justify-content:center;gap:10px;direction:ltr}
+    .control{position:relative;width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line);border-radius:13px;background:#17171d;color:var(--text);cursor:pointer;transition:transform .18s var(--ease),border-color .18s var(--ease),color .18s var(--ease)}
+    .control:hover{transform:translateY(-2px);border-color:var(--neon)}
+    .control:disabled{opacity:.4;cursor:default;transform:none;border-color:var(--line)}
+    .control:active{transform:translateY(0) scale(.95)}
+    .control:focus-visible,.bar:focus-visible{outline:2px solid var(--neon);outline-offset:3px}
+    .control svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .control.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+    .control.ghost:hover{color:var(--text)}
+    .control.ghost.on{color:var(--neon)}
+    .control.ghost.on::after{content:"";position:absolute;bottom:5px;left:50%;width:4px;height:4px;border-radius:50%;background:var(--neon);transform:translateX(-50%)}
+    .control .rep-one{position:absolute;top:4px;right:5px;font:700 8px/1 Consolas,monospace;color:var(--neon)}
+    #toggle{width:56px;height:56px;border:0;border-radius:18px;background:var(--neon);color:#0d0d12;box-shadow:0 10px 26px rgba(200,255,0,.22)}
+    #toggle:hover{box-shadow:0 14px 32px rgba(200,255,0,.34);border-color:transparent}
+    #toggle svg{width:21px;height:21px;fill:currentColor;stroke:none}
+
+    /* ── volume ── */
+    .volume{display:grid;grid-template-columns:16px minmax(0,1fr) 34px;align-items:center;gap:8px;direction:ltr;padding:0 4px}
+    .volume button{all:unset;display:grid;place-items:center;width:16px;height:16px;cursor:pointer;border-radius:4px}
+    .volume button:focus-visible{outline:2px solid var(--neon);outline-offset:2px}
+    .volume svg{width:14px;height:14px;fill:none;stroke:var(--muted);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .volume button:hover svg{stroke:var(--text)}
+    .volume.muted svg{stroke:#ff8a8a}
+    .volume input{width:100%;min-width:0;margin:0;accent-color:var(--neon);height:14px}
+    .volval{color:var(--quiet);font:9px Consolas,monospace;text-align:right}
+
+    @media(max-height:480px){.shell{gap:7px}.vinyl{width:min(46%,150px)}.meta{min-height:38px}.title{font-size:15px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar"><div class="drag" id="dragRegion" aria-label="جابه‌جایی پنجره"><span class="brand-dot"></span><span class="brand">NOVA MINI</span><span class="live" id="live">ON DESKTOP</span></div><div class="window-actions"><button id="pin" class="on" aria-label="همیشه روی بقیهٔ پنجره‌ها" title="همیشه رو (P)" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M9 4h6l-1 6 4 4H6l4-4-1-6ZM12 14v7"/></svg></button><button id="minimize" aria-label="کوچک کردن پنجره" title="کوچک کردن"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button><button id="close" aria-label="بستن پنجره" title="بستن (Esc)"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"/></svg></button></div></header>
+
+    <section class="stage" id="stage">
+      <div class="vinyl" id="vinyl">
+        <div class="vinyl-disc"></div>
+        <div class="vinyl-sheen" aria-hidden="true"></div>
+        <div class="vinyl-label" id="label"><img id="coverImage" alt="" hidden><span class="note" id="labelNote">🎵</span></div>
+      </div>
+      <span class="hifi" id="format">HI-FI</span>
+      <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+    </section>
+
+    <div class="meta">
+      <div class="title" id="title" dir="auto"><span class="tt" id="titleText">آهنگی انتخاب نشده</span></div>
+      <div class="lyric sub" id="lyric" dir="auto">کتابخانهٔ NOVA</div>
+    </div>
+
+    <section class="transport">
+      <div class="progress-area">
+        <div class="bar" id="bar" role="slider" tabindex="0" aria-label="موقعیت آهنگ" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fill" id="fill"></div><div class="thumb" id="thumb"></div><span class="tip" id="tip">00:00</span></div>
+        <div class="times"><span id="now">00:00</span><span id="duration">00:00</span></div>
+      </div>
+      <div class="controls">
+        <button class="control ghost" id="shuffleBtn" data-cmd="shuffle" aria-label="پخش تصادفی" title="تصادفی" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>
+        <button class="control" id="prevBtn" data-cmd="prev" aria-label="آهنگ قبلی" title="قبلی"><svg viewBox="0 0 24 24"><path d="M6 5v14M18 6 9 12l9 6V6Z"/></svg></button>
+        <button class="control" id="toggle" data-cmd="toggle" aria-label="پخش یا مکث" title="پخش / مکث"><svg id="playIcon" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></svg></button>
+        <button class="control" id="nextBtn" data-cmd="next" aria-label="آهنگ بعدی" title="بعدی"><svg viewBox="0 0 24 24"><path d="M18 5v14M6 6l9 6-9 6V6Z"/></svg></button>
+        <button class="control ghost" id="repeatBtn" data-cmd="repeat" aria-label="تکرار" title="تکرار" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M7 22l-4-4 4-4M3 12h18M21 12a9 9 0 0 1-9 9M3 12a9 9 0 0 1 9-9"/></svg><span class="rep-one" id="repOne" hidden>1</span></button>
+      </div>
+    </section>
+
+    <div class="volume" id="volumeRow"><button id="mute" aria-label="قطع صدا" title="قطع / وصل صدا (M)"><svg id="volIcon" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Zm5 3a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button><input id="volume" type="range" min="0" max="1" step=".01" value=".8" aria-label="بلندی صدا"><span class="volval" id="volval">80%</span></div>
+  </main>
+  <script>
+    (()=>{
+      const T=window.__TAURI__,$=id=>document.getElementById(id);
+      const win=T?.window?.getCurrentWindow?.();
+      let state={},coverSrc='',connected=false,seeking=false,seekRatio=0,volBusyUntil=0,lastVol=.8;
+      const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+      const fmt=n=>{n=Math.max(0,Number(n)||0);const h=Math.floor(n/3600),m=Math.floor(n%3600/60),sec=Math.floor(n%60);return (h?h+':'+String(m).padStart(2,'0'):String(m).padStart(2,'0'))+':'+String(sec).padStart(2,'0')};
+      const emit=(type,value)=>{try{return T?.event?.emit('nova-mini-command',{type,value})?.catch?.(()=>{})}catch{}};
+      const close=async()=>{try{await T.core.invoke('close_mini_player')}catch{try{await win?.close()}catch{window.close()}}};
+      const pref={get:(k,d)=>{try{const v=localStorage.getItem('nova-mini-'+k);return v===null?d:v}catch{return d}},set:(k,v)=>{try{localStorage.setItem('nova-mini-'+k,v)}catch{}}};
+
+      /* ── progress: drawn locally while the user drags, so incoming state can't yank the thumb back ── */
+      const drawProgress=(ratio,current,duration)=>{
+        $('fill').style.width=ratio*100+'%';$('thumb').style.left=ratio*100+'%';
+        $('now').textContent=fmt(current);$('duration').textContent=fmt(duration);
+        $('bar').setAttribute('aria-valuenow',String(Math.round(ratio*100)));
+        $('bar').setAttribute('aria-valuetext',fmt(current)+' / '+fmt(duration));
+      };
+      const setVolumeUI=v=>{
+        v=clamp(Number(v)||0,0,1);$('volume').value=v;$('volval').textContent=Math.round(v*100)+'%';
+        $('volumeRow').classList.toggle('muted',v===0);
+        $('volIcon').innerHTML=v===0?'<path d="M11 5 6 9H3v6h3l5 4V5ZM16 9l5 6M21 9l-5 6"/>':v<.5?'<path d="M11 5 6 9H3v6h3l5 4V5Zm5 3a6 6 0 0 1 0 8"/>':'<path d="M11 5 6 9H3v6h3l5 4V5Zm5 3a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>';
+        if(v>0)lastVol=v;
+      };
+      const setVolume=v=>{v=clamp(Math.round(v*100)/100,0,1);volBusyUntil=Date.now()+700;setVolumeUI(v);emit('volume',v)};
+      const applyAccent=s=>{
+        const ok=s.accent&&s.theme!=='light'&&CSS.supports('color',s.accent);
+        document.documentElement.style.setProperty('--neon',ok?s.accent:'#c8ff00');
+      };
+
+      /* ── long title: measure, then scroll only if it really overflows ── */
+      const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
+      const fitTitle=()=>{
+        const box=$('title'),tt=$('titleText');
+        box.classList.remove('marquee');box.style.removeProperty('--mq');
+        if(reduceMotion.matches)return;
+        const over=tt.scrollWidth-box.clientWidth;
+        if(over<=2)return;
+        const dist=over+28;
+        const rtl=getComputedStyle(box).direction==='rtl';
+        box.style.setProperty('--mq',(rtl?dist:-dist)+'px');
+        box.style.setProperty('--mq-time',clamp(dist/28,4,30).toFixed(1)+'s');
+        box.classList.add('marquee');
+      };
+      let fitT=0;
+      try{new ResizeObserver(()=>{clearTimeout(fitT);fitT=setTimeout(fitTitle,80)}).observe($('title'))}catch{addEventListener('resize',()=>{clearTimeout(fitT);fitT=setTimeout(fitTitle,80)})}
+      document.fonts?.ready?.then(fitTitle);
+
+      const paint=s=>{
+        s=s||{};
+        if(!('cover' in s))s.cover=state.cover;   /* main sends the (large) cover only when it changes */
+        state=s;
+        if(!connected){connected=true;$('live').textContent='ON DESKTOP';$('live').classList.remove('off')}
+        const hasSong=!!s.hasSong||(!!s.title&&s.title!=='آهنگی انتخاب نشده');
+        const title=s.title||'آهنگی انتخاب نشده';
+        if($('titleText').textContent!==title){$('titleText').textContent=title;$('title').title=title;fitTitle()}
+        document.title=(hasSong?title+' | ':'')+'NOVA Mini';
+        const lyric=(s.lyric||'').trim();
+        $('lyric').textContent=lyric||s.subtitle||'کتابخانهٔ NOVA';
+        $('lyric').classList.toggle('sub',!lyric);
+        const d=Number(s.duration)>0&&Number.isFinite(Number(s.duration))?Number(s.duration):0;
+        $('bar').classList.toggle('disabled',!d);
+        if(!seeking)drawProgress(d?clamp((s.current||0)/d,0,1):0,s.current,d);
+        if(Date.now()>volBusyUntil)setVolumeUI(Number.isFinite(s.volume)?s.volume:.8);
+        $('stage').classList.toggle('playing',!!s.playing);
+        $('playIcon').innerHTML=s.playing?'<path d="M7 5h3v14H7zM14 5h3v14h-3z"/>':'<path d="m8 5 11 7-11 7V5Z"/>';
+        $('toggle').setAttribute('aria-label',s.playing?'مکث':'پخش');
+        ['toggle','prevBtn','nextBtn'].forEach(id=>$(id).disabled=!hasSong);
+        let fmtTag=String(s.format||'').toUpperCase();
+        if(!fmtTag){const m=title.toUpperCase().match(/\.(MP3|M4A|MP4|OGG|OPUS|WAV|FLAC)$/);fmtTag=m?m[1]:'HI-FI'}
+        $('format').textContent=fmtTag;
+        const sh=$('shuffleBtn'),rp=$('repeatBtn');
+        sh.classList.toggle('on',!!s.shuffle);sh.setAttribute('aria-pressed',String(!!s.shuffle));
+        const repOn=!!s.repeat&&s.repeat!=='off'&&s.repeat!=='none';
+        rp.classList.toggle('on',repOn);rp.setAttribute('aria-pressed',String(repOn));
+        $('repOne').hidden=s.repeat!=='one';
+        applyAccent(s);
+        const cover=typeof s.cover==='string'&&/^(data:image|blob:|asset:|https?:)/i.test(s.cover)?s.cover:'';
+        if(cover!==coverSrc){
+          coverSrc=cover;const image=$('coverImage'),label=$('label');
+          if(cover){image.onerror=()=>{image.hidden=true;label.classList.remove('has-image')};image.src=cover;image.hidden=false;label.classList.add('has-image')}
+          else{image.removeAttribute('src');image.hidden=true;label.classList.remove('has-image')}
+        }
+      };
+
+      /* ── connection: listen FIRST, then say hello. Retry until the main window answers ── */
+      const start=async()=>{
+        if(!T?.event?.listen){$('lyric').textContent='ارتباط با پلیر برقرار نشد';$('live').textContent='OFFLINE';$('live').classList.add('off');return}
+        await T.event.listen('nova-player-state',e=>paint(e.payload));
+        let tries=0;
+        const hello=()=>{if(connected)return;T.event.emit('nova-mini-ready').catch(()=>{});
+          if(++tries===4){$('live').textContent='CONNECTING';$('live').classList.add('off')}
+          setTimeout(hello,Math.min(3000,400*tries))};
+        hello();
+      };
+      start();
+
+      /* ── window: drag, pin, minimize, close, remember position ── */
+      let dragging=false;
+      const startDrag=()=>{
+        if(dragging||!win?.startDragging)return;
+        dragging=true;
+        /* native move loop owns the mouse until release; unlock shortly after */
+        Promise.resolve(win.startDragging()).catch(()=>{}).finally(()=>setTimeout(()=>{dragging=false},120));
+      };
+      $('dragRegion').addEventListener('mousedown',e=>{if(e.button!==0)return;e.preventDefault();startDrag()});
+      $('dragRegion').addEventListener('dblclick',e=>e.preventDefault());
+      /* the vinyl area is the biggest surface: press + move = move window, simple click = play/pause */
+      let press=null,movedWindow=false;
+      $('stage').addEventListener('mousedown',e=>{if(e.button!==0)return;e.preventDefault();press={x:e.screenX,y:e.screenY};movedWindow=false});
+      addEventListener('mousemove',e=>{
+        if(!press)return;
+        if(!(e.buttons&1)){press=null;return}
+        if(Math.abs(e.screenX-press.x)+Math.abs(e.screenY-press.y)>5){press=null;movedWindow=true;$('stage').classList.add('moving');startDrag();setTimeout(()=>$('stage').classList.remove('moving'),200)}
+      });
+      addEventListener('mouseup',()=>{press=null});
+      addEventListener('blur',()=>{press=null});
+      const setPin=async on=>{
+        $('pin').classList.toggle('on',on);$('pin').setAttribute('aria-pressed',String(on));
+        $('pin').title=on?'همیشه رو: روشن (P)':'همیشه رو: خاموش (P)';
+        pref.set('pin',on?'1':'0');
+        try{await win?.setAlwaysOnTop?.(on)}catch{}
+      };
+      setPin(pref.get('pin','1')==='1');
+      $('pin').onclick=()=>setPin(!$('pin').classList.contains('on'));
+      $('minimize').onclick=()=>win?.minimize?.().catch(()=>{});
+      $('close').onclick=close;
+      (async()=>{
+        if(!win)return;
+        try{
+          const saved=JSON.parse(pref.get('pos','null')||'null');
+          const P=(T.dpi||T.window)?.PhysicalPosition;
+          if(saved&&P&&Number.isFinite(saved.x)&&Number.isFinite(saved.y)){
+            const mons=await T.window.availableMonitors();
+            const visible=mons.some(m=>saved.x>=m.position.x-40&&saved.y>=m.position.y-10&&saved.x<m.position.x+m.size.width-80&&saved.y<m.position.y+m.size.height-60);
+            if(visible)await win.setPosition(new P(saved.x,saved.y));
+          }
+        }catch{}
+        let t=0;
+        try{await win.onMoved(({payload})=>{clearTimeout(t);t=setTimeout(()=>pref.set('pos',JSON.stringify({x:payload.x,y:payload.y})),300)})}catch{}
+      })();
+
+      /* ── transport ── */
+      document.querySelectorAll('[data-cmd]').forEach(b=>b.onclick=()=>emit(b.dataset.cmd));
+      $('stage').onclick=()=>{if(movedWindow){movedWindow=false;return}if(!$('toggle').disabled)emit('toggle')};
+
+      /* ── seek bar: click, drag, hover preview, keyboard ── */
+      const bar=$('bar');
+      const ratioAt=e=>{const r=bar.getBoundingClientRect();return clamp((e.clientX-r.left)/r.width,0,1)};
+      bar.addEventListener('pointermove',e=>{if(!state.duration)return;const x=ratioAt(e);$('tip').style.left=x*100+'%';$('tip').textContent=fmt(x*state.duration);
+        if(seeking){seekRatio=x;drawProgress(x,x*state.duration,state.duration)}});
+      bar.addEventListener('pointerdown',e=>{if(!state.duration||e.button!==0)return;seeking=true;bar.classList.add('dragging');bar.setPointerCapture(e.pointerId);
+        seekRatio=ratioAt(e);drawProgress(seekRatio,seekRatio*state.duration,state.duration)});
+      const endSeek=e=>{if(!seeking)return;seeking=false;bar.classList.remove('dragging');
+        try{bar.releasePointerCapture(e.pointerId)}catch{}
+        if(e.type!=='pointercancel'){const t=seekRatio*state.duration;state.current=t;emit('seek',t)}};
+      bar.addEventListener('pointerup',endSeek);bar.addEventListener('pointercancel',endSeek);
+      const seekBy=delta=>{if(!state.duration)return;const t=clamp((state.current||0)+delta,0,state.duration);state.current=t;drawProgress(t/state.duration,t,state.duration);emit('seek',t)};
+      bar.addEventListener('keydown',e=>{
+        if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();e.stopPropagation();seekBy(e.key==='ArrowRight'?5:-5)}
+        else if(e.key==='Home'){e.preventDefault();e.stopPropagation();seekBy(-Infinity)}
+        else if(e.key==='End'){e.preventDefault();e.stopPropagation();seekBy(Infinity)}
+      });
+
+      /* ── volume: slider, wheel, mute ── */
+      const vol=$('volume');
+      vol.addEventListener('input',e=>setVolume(Number(e.target.value)));
+      vol.addEventListener('pointerdown',()=>{volBusyUntil=Infinity});
+      vol.addEventListener('pointerup',()=>{volBusyUntil=Date.now()+700});
+      vol.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='ArrowDown')e.stopPropagation()});
+      $('mute').onclick=()=>setVolume(Number(vol.value)>0?0:(lastVol||.8));
+      document.addEventListener('wheel',e=>{if(e.target.closest('.transport .controls'))return;e.preventDefault();setVolume(Number(vol.value)+(e.deltaY<0?.05:-.05))},{passive:false});
+
+      /* ── keyboard ── */
+      document.addEventListener('keydown',e=>{
+        if(e.ctrlKey||e.altKey||e.metaKey||e.target.matches('textarea'))return;
+        if(e.key==='Escape'){e.preventDefault();close();return}
+        if(e.code==='Space'){e.preventDefault();if(!e.repeat&&!$('toggle').disabled)emit('toggle');return}
+        if(e.target.matches('input'))return;
+        if(e.code==='ArrowLeft'){e.preventDefault();e.shiftKey?seekBy(-5):emit('prev')}
+        else if(e.code==='ArrowRight'){e.preventDefault();e.shiftKey?seekBy(5):emit('next')}
+        else if(e.code==='ArrowUp'){e.preventDefault();setVolume(Number(vol.value)+.05)}
+        else if(e.code==='ArrowDown'){e.preventDefault();setVolume(Number(vol.value)-.05)}
+        else if(e.code==='KeyM'){$('mute').click()}
+        else if(e.code==='KeyS'){emit('shuffle')}
+        else if(e.code==='KeyR'){emit('repeat')}
+        else if(e.code==='KeyP'){$('pin').click()}
+      });
+      /* Space on a focused button must not ALSO click it (was toggling twice) */
+      document.addEventListener('keyup',e=>{if(e.code==='Space')e.preventDefault()},true);
+      document.addEventListener('contextmenu',e=>e.preventDefault());
+    })();
+  </script>
+</body>
+</html>
