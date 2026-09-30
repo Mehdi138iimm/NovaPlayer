@@ -10,6 +10,8 @@ struct AppState {
     storage_directory: std::sync::Mutex<Option<String>>,
     referenced_audio: std::sync::Mutex<HashSet<PathBuf>>,
     main_hidden: AtomicBool,
+    /* v1.10.0: audio files passed on the command line (Explorer double-click / Open with) */
+    launch_files: std::sync::Mutex<Vec<String>>,
 }
 
 /* Perf: tell the page when the main window is hidden (tray) or minimized so every
@@ -271,9 +273,10 @@ fn audio_mime(path: &Path) -> Option<&'static str> {
         "wav" => Some("audio/wav"), "flac" => Some("audio/flac"), _ => None
     }
 }
-fn collect_audio(path: &Path, out: &mut Vec<PathBuf>) {
-    fn visit(path: &Path, out: &mut Vec<PathBuf>, depth: usize) {
-        if depth > 64 || out.len() > 500 { return; }
+fn collect_audio(path: &Path, out: &mut Vec<PathBuf>) { collect_audio_limit(path, out, 500); }
+fn collect_audio_limit(path: &Path, out: &mut Vec<PathBuf>, limit: usize) {
+    fn visit(path: &Path, out: &mut Vec<PathBuf>, depth: usize, limit: usize) {
+        if depth > 64 || out.len() > limit { return; }
         let metadata = match fs::symlink_metadata(path) { Ok(value) => value, Err(_) => return };
         if metadata.file_type().is_symlink() { return; }
         if metadata.is_file() {
@@ -283,12 +286,135 @@ fn collect_audio(path: &Path, out: &mut Vec<PathBuf>) {
         if !metadata.is_dir() { return; }
         if let Ok(items) = fs::read_dir(path) {
             for item in items.flatten() {
-                if out.len() > 500 { break; }
-                visit(&item.path(), out, depth + 1);
+                if out.len() > limit { break; }
+                visit(&item.path(), out, depth + 1, limit);
             }
         }
     }
-    visit(path, out, 0);
+    visit(path, out, 0, limit);
+}
+
+/* ── v1.10.0 ─────────────────────────────────────────────────────────────── */
+
+fn audio_reference(canonical: &Path, size: u64, mime: String) -> AudioReference {
+    AudioReference {
+        name: canonical.file_name().unwrap_or_default().to_string_lossy().to_string(),
+        mime,
+        path: canonical.to_string_lossy().to_string(),
+        size,
+        folder: canonical.parent().and_then(Path::file_name).unwrap_or_default().to_string_lossy().to_string(),
+    }
+}
+
+fn inspect_audio(path: &Path) -> Option<(PathBuf, u64, String)> {
+    let canonical = fs::canonicalize(path).ok()?;
+    let metadata = fs::metadata(&canonical).ok()?;
+    if !metadata.is_file() { return None; }
+    let mime = audio_mime(&canonical)?.to_string();
+    Some((canonical, metadata.len(), mime))
+}
+
+/* Command-line arguments that are real audio files (first launch and second instance). */
+fn launch_audio_args<I: IntoIterator<Item = String>>(args: I, cwd: Option<&Path>) -> Vec<String> {
+    let mut out = Vec::new();
+    for raw in args {
+        let raw = raw.trim().trim_matches('"').to_string();
+        if raw.is_empty() || raw.starts_with('-') { continue; }
+        let mut path = PathBuf::from(&raw);
+        if path.is_relative() { if let Some(base) = cwd { path = base.join(path); } }
+        if path.is_file() && audio_mime(&path).is_some() { out.push(path.to_string_lossy().to_string()); }
+        if out.len() >= 500 { break; }
+    }
+    out
+}
+
+#[tauri::command]
+fn take_launch_files(state: State<'_, Arc<AppState>>) -> Vec<String> {
+    match state.launch_files.lock() { Ok(mut files) => std::mem::take(&mut *files), Err(_) => Vec::new() }
+}
+
+/* M3U import and backup restore: check many paths at once; missing ones come back as null
+   instead of failing the whole call. Found files are registered for playback. */
+#[tauri::command]
+fn probe_audio_paths(state: State<'_, Arc<AppState>>, paths: Vec<String>) -> Result<Vec<Option<AudioReference>>, String> {
+    if paths.len() > 20000 { return Err("too many paths".into()); }
+    let mut allowed = state.referenced_audio.lock().map_err(|_| "خطای قفل فایل‌های مرجع".to_string())?;
+    let mut out = Vec::with_capacity(paths.len());
+    for raw in paths {
+        let raw = raw.trim().to_string();
+        if raw.is_empty() { out.push(None); continue; }
+        match inspect_audio(Path::new(&raw)) {
+            Some((canonical, size, mime)) => { allowed.insert(canonical.clone()); out.push(Some(audio_reference(&canonical, size, mime))); }
+            None => out.push(None),
+        }
+    }
+    Ok(out)
+}
+
+/* Backup restore: find moved songs by file name inside a folder the user picked. */
+#[tauri::command]
+async fn scan_audio_folder(state: State<'_, Arc<AppState>>, path: String) -> Result<Vec<AudioReference>, String> {
+    let root = PathBuf::from(path.trim());
+    if !root.is_dir() { return Err("پوشه پیدا نشد".into()); }
+    let found = tauri::async_runtime::spawn_blocking(move || { let mut v = Vec::new(); collect_audio_limit(&root, &mut v, 20000); v })
+        .await.map_err(|e| e.to_string())?;
+    let mut allowed = state.referenced_audio.lock().map_err(|_| "خطای قفل فایل‌های مرجع".to_string())?;
+    let mut out = Vec::with_capacity(found.len());
+    for p in found {
+        if let Some((canonical, size, mime)) = inspect_audio(&p) {
+            allowed.insert(canonical.clone());
+            out.push(audio_reference(&canonical, size, mime));
+        }
+    }
+    Ok(out)
+}
+
+fn text_file_allowed(path: &Path) -> bool {
+    matches!(path.extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).as_deref(), Some("m3u") | Some("m3u8") | Some("json"))
+}
+
+/* Only playlist (.m3u/.m3u8) and backup (.json) files, picked by the user in a dialog. */
+#[tauri::command]
+fn read_text_file(path: String) -> Result<String, String> {
+    let path = PathBuf::from(path);
+    if !text_file_allowed(&path) { return Err("نوع فایل مجاز نیست".into()); }
+    let meta = fs::metadata(&path).map_err(|e| e.to_string())?;
+    if !meta.is_file() || meta.len() > 64 * 1024 * 1024 { return Err("حجم فایل نامعتبر است".into()); }
+    let bytes = fs::read(&path).map_err(|e| e.to_string())?;
+    let bytes = if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) { &bytes[3..] } else { &bytes[..] };
+    Ok(String::from_utf8_lossy(bytes).into_owned())
+}
+
+#[tauri::command]
+fn write_text_file(path: String, contents: String) -> Result<(), String> {
+    let path = PathBuf::from(path);
+    if !text_file_allowed(&path) { return Err("نوع فایل مجاز نیست".into()); }
+    if contents.len() > 128 * 1024 * 1024 { return Err("فایل خیلی بزرگ است".into()); }
+    if let Some(parent) = path.parent() { if !parent.as_os_str().is_empty() && !parent.is_dir() { return Err("پوشهٔ مقصد پیدا نشد".into()); } }
+    fs::write(&path, contents).map_err(|e| e.to_string())
+}
+
+/* Real reachability check (navigator.onLine only knows about the network adapter). */
+#[tauri::command]
+async fn net_probe() -> bool {
+    tauri::async_runtime::spawn_blocking(|| {
+        use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
+        let timeout = std::time::Duration::from_millis(2500);
+        for host in ["lrclib.net:443", "api.github.com:443"] {
+            if let Ok(addrs) = host.to_socket_addrs() {
+                for addr in addrs.take(2) { if TcpStream::connect_timeout(&addr, timeout).is_ok() { return true; } }
+            }
+        }
+        for ip in ["1.1.1.1:443", "8.8.8.8:443", "9.9.9.9:443"] {
+            if let Ok(addr) = ip.parse::<SocketAddr>() { if TcpStream::connect_timeout(&addr, timeout).is_ok() { return true; } }
+        }
+        false
+    }).await.unwrap_or(false)
+}
+
+fn show_main_window(app: &tauri::AppHandle) {
+    if let Some(w) = app.get_webview_window("main") { let _ = w.show(); let _ = w.unminimize(); let _ = w.set_focus(); }
+    if let Some(st) = app.try_state::<Arc<AppState>>() { set_main_hidden(app, &st, false); }
 }
 
 #[tauri::command]
@@ -324,8 +450,16 @@ fn control_main_window(app: tauri::AppHandle,state:State<'_,Arc<AppState>>,actio
 }
 
 pub fn run(){
-    let state=Arc::new(AppState{close_to_tray:AtomicBool::new(true), storage_directory: std::sync::Mutex::new(None), referenced_audio: std::sync::Mutex::new(HashSet::new()), main_hidden: AtomicBool::new(false)});
+    let launch = launch_audio_args(std::env::args().skip(1), std::env::current_dir().ok().as_deref());
+    let state=Arc::new(AppState{close_to_tray:AtomicBool::new(true), storage_directory: std::sync::Mutex::new(None), referenced_audio: std::sync::Mutex::new(HashSet::new()), main_hidden: AtomicBool::new(false), launch_files: std::sync::Mutex::new(launch)});
     tauri::Builder::default()
+      /* v1.10.0: one NOVA at a time. A second launch (e.g. double-clicking an mp3 while NOVA
+         runs) hands its files to this window and exits. Must be the first plugin. */
+      .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+        let files = launch_audio_args(argv.into_iter().skip(1), Some(Path::new(&cwd)));
+        show_main_window(app);
+        if !files.is_empty() { let _ = app.emit_to("main", "nova-open-files", files); }
+      }))
       .plugin(tauri_plugin_dialog::init())
       .plugin(tauri_plugin_opener::init())
       .manage(state.clone())
@@ -336,7 +470,7 @@ pub fn run(){
         let menu=Menu::with_items(app,&[&show,&quit])?;
         let mut tray=TrayIconBuilder::new().menu(&menu).tooltip("NOVA Player");
         if let Some(icon)=app.default_window_icon(){tray=tray.icon(icon.clone());}
-        tray.on_menu_event(|app,event|match event.id().as_ref(){"show"=>{if let Some(w)=app.get_webview_window("main"){let _=w.show();let _=w.unminimize();let _=w.set_focus();if let Some(st)=app.try_state::<Arc<AppState>>(){set_main_hidden(app,&st,false);}}},"quit"=>app.exit(0),_=>{}}).build(app)?;
+        tray.on_menu_event(|app,event|match event.id().as_ref(){"show"=>show_main_window(app),"quit"=>app.exit(0),_=>{}}).build(app)?;
         Ok(())
       })
       .on_window_event(move|window,event|{
@@ -358,6 +492,6 @@ pub fn run(){
           }
         }
       })
-      .invoke_handler(tauri::generate_handler![update::check_github_update,fetch_trend_preview,fetch_lrclib,fetch_lyrics_ovh,fetch_translation,register_audio_paths,read_dropped_audio,read_audio_file,delete_audio_file,show_mini_player,close_mini_player,set_close_to_tray,start_main_window_drag,control_main_window,set_storage_directory,get_storage_directory,save_audio_file])
+      .invoke_handler(tauri::generate_handler![update::check_github_update,fetch_trend_preview,fetch_lrclib,fetch_lyrics_ovh,fetch_translation,register_audio_paths,read_dropped_audio,read_audio_file,delete_audio_file,show_mini_player,close_mini_player,set_close_to_tray,start_main_window_drag,control_main_window,set_storage_directory,get_storage_directory,save_audio_file,take_launch_files,probe_audio_paths,scan_audio_folder,read_text_file,write_text_file,net_probe])
       .run(tauri::generate_context!()).expect("NOVA failed to start");
 }

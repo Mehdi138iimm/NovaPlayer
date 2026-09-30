@@ -23,6 +23,115 @@
   try{window.__TAURI__?.event?.listen?.('nova-window-visibility',({payload})=>set(payload));}catch(e){}
 })();
 </script>
+<script id="nova-net">
+/* v1.10.0 · ONLINE / OFFLINE AWARENESS
+   Playback, library, playlists and EQ are 100% offline. Lyrics search, translation,
+   TRENDING and update checks need the internet: when it is not there, NOVA now says
+   so up front (a clear card + an "offline" pill) instead of failing with vague errors,
+   and quietly retries the automatic bits once the connection is back. */
+(()=>{
+  const T=window.__TAURI__;
+  const NET_CMDS={fetch_lrclib:'جستجوی متن آهنگ',fetch_lyrics_ovh:'جستجوی متن آهنگ',fetch_translation:'ترجمهٔ متن آهنگ',fetch_trend_preview:'پیش‌نمایش ترندها',check_github_update:'بررسی نسخهٔ جدید'};
+  let online=navigator.onLine!==false,probing=null,retryT=0,lastGesture=0,lastNotice=0;
+  const root=document.documentElement;
+  const looksOffline=err=>/offline|error sending request|dns|failed to lookup|no such host|connect|timed? ?out|network|unreachable|os error|failed to fetch|load failed|getaddrinfo/i.test(String(err?.message||err||''));
+  const apply=(v,announce)=>{
+    const was=online;online=v;root.classList.toggle('nova-offline',!v);
+    if(was!==v){window.dispatchEvent(new CustomEvent('nova-net-change',{detail:{online:v}}));if(announce&&v)card({ok:true,title:'دوباره آنلاین شدی',text:'متن آهنگ، ترجمه و ترندها دوباره در دسترسن.',auto:3200});}
+    clearTimeout(retryT);if(!v)retryT=setTimeout(()=>probe(true),20000);
+  };
+  const probe=async announce=>{
+    if(navigator.onLine===false){apply(false,announce);return false;}
+    if(probing)return probing;
+    probing=(async()=>{
+      let ok=true;
+      try{if(origInvoke)ok=!!(await origInvoke('net_probe'));}catch{ok=navigator.onLine!==false;}
+      apply(ok,announce);return ok;
+    })().finally(()=>{probing=null;});
+    return probing;
+  };
+  /* wrap the Tauri bridge: network commands fail fast (and clearly) while offline */
+  let origInvoke=null;
+  if(T?.core?.invoke){
+    origInvoke=T.core.invoke.bind(T.core);
+    const wrapped=(cmd,args,opts)=>{
+      if(NET_CMDS[cmd]&&!online)return Promise.reject(new Error('offline'));
+      const p=origInvoke(cmd,args,opts);
+      if(!NET_CMDS[cmd])return p;
+      return p.then(r=>{if(!online)apply(true,true);return r;},e=>{if(looksOffline(e))probe(false);throw e;});
+    };
+    /* the global API namespace may be frozen: try in place, then swap the whole namespace */
+    const installed=()=>window.__TAURI__?.core?.invoke===wrapped;
+    try{T.core.invoke=wrapped;}catch{}
+    if(!installed()){try{T.core={...T.core,invoke:wrapped};}catch{}}
+    if(!installed()){try{Object.defineProperty(T,'core',{value:{...T.core,invoke:wrapped},configurable:true,writable:true,enumerable:true});}catch{}}
+    if(!installed())console.info('NOVA: offline-aware invoke not installed; guarded buttons still work');
+  }
+  /* same for direct fetches (TRENDING feed, GitHub releases) */
+  const origFetch=window.fetch?.bind(window);
+  if(origFetch)window.fetch=(input,init)=>{
+    const url=String(input?.url||input||'');
+    const remote=/^https?:\/\//i.test(url)&&!/^https?:\/\/(ipc|tauri|asset)\.localhost/i.test(url);
+    if(remote&&!online)return Promise.reject(new TypeError('offline'));
+    const p=origFetch(input,init);
+    return remote?p.then(r=>{if(!online)apply(true,true);return r;},e=>{if(e?.name!=='AbortError'||navigator.onLine===false)probe(false);throw e;}):p;
+  };
+  window.addEventListener('offline',()=>apply(false,false));
+  window.addEventListener('online',()=>probe(true));
+  ['pointerdown','keydown'].forEach(ev=>window.addEventListener(ev,()=>{lastGesture=Date.now();},true));
+  /* ── the notice card ── */
+  let el=null,hideT=0,curRetry=null;
+  const WIFI='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 20 0M5.5 12.3a10 10 0 0 1 13 0M9 15.8a5 5 0 0 1 6 0"/><circle cx="12" cy="19" r="1"/><path d="M3 3l18 18"/></svg>';
+  const OK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 20 0M5.5 12.3a10 10 0 0 1 13 0M9 15.8a5 5 0 0 1 6 0"/><circle cx="12" cy="19" r="1"/></svg>';
+  const card=({title,text,ok=false,auto=0,retry=null})=>{
+    if(!document.body)return;
+    if(!el){el=document.createElement('div');el.className='net-card';el.setAttribute('role','alert');document.body.appendChild(el);
+      el.addEventListener('click',async e=>{const b=e.target.closest('[data-net]');if(!b)return;
+        if(b.dataset.net==='close'){hide();return;}
+        b.setAttribute('aria-busy','true');b.textContent='در حال بررسی…';
+        const up=await probe(false),again=curRetry;
+        if(up){hide();if(typeof again==='function')setTimeout(again,50);}
+        else{b.removeAttribute('aria-busy');b.textContent='هنوز وصل نیست؛ دوباره';}
+      });}
+    curRetry=retry;
+    el.classList.toggle('ok',ok);
+    el.innerHTML=`<span class="net-card-ico">${ok?OK:WIFI}</span><div style="min-width:0;flex:1"><b></b><p></p>${ok?'':'<div class="net-card-actions"><button type="button" class="primary" data-net="retry">تلاش دوباره</button><button type="button" data-net="close">باشه</button></div>'}</div>`;
+    el.querySelector('b').textContent=title;el.querySelector('p').textContent=text;
+    requestAnimationFrame(()=>el.classList.add('show'));
+    clearTimeout(hideT);if(auto)hideT=setTimeout(hide,auto);
+  };
+  const hide=()=>{clearTimeout(hideT);el?.classList.remove('show');};
+  const notify=(feature,retry)=>{
+    const now=Date.now();if(now-lastNotice<1200)return;lastNotice=now;
+    card({title:'این بخش به اینترنت نیاز داره',text:`«${feature}» آنلاین کار می‌کنه و الان به اینترنت وصل نیستی. اتصالت رو چک کن و دوباره امتحان کن. پخش آهنگ‌ها، پلی‌لیست‌ها و اکولایزر بدون اینترنت هم کار می‌کنن.`,retry});
+  };
+  /* user-triggered online features: block the click and explain, then retry it */
+  const GUARDS=[
+    ['#trendRefresh,#trendRetry','به‌روزرسانی ترندها'],
+    ['.trend-row','پخش پیش‌نمایش ترندها'],
+    ['#lrcManualBtn','جستجوی متن آهنگ'],
+    ['#lrcOnlineBtn','جستجوی هوشمند متن آهنگ'],
+    ['#checkUpdateBtn','بررسی نسخهٔ جدید'],
+    ['#novaUpdateDl','دانلود نسخهٔ جدید'],
+    ['a[href^="http"]','باز کردن لینک']
+  ];
+  window.addEventListener('click',e=>{
+    if(online||!e.target?.closest)return;
+    for(const [sel,feature] of GUARDS){
+      const hit=e.target.closest(sel);
+      if(hit){e.preventDefault();e.stopImmediatePropagation();notify(feature,()=>hit.click());return;}
+    }
+  },true);
+  window.NovaNet={get online(){return online;},probe:()=>probe(true),notify,userAction:()=>Date.now()-lastGesture<1500,
+    explain:()=>card({title:online?'به اینترنت وصلی':'الان آفلاینی',ok:online,auto:online?2500:0,text:online?'همهٔ بخش‌ها در دسترسن.':'بخش‌های آنلاین (متن آهنگ، ترجمه، ترندها و بررسی آپدیت) فعلاً کار نمی‌کنن. پخش، کتابخونه، پلی‌لیست‌ها و اکولایزر کاملاً آفلاینن.'})};
+  root.classList.toggle('nova-offline',!online);
+  window.addEventListener('DOMContentLoaded',()=>{
+    document.getElementById('netPill')?.addEventListener('click',()=>window.NovaNet.explain());
+    setTimeout(()=>probe(false),2500);
+  });
+})();
+</script>
+
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -1150,6 +1259,195 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
 #visualizer{contain:strict}
 #loadScreen.out *{animation:none!important}
 </style>
+<style id="nova-v110">
+/* ===== v1.10.0 · Playlists 2.0, sleep timer, offline notice ===== */
+.pl-panel{position:relative;padding:14px!important;min-height:420px}
+.plx{display:flex;flex-direction:column;gap:12px;min-height:0;flex:1}
+.plx svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.plx-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.plx-kicker{font:700 10px var(--mono);letter-spacing:.18em;color:var(--muted)}
+.plx-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.plx-head-actions{display:flex;gap:6px}
+.plx-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;border:1px solid var(--glass-border);background:transparent;color:var(--muted);cursor:pointer}
+.plx-icon:hover{color:var(--text);background:var(--glass-hover)}
+.plx-new,.plx-primary{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:7px 14px;border-radius:10px;border:0;background:var(--neon);color:var(--on-accent,#111);font:700 12px var(--sans);cursor:pointer}
+.plx-new:hover,.plx-primary:hover:not(:disabled){filter:brightness(1.06)}
+.plx-primary:disabled{opacity:.4;cursor:default}
+.plx-ghost{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:7px 12px;border-radius:10px;border:1px solid var(--glass-border);background:transparent;color:var(--text);font:600 12px var(--sans);cursor:pointer}
+.plx-ghost:hover:not(:disabled){background:var(--glass-hover)}
+.plx-ghost:disabled{opacity:.4;cursor:default}
+.plx-starters{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.plx-starters>span{font-size:11px;color:var(--muted);margin-inline-end:2px}
+.plx-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px dashed var(--glass-border);background:transparent;color:var(--text);font:12px var(--sans);cursor:pointer;max-width:100%}
+.plx-chip small{font:10px var(--mono);color:var(--muted)}
+.plx-chip:hover{border-style:solid;border-color:var(--neon);color:var(--neon)}
+.plx-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;overflow-y:auto;min-height:0;max-height:470px;padding:2px;scrollbar-width:thin}
+.plx-card{display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:14px;border:1px solid transparent;cursor:pointer;min-width:0;transition:background .18s,border-color .18s,transform .18s var(--ease-out,ease)}
+.plx-card:hover,.plx-card:focus-visible{background:var(--glass-hover);border-color:var(--glass-border)}
+.plx-card:active{transform:scale(.98)}
+.plx-card.is-playing{border-color:color-mix(in oklab,var(--neon) 55%,transparent);background:color-mix(in oklab,var(--neon) 8%,transparent)}
+.plx-card-art{position:relative}
+.plx-art{position:relative;width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;background:linear-gradient(145deg,color-mix(in oklab,var(--plx-c,#c8ff00) 60%,var(--surface)),color-mix(in oklab,var(--plx-c,#c8ff00) 14%,var(--ink)));display:grid;place-items:center;box-shadow:0 6px 18px oklch(10% .01 120 / .25)}
+.plx-art i{display:block;background-size:cover;background-position:center;width:100%;height:100%}
+.plx-art.m4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1px}
+.plx-art.m1{display:block}
+.plx-art.m0 span{font-size:38px;filter:drop-shadow(0 4px 10px oklch(10% .01 120 / .35))}
+.plx-emoji-badge{position:absolute;inset-inline-start:6px;bottom:6px;font-size:15px;line-height:1;padding:4px 5px;border-radius:8px;background:oklch(15% .01 120 / .55);backdrop-filter:blur(6px)}
+.plx-fab{position:absolute;inset-inline-end:8px;bottom:8px;width:38px;height:38px;border-radius:50%;border:0;display:grid;place-items:center;background:var(--neon);color:var(--on-accent,#111);cursor:pointer;opacity:0;transform:translateY(6px) scale(.9);transition:opacity .18s,transform .22s var(--ease-out,ease);box-shadow:0 6px 16px oklch(10% .01 120 / .35)}
+.plx-fab svg{width:16px;height:16px;fill:currentColor;stroke:none}
+.plx-card:hover .plx-fab,.plx-card:focus-within .plx-fab,.plx-card.is-playing .plx-fab{opacity:1;transform:none}
+.plx-fab:disabled{display:none}
+@media(hover:none){.plx-fab{opacity:1;transform:none}}
+.plx-live{position:absolute;inset-inline-start:8px;top:8px;display:flex;gap:2px;align-items:flex-end;height:14px;padding:3px 5px;border-radius:6px;background:oklch(15% .01 120 / .6)}
+.plx-live i{width:3px;background:var(--neon);border-radius:2px;animation:plxEq 1s ease-in-out infinite}
+.plx-live i:nth-child(2){animation-delay:-.35s}.plx-live i:nth-child(3){animation-delay:-.7s}
+.plx-live.paused i{animation-play-state:paused}
+@keyframes plxEq{0%,100%{height:3px}50%{height:10px}}
+.plx-card-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-inline:2px}
+.plx-card-meta{font:10.5px var(--mono);color:var(--muted);padding-inline:2px;margin-top:-4px}
+.plx-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:30px 12px;border:1px dashed var(--glass-border);border-radius:16px;color:var(--muted);font-size:12px;line-height:1.8}
+.plx-empty-art{font-size:34px;width:74px;height:74px;border-radius:20px;display:grid;place-items:center;background:var(--neon-dim);margin-bottom:4px}
+.plx-empty b{color:var(--text);font-size:14px}
+.plx-creator{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:14px;border:1px solid var(--glass-border);background:var(--frost);animation:plxIn .28s var(--ease-out,ease)}
+.plx-creator-row{display:flex;gap:10px;align-items:center}
+.plx-creator-art{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;flex-shrink:0;background:linear-gradient(145deg,color-mix(in oklab,var(--plx-c,#c8ff00) 60%,var(--surface)),color-mix(in oklab,var(--plx-c,#c8ff00) 14%,var(--ink)))}
+.plx-input{flex:1;min-width:0;min-height:40px;padding:8px 12px;border-radius:10px;border:1px solid var(--glass-border);background:var(--surface);color:var(--text);font:14px var(--sans)}
+.plx-input:focus{outline:2px solid var(--neon);outline-offset:1px;border-color:var(--neon)}
+.plx-swatches{display:flex;flex-wrap:wrap;gap:5px}
+.plx-sw{width:30px;height:30px;border-radius:9px;border:1px solid var(--glass-border);background:transparent;cursor:pointer;font-size:15px;display:grid;place-items:center}
+.plx-sw[aria-pressed="true"]{border-color:var(--neon);box-shadow:0 0 0 2px var(--neon-dim)}
+.plx-sw.c{border-radius:50%;width:24px;height:24px;background:var(--sw)}
+.plx-sw.c[aria-pressed="true"]{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--sw)}
+.plx-creator-actions{display:flex;justify-content:flex-end;gap:6px}
+@keyframes plxIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.plx-top{display:flex;align-items:center;justify-content:space-between}
+.plx-back{display:inline-flex;align-items:center;gap:4px;padding:6px 8px 6px 4px;border-radius:9px;border:0;background:transparent;color:var(--muted);font:600 12px var(--sans);cursor:pointer}
+.plx-back:hover{color:var(--text);background:var(--glass-hover)}
+[dir="rtl"] .plx-back svg{transform:scaleX(-1)}
+.plx-hero{display:flex;gap:14px;align-items:center;padding:12px;border-radius:16px;background:linear-gradient(135deg,color-mix(in oklab,var(--plx-c,#c8ff00) 22%,transparent),transparent 70%);animation:plxIn .3s var(--ease-out,ease)}
+.plx-hero .plx-art{width:92px;flex-shrink:0;border-radius:14px}
+.plx-hero .plx-art.m0 span{font-size:34px}
+.plx-hero-text{min-width:0;flex:1}
+.plx-title{font-size:18px;font-weight:800;line-height:1.4;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text;border-radius:6px}
+.plx-title:hover{background:var(--glass-hover)}
+.plx-title-input{font-size:16px;font-weight:700;width:100%}
+.plx-actions{display:flex;gap:6px;flex-wrap:wrap}
+.plx-actions .plx-primary{flex:1.2}.plx-actions .plx-ghost{flex:1}
+.plx-actions svg{width:14px;height:14px}
+.plx-actions .plx-primary svg{fill:currentColor;stroke:none}
+.plx-search{display:flex;align-items:center;gap:8px;padding:0 10px;min-height:38px;border-radius:10px;border:1px solid var(--glass-border);background:var(--surface);color:var(--muted)}
+.plx-search input{flex:1;min-width:0;border:0;background:transparent;color:var(--text);font:13px var(--sans);outline:0;min-height:36px}
+.plx-search:focus-within{border-color:var(--neon)}
+.plx-rows{display:flex;flex-direction:column;gap:2px;overflow-y:auto;min-height:0;max-height:360px;scrollbar-width:thin;padding:2px}
+.plx-row{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:11px;cursor:pointer;border:1px solid transparent;background:transparent;touch-action:pan-y;user-select:none}
+.plx-row:hover,.plx-row:focus-visible{background:var(--glass-hover)}
+.plx-row.playing{background:color-mix(in oklab,var(--neon) 10%,transparent);border-color:color-mix(in oklab,var(--neon) 35%,transparent)}
+.plx-row.playing .plx-row-name,.plx-row.playing .plx-num{color:var(--neon)}
+.plx-row.lift{background:var(--raised);border-color:var(--neon);box-shadow:0 10px 26px oklch(10% .01 120 / .35);position:relative;z-index:2;cursor:grabbing}
+.plx-rows.sorting .plx-row:not(.lift){transition:transform .15s}
+.plx-grip{color:var(--muted);cursor:grab;padding:4px 2px;font-size:14px;opacity:.55;touch-action:none}
+.plx-row:hover .plx-grip{opacity:1}
+.plx-rows.filtered .plx-grip{visibility:hidden}
+.plx-num{font:11px var(--mono);color:var(--muted);width:20px;text-align:center;flex-shrink:0}
+.plx-thumb{width:36px;height:36px;border-radius:8px;flex-shrink:0;background:var(--raised) center/cover no-repeat;display:grid;place-items:center;color:var(--muted);font-size:14px}
+.plx-row-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.plx-row-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plx-row-meta{font:10.5px var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plx-x{width:28px;height:28px;border-radius:8px;border:0;background:transparent;color:var(--muted);cursor:pointer;opacity:0;flex-shrink:0}
+.plx-row:hover .plx-x,.plx-x:focus-visible{opacity:1}
+.plx-x:hover{color:var(--ember);background:color-mix(in oklab,var(--ember) 12%,transparent)}
+@media(hover:none){.plx-x{opacity:.7}}
+.plx-note{font-size:11px;color:var(--muted);text-align:center;padding:4px}
+/* one-step song picker */
+.plx-picker{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;gap:10px;padding:14px;background:var(--surface);border-radius:inherit;animation:plxUp .3s var(--ease-out,ease)}
+@keyframes plxUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.plx-picker-head{display:flex;align-items:center;gap:10px}
+.plx-picker-head b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plx-picker-head small{font:11px var(--mono);color:var(--muted)}
+.plx-picker-head>div{min-width:0;flex:1}
+.plx-picker-tools{display:flex;gap:6px;justify-content:space-between;align-items:center}
+.plx-link{border:0;background:transparent;color:var(--neon);font:600 11.5px var(--sans);cursor:pointer;padding:4px 2px}
+.plx-pick-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;scrollbar-width:thin}
+.plx-pick{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--text);text-align:start;cursor:pointer;font:13px var(--sans);width:100%}
+.plx-pick:hover:not(:disabled){background:var(--glass-hover)}
+.plx-pick .plx-row-name{flex:1}
+.plx-check{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--glass-border);display:grid;place-items:center;flex-shrink:0;font-size:12px;color:transparent;transition:background .15s,border-color .15s}
+.plx-pick.on{background:color-mix(in oklab,var(--neon) 9%,transparent);border-color:color-mix(in oklab,var(--neon) 30%,transparent)}
+.plx-pick.on .plx-check{background:var(--neon);border-color:var(--neon);color:var(--on-accent,#111)}
+.plx-pick:disabled{opacity:.5;cursor:default}
+.plx-pick:disabled .plx-check{border:0;width:auto;color:var(--muted);font:10px var(--mono)}
+.plx-picker-foot{display:flex;gap:8px}
+.plx-picker-foot .plx-primary{flex:1;min-height:42px}
+/* popover (add-to-playlist, menus) */
+.plx-pop{position:fixed;z-index:6000;min-width:220px;max-width:280px;max-height:min(360px,70vh);overflow-y:auto;padding:6px;border-radius:14px;border:1px solid var(--glass-border);background:var(--raised);box-shadow:0 18px 40px oklch(10% .01 120 / .4);animation:plxIn .18s var(--ease-out,ease);font-family:var(--sans)}
+.plx-pop-title{font:700 10px var(--mono);letter-spacing:.14em;color:var(--muted);padding:6px 8px 4px}
+.plx-pop-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px;border:0;border-radius:9px;background:transparent;color:var(--text);font:13px var(--sans);text-align:start;cursor:pointer}
+.plx-pop-item:hover,.plx-pop-item:focus-visible{background:var(--glass-hover)}
+.plx-pop-item.on .plx-pop-check{color:var(--neon)}
+.plx-pop-item.new{color:var(--neon);font-weight:600;border-top:1px solid var(--glass-border);border-radius:0 0 9px 9px;margin-top:4px}
+.plx-pop-item.danger{color:var(--ember)}
+.plx-pop-item svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.plx-pop-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plx-pop-check{font:12px var(--mono);color:var(--muted)}
+.plx-pop-empty{font-size:12px;color:var(--muted);padding:8px}
+.plx-pop form{display:flex;flex-direction:column;gap:8px;padding:6px}
+.plx-pop .plx-swatches{padding:2px 4px}
+/* quick "add to playlist" on library rows */
+.track-addpl{flex-shrink:0;display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;opacity:0;transition:opacity .15s,color .15s}
+.track-addpl svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.track-item:hover .track-addpl,.track-addpl:focus-visible{opacity:.85}
+.track-addpl:hover{color:var(--neon);background:var(--glass-hover)}
+@media(hover:none){.track-addpl{opacity:.7;min-width:36px;min-height:44px}}
+/* shared small modal (sleep timer, confirmations) */
+.nx-modal{max-width:400px!important}
+.nx-modal .modal-title{margin-bottom:6px}
+.nx-body{font-size:12.5px;color:var(--muted);line-height:1.9;margin-bottom:16px;white-space:pre-line}
+.nx-chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nx-chip{min-height:52px;border-radius:12px;border:1px solid var(--glass-border);background:var(--surface);color:var(--text);cursor:pointer;font:700 15px var(--sans);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.nx-chip small{font:500 10px var(--sans);color:var(--muted)}
+.nx-chip:hover{border-color:var(--neon)}
+.nx-chip[aria-pressed="true"]{background:var(--neon);color:var(--on-accent,#111);border-color:transparent}
+.nx-chip[aria-pressed="true"] small{color:inherit;opacity:.75}
+.nx-chip.wide{grid-column:1/-1;flex-direction:row;gap:8px;font-size:13px;min-height:44px}
+.nx-custom{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:12px;color:var(--muted)}
+.nx-custom input{width:80px;min-height:38px;padding:6px 10px;border-radius:10px;border:1px solid var(--glass-border);background:var(--surface);color:var(--text);font:14px var(--mono);text-align:center}
+.nx-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--neon-dim)}
+.nx-status[hidden]{display:none}
+.nx-status b{font:700 22px var(--mono);color:var(--neon);letter-spacing:.02em}
+.nx-status span{font-size:11.5px;color:var(--muted);display:block}
+.nx-status-actions{display:flex;gap:6px}
+.nx-mini{min-height:32px;padding:5px 10px;border-radius:9px;border:1px solid var(--glass-border);background:var(--surface);color:var(--text);font:600 11.5px var(--sans);cursor:pointer}
+.nx-mini.danger{color:var(--ember)}
+.nx-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+#sleepBtn.on{color:var(--neon);background:var(--neon-dim);border-color:transparent}
+.nova-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+#desktopMiniBtn.desktop-active{color:var(--neon);background:var(--neon-dim);border-color:transparent}
+#desktopMiniBtn:disabled{cursor:wait;opacity:.65}
+#sleepBtn .sleep-count{font-family:var(--mono);font-weight:700}
+.nx-range{display:flex;align-items:center;gap:12px;margin-top:12px}
+.nx-range input{flex:1;accent-color:var(--neon)}
+.nx-range output{min-width:62px;text-align:center;font:700 12px var(--mono);color:var(--neon);padding:5px 8px;border-radius:8px;background:var(--neon-dim)}
+/* offline */
+.net-pill{display:none;align-items:center;gap:6px;min-height:32px;padding:5px 11px;border-radius:999px;border:1px solid color-mix(in oklab,var(--ember) 45%,transparent);background:color-mix(in oklab,var(--ember) 10%,transparent);color:var(--ember);font:700 11px var(--sans);cursor:pointer;align-self:center}
+.net-pill svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+html.nova-offline .net-pill{display:inline-flex}
+.net-strip{display:none;font-size:11px;line-height:1.8;color:var(--ember);padding:7px 10px;border-radius:10px;background:color-mix(in oklab,var(--ember) 9%,transparent)}
+html.nova-offline .net-strip{display:block}
+.net-card{position:fixed;top:18px;left:50%;z-index:9500;width:min(380px,calc(100vw - 32px));transform:translate(-50%,-20px);opacity:0;pointer-events:none;display:flex;gap:12px;padding:14px;border-radius:16px;border:1px solid var(--glass-border);background:var(--raised);color:var(--text);box-shadow:0 18px 44px oklch(10% .01 120 / .45);transition:opacity .2s,transform .28s var(--ease-out,ease)}
+.net-card.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.net-card-ico{width:40px;height:40px;border-radius:12px;flex-shrink:0;display:grid;place-items:center;background:color-mix(in oklab,var(--ember) 14%,transparent);color:var(--ember)}
+.net-card-ico svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.net-card.ok .net-card-ico{background:var(--neon-dim);color:var(--neon)}
+.net-card b{display:block;font-size:13.5px;margin-bottom:2px}
+.net-card p{font-size:12px;color:var(--muted);line-height:1.8}
+.net-card-actions{display:flex;gap:6px;margin-top:10px}
+.net-card-actions button{min-height:32px;padding:5px 12px;border-radius:9px;border:1px solid var(--glass-border);background:transparent;color:var(--text);font:600 11.5px var(--sans);cursor:pointer}
+.net-card-actions button.primary{background:var(--neon);color:var(--on-accent,#111);border-color:transparent}
+.net-card-actions button[aria-busy="true"]{opacity:.6;pointer-events:none}
+:root[data-motion="reduce"] .plx-live i{animation:none;height:8px}
+:root[data-motion="reduce"] .plx-creator,:root[data-motion="reduce"] .plx-hero,:root[data-motion="reduce"] .plx-picker,:root[data-motion="reduce"] .plx-pop{animation:none}
+</style>
+
 <style id="nova-sidebar-fill-fix">
 /* v1.9.1 fix: the track list was capped at 380px, leaving a big empty gap under it
    while the sidebar stretched to the player's height. Now the lists fill the whole
@@ -1198,6 +1496,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
       </div>
     </div>
     <div class="header-actions">
+      <button type="button" class="net-pill" id="netPill" title="وضعیت اینترنت"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 20 0M5.5 12.3a10 10 0 0 1 13 0M9 15.8a5 5 0 0 1 6 0M3 3l18 18"/></svg>آفلاین</button>
       <button class="icon-btn" id="aboutBtn" title="درباره سازنده">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
       </button>
@@ -1228,6 +1527,9 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
     <button type="button" class="experience-btn" id="orbitBtn" aria-pressed="true" title="حلقهٔ واکنش‌گرا به صدای آهنگ"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8 10v4m4-7v10m4-7v4"/></svg>حلقهٔ صدا</button>
     <button type="button" class="experience-btn" id="lyricsBtn" aria-expanded="false" aria-controls="lyricsPanel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 10h12M4 15h16M4 20h9"/></svg>متن آهنگ</button>
     <button type="button" class="experience-btn" id="eqBtn" aria-pressed="false" aria-haspopup="dialog" aria-controls="eqModalBg" title="اکولایزر (E)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21v-6M5 11V3M12 21v-9M12 8V3M19 21v-4M19 13V3M2 15h6M9 8h6M16 17h6"/></svg>اکولایزر<span class="eq-btn-dot" aria-hidden="true"></span></button>
+    <button type="button" class="experience-btn" id="sleepBtn" aria-pressed="false" aria-haspopup="dialog" aria-controls="sleepModalBg" title="تایمر خواب"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg><span id="sleepLabel">تایمر خواب</span></button>
+    <button type="button" class="experience-btn" id="desktopMiniBtn" aria-pressed="false" aria-describedby="desktopMiniStatus" title="مینی‌پلیر روی دسکتاپ (D)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="15" rx="2"/><rect x="12" y="10" width="8" height="6" rx="1"/><path d="M8 22h8M12 18v4"/></svg><span id="desktopMiniLabel">روی دسکتاپ</span></button>
+    <span class="desktop-mini-status nova-sr" id="desktopMiniStatus" role="status" aria-live="polite">پنجرهٔ شناور روی برنامه‌های دیگر؛ Chrome یا Edge دسکتاپ. تب اصلی باید باز بماند.</span>
   </div>
   <span class="cinema-tip">برای برگشت، Esc بزن</span>
 </div>
@@ -1264,13 +1566,14 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
       <button class="ctrl" id="nextBtn" title="بعدی"><svg viewBox="0 0 24 24"><path d="M19 5v14M12 12l-7 7V5l7 7z" fill="currentColor"/></svg></button>
       <button class="ctrl" id="repeatBtn" title="تکرار"><svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M7 22l-4-4 4-4M3 12h18M21 12a9 9 0 01-9 9M3 12a9 9 0 019-9"/></svg></button>
     </div>
-    <div class="volume-row">
-      <span class="vol-icon" id="volIco">🔊</span>
+    <div class="volume-row nova-vol">
+      <button type="button" class="vol-icon" id="volIco" aria-label="بی‌صدا کردن" title="بی‌صدا (کلیک)" data-level="2"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="vi-body" d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z"/><path class="vi-w1" d="M15.5 9.3a3.8 3.8 0 0 1 0 5.4"/><path class="vi-w2" d="M18.2 6.7a7.5 7.5 0 0 1 0 10.6"/><path class="vi-x" d="m16 9.5 5 5m0-5-5 5"/></svg></button>
       <div class="vol-track">
         <div class="vol-fill" id="volFill" style="width:75%"></div>
         <div class="vol-thumb" id="volThumb"></div>
-        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.75">
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.75" aria-label="میزان صدا">
       </div>
+      <output class="vol-pct" id="volPct" for="volumeSlider">75</output>
     </div>
 
     <section class="lyrics-panel" id="lyricsPanel" aria-labelledby="lyricsHeading" data-size="m" hidden>
@@ -1292,6 +1595,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
     </div>
   </div>
   <div class="lyrics-sheet" id="lrcSheet" hidden>
+    <div class="net-strip">آفلاینی؛ جستجوی متن و ترجمه به اینترنت نیاز دارن. متن‌ها و ترجمه‌هایی که قبلاً پیدا شدن، آفلاین هم کار می‌کنن.</div>
     <div class="lyrics-sheet-grid">
       <label class="lyr-field"><span>نام آهنگ</span><input id="lrcQTitle" type="text" dir="auto" autocomplete="off" spellcheck="false" placeholder="مثلاً Yaavar"></label>
       <label class="lyr-field"><span>خواننده</span><input id="lrcQArtist" type="text" dir="auto" autocomplete="off" spellcheck="false" placeholder="مثلاً Dariush"></label>
@@ -1313,14 +1617,6 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
     <div class="lyrics-timing"><span>زمان متن</span><button type="button" class="experience-btn" id="lrcEarlier" title="نمایش متن نیم ثانیه زودتر" aria-label="نمایش متن نیم ثانیه زودتر">−۰٫۵</button><output id="lrcShiftValue">0.0s</output><button type="button" class="experience-btn" id="lrcLater" title="نمایش متن نیم ثانیه دیرتر" aria-label="نمایش متن نیم ثانیه دیرتر">+۰٫۵</button></div>
   </div>
 </section>
-
-<div class="desktop-mini-entry">
-      <button class="desktop-mini-button" id="desktopMiniBtn" type="button" aria-pressed="false" aria-describedby="desktopMiniStatus" title="مینی‌پلیر روی دسکتاپ (D)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="15" rx="2"/><rect x="12" y="10" width="8" height="6" rx="1"/><path d="M8 22h8M12 18v4"/></svg>
-        <span id="desktopMiniLabel">روی دسکتاپ</span>
-      </button>
-      <p class="desktop-mini-status" id="desktopMiniStatus" role="status" aria-live="polite">پنجرهٔ شناور روی برنامه‌های دیگر؛ Chrome یا Edge دسکتاپ. تب اصلی باید باز بماند.</p>
-    </div>
   </main>
 
   <!-- Sidebar -->
@@ -1379,13 +1675,9 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
 <div class="track-list" id="trackList"></div>
     </div>
 
-    <!-- Playlists Panel -->
+    <!-- Playlists Panel (v1.10.0: Playlists 2.0, rendered by the player) -->
     <div class="card pl-panel" id="plPanel" style="display:none">
-      <div class="pl-header">
-        <span class="pl-title">PLAYLISTS</span>
-        <button class="pl-new-btn" id="newPlBtn">+ جدید</button>
-      </div>
-      <div class="pl-list" id="plList"></div>
+      <div class="plx" id="plx"></div>
     </div>
 
     <!-- Trending Panel: the charts add themselves -->
@@ -1400,6 +1692,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
         </button>
       </div>
       <div class="trend-note">پیش‌نمایش ۳۰ ثانیه‌ای از آیتونز · برای شنیدن کامل، فایل آهنگ را داشته باش</div>
+      <div class="net-strip">آفلاینی؛ آخرین چارت ذخیره‌شده رو می‌بینی. برای به‌روزرسانی و پخش پیش‌نمایش، به اینترنت وصل شو.</div>
       <div class="trend-list" id="trendList"></div>
     </div>
 
@@ -1407,7 +1700,6 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
     <div class="stats-bar card">
       <span><span class="dot"></span><span id="statTotal">0</span> آهنگ</span>
       <span id="statSort">A-Z</span>
-      <span>NOVA v3</span>
     </div>
   </aside>
 </div>
@@ -1416,30 +1708,23 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
 <div class="vt-stack" id="vtStack" role="region" aria-label="اعلان‌های آپلود" aria-live="polite"></div>
 <audio id="audio" preload="metadata"></audio>
 
-<!-- Modal: New Playlist / Rename -->
-<div class="modal-bg" id="modalBg">
-  <div class="modal">
-    <div class="modal-title" id="modalTitle">پلی‌لیست جدید</div>
-    <input class="modal-input" id="modalInput" placeholder="نام پلی‌لیست...">
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-cancel" id="modalCancel">انصراف</button>
-      <button class="modal-btn modal-btn-primary" id="modalOk">ایجاد</button>
+<!-- Modal: Sleep timer (v1.10.0) -->
+<div class="modal-bg" id="sleepModalBg">
+  <div class="modal nx-modal" role="dialog" aria-modal="true" aria-labelledby="sleepTitle">
+    <div class="modal-title" id="sleepTitle">🌙 تایمر خواب</div>
+    <div class="nx-body">بعد از زمانی که انتخاب می‌کنی، صدا آروم کم می‌شه و پخش خودش متوقف می‌شه.</div>
+    <div class="nx-chips" id="sleepChips" role="group" aria-label="مدت تایمر خواب">
+      <button type="button" class="nx-chip" data-min="15">۱۵<small>دقیقه</small></button>
+      <button type="button" class="nx-chip" data-min="30">۳۰<small>دقیقه</small></button>
+      <button type="button" class="nx-chip" data-min="45">۴۵<small>دقیقه</small></button>
+      <button type="button" class="nx-chip" data-min="60">۶۰<small>دقیقه</small></button>
+      <button type="button" class="nx-chip" data-min="90">۹۰<small>دقیقه</small></button>
+      <button type="button" class="nx-chip" data-min="120">۱۲۰<small>دقیقه</small></button>
+      <button type="button" class="nx-chip wide" data-min="eot">♪ آخر همین آهنگ</button>
     </div>
-  </div>
-</div>
-
-<!-- Modal: Add to Playlist -->
-<div class="modal-bg" id="addPlModalBg">
-  <div class="modal" style="max-width:480px;">
-    <div class="modal-title">افزودن به پلی‌لیست</div>
-    <div class="add-modal-divider">① انتخاب پلی‌لیست مقصد</div>
-    <div class="pl-selector" id="addPlSelector"></div>
-    <div class="add-modal-divider">② انتخاب آهنگ‌ها</div>
-    <div class="modal-track-list" id="addPlTrackList"></div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-cancel" id="addPlCancel">انصراف</button>
-      <button class="modal-btn modal-btn-primary" id="addPlOk">افزودن</button>
-    </div>
+    <div class="nx-custom"><span>یا دلخواه:</span><input type="number" id="sleepCustom" min="1" max="600" placeholder="20" inputmode="numeric" aria-label="دقیقهٔ دلخواه"><span>دقیقه</span><button type="button" class="nx-mini" id="sleepCustomGo">شروع</button></div>
+    <div class="nx-status" id="sleepStatus" hidden><div><b id="sleepStatusTime">00:00</b><span id="sleepStatusText"></span></div><div class="nx-status-actions"><button type="button" class="nx-mini" id="sleepAdd">+۱۰ دقیقه</button><button type="button" class="nx-mini danger" id="sleepCancel">لغو تایمر</button></div></div>
+    <div class="nx-actions"><button type="button" class="modal-btn modal-btn-cancel" id="sleepClose">بستن</button></div>
   </div>
 </div>
 
@@ -1474,7 +1759,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
       <div class="help-hero">
         <div class="help-hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
         <div>
-          <div class="help-hero-title">راهنمای NOVA <span class="help-ver-chip">v1.9.0</span></div>
+          <div class="help-hero-title">راهنمای NOVA <span class="help-ver-chip">v1.10.0</span></div>
           <div class="help-hero-sub">پلیر آفلاین ویندوز: سریع، خصوصی، بدون تبلیغ. هر چیزی که برای شروع لازم داری همین‌جاست.</div>
         </div>
       </div>
@@ -1486,7 +1771,15 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
       </div>
 
       <div class="help-section">
-        <div class="help-sec-title">🎤 متن آهنگ و ترجمه (جدید)</div>
+        <div class="help-sec-title">✨ تازه‌های 1.10.0</div>
+        <div class="help-item"><span class="help-key">پلی‌لیست‌ها</span><span class="help-desc">تب PLAYLISTS از نو ساخته شده: کاورهای موزاییکی، صفحهٔ هر پلی‌لیست با «پخش» و «تصادفی»، افزودن آهنگ در یک قدم با تیک زدن، جابه‌جایی با کشیدن ⠿، و «ساخت سریع» از علاقه‌مندی‌ها، تازه‌ها یا یک پوشه. دکمهٔ + کنار هر آهنگ کتابخانه هم آن را مستقیم به پلی‌لیست می‌برد.</span></div>
+        <div class="help-item"><span class="help-key">تایمر خواب</span><span class="help-desc">دکمهٔ «تایمر خواب» در نوار ابزار: ۱۵ تا ۱۲۰ دقیقه، زمان دلخواه یا «آخر همین آهنگ». صدا آخر کار آروم کم می‌شود.</span></div>
+                <div class="help-item"><span class="help-key">M3U و پشتیبان</span><span class="help-desc">پلی‌لیست‌ها را M3U/M3U8 بگیر یا وارد کن (منوی ⋯ هر پلی‌لیست و دکمهٔ ورود در تب). در تنظیمات، «پشتیبان‌گیری و انتقال» همه‌چیز را در یک فایل JSON نگه می‌دارد.</span></div>
+        <div class="help-item"><span class="help-key">باز کردن فایل</span><span class="help-desc">روی هر فایل صوتی در ویندوز دوبار کلیک کن (یا «Open with ← NOVA»): همان پنجرهٔ باز NOVA پخشش می‌کند و نسخهٔ دوم باز نمی‌شود.</span></div>
+        <div class="help-item"><span class="help-key">بدون اینترنت</span><span class="help-desc">وقتی آفلاینی، نشان «آفلاین» بالای صفحه می‌آید و بخش‌های آنلاین (متن آهنگ، ترجمه، ترندها، آپدیت) به‌جای خطای گنگ، واضح می‌گویند اینترنت لازم است. با وصل شدن، خودشان دوباره امتحان می‌کنند.</span></div>
+      </div>
+      <div class="help-section">
+        <div class="help-sec-title">🎤 متن آهنگ و ترجمه</div>
         <div class="help-item"><span class="help-key">باز کردن</span><span class="help-desc">دکمهٔ «متن آهنگ» در نوار ابزار یا کلید <span class="help-kbd">L</span>. متن هر آهنگ یک بار پیدا و روی همین دستگاه ذخیره می‌شود؛ بعد از آن بدون اینترنت هم نمایش داده می‌شود.</span></div>
         <div class="help-item"><span class="help-key">پیدا کردن خودکار</span><span class="help-desc">NOVA برچسب‌های داخل فایل (ID3)، نام فایل و مدت آهنگ را می‌خواند، چند جستجو در LRCLIB انجام می‌دهد و نتیجه‌ای را برمی‌دارد که نام، خواننده و مدتش بیشترین تطابق را دارد. اگر متن هم‌زمان نبود، از lyrics.ovh متن ساده می‌گیرد.</span></div>
         <div class="help-item"><span class="help-key">جستجوی دستی</span><span class="help-desc">ذره‌بین پنل را بزن، نام آهنگ و خواننده را اصلاح کن و از لیست نتایج، نسخهٔ درست را انتخاب کن. برچسب «هم‌زمان» یعنی متن همراه آهنگ حرکت می‌کند. آهنگ‌های فارسی معمولاً با اسم فینگلیش بهتر پیدا می‌شوند.</span></div>
@@ -1545,7 +1838,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
         <div class="help-sec-title">📚 کتابخانه و پلی‌لیست</div>
         <div class="help-item"><span class="help-key">جستجو</span><span class="help-desc">نام آهنگ یا پوشه را تایپ کن؛ لیست همان‌لحظه فیلتر می‌شود.</span></div>
         <div class="help-item"><span class="help-key">مرتب‌سازی</span><span class="help-desc">A-Z، Z-A، جدیدترین، حجم، یا ترتیب دستی با کشیدن آهنگ‌ها.</span></div>
-        <div class="help-item"><span class="help-key">پلی‌لیست</span><span class="help-desc">از تب PLAYLISTS بساز، باز کن، تغییر نام بده یا حذف کن؛ با دکمهٔ + آهنگ‌ها را اضافه کن.</span></div>
+        <div class="help-item"><span class="help-key">پلی‌لیست</span><span class="help-desc">در تب PLAYLISTS «جدید» را بزن، اسم و آیکون بگذار و آهنگ‌ها را تیک بزن. از منوی ⋯ هر پلی‌لیست: تغییر نام، رنگ و آیکون، خروجی M3U، کپی و حذف.</span></div>
         <div class="help-item"><span class="help-key">ذخیره‌سازی</span><span class="help-desc">همهٔ آهنگ‌ها، پلی‌لیست‌ها و تنظیمات دائمی ذخیره می‌شوند و بعد از بستن برنامه هم می‌مانند.</span></div>
       </div>
 
@@ -1623,7 +1916,7 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
         </section>
         <div class="about-divider"></div>
         <div class="about-app-line">
-          <div><div class="about-app-name">NO<span>VA</span> PLAYER</div><div class="about-ver">VERSION 1.9.0 · WINDOWS DESKTOP</div></div>
+          <div><div class="about-app-name">NO<span>VA</span> PLAYER</div><div class="about-ver">VERSION 1.10.0 · WINDOWS DESKTOP</div></div>
           <span class="about-section-note">OPEN SOURCE · OFFLINE FIRST</span>
         </div>
         <div class="about-tech">
@@ -1652,6 +1945,8 @@ let playlists=[],activePl=null; // activePl = {id, name, songIds[]}
 let viewMode='library'; // 'library' | 'playlist'
 let manualOrder=[]; // ids in user-defined (drag & drop) order for the library
 let raf=null,analyser=null,dataArr=null,audioCtx=null,srcNode=null,vizRunning=false;
+/* v1.10.0 */let mainGain=null,mixBus=null,masterGain=null,queueIds=null,plxPlayingId=null,pendingNextId=null,xfSwitching=false;const heldSrc=new Set();
+let novaReadyResolve=()=>{};const novaReady=new Promise(r=>{novaReadyResolve=r;});
 window.NovaAudioMotion={get analyser(){return analyser}};
 const DB='NovaDB',DBV=4,ST='songs',SET='cfg',PLT='playlists',DAT='songs_data';
 
@@ -1662,11 +1957,15 @@ const hideLoad=()=>{$('loadScreen').classList.add('out');$('app').style.opacity=
 /* ── TOAST ── */
 let toastT;
 const toast=(msg,err=false)=>{const el=$('toast');el.textContent=msg;el.className='toast'+(err?' err':'');void el.offsetWidth;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2800);};
+window.NovaToast=toast;
 
 /* ── FORMAT ── */
 const fmtTime=t=>isNaN(t)?'00:00':`${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 const fmtSize=b=>{b=Number(b)||0;return b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';};
-const esc=s=>s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+/* v1.10.0: Windows paths come back canonical (\\?\C:\...); compare and print them plainly */
+const plainPath=p=>String(p||'').replace(/^\\\\\?\\UNC\\/i,'\\\\').replace(/^\\\\\?\\/,'');
+const normPath=p=>plainPath(p).replace(/\//g,'\\').toLowerCase();
 
 /* ── INDEXEDDB ── */
 const openDB=()=>new Promise((res,rej)=>{
@@ -2021,7 +2320,7 @@ const dbSaveCfg=()=>{
   if(!db)return;
   return new Promise((res,rej)=>{
     const tx=db.transaction([SET],'readwrite');
-    const req=tx.objectStore(SET).put({key:'cfg',idx,repeat,shuffle,volume:audio.volume,sort:sortMode,manualOrder,favorites:[...favIds],theme:document.documentElement.dataset.theme||'dark',activePl:activePl?.id||null});
+    const req=tx.objectStore(SET).put({key:'cfg',idx,repeat,shuffle,volume:audio.volume,sort:sortMode,manualOrder,favorites:[...favIds],theme:document.documentElement.dataset.theme||'dark',activePl:null,queuePl:plxPlayingId||null});
     req.onsuccess=()=>res();req.onerror=()=>rej(req.error);
   });
 };
@@ -2050,7 +2349,7 @@ const dbLoadPls=()=>new Promise((res,rej)=>{
 /* ── VISUALIZER ── */
 const initViz=()=>{
   if(audioCtx)return;
-  try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();analyser=audioCtx.createAnalyser();analyser.fftSize=256;dataArr=new Uint8Array(analyser.frequencyBinCount);srcNode=audioCtx.createMediaElementSource(audio);(window.NovaEQ?window.NovaEQ.attach(audioCtx,srcNode):srcNode).connect(analyser);analyser.connect(audioCtx.destination);}catch(e){}
+  try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();analyser=audioCtx.createAnalyser();analyser.fftSize=256;dataArr=new Uint8Array(analyser.frequencyBinCount);srcNode=audioCtx.createMediaElementSource(audio);mainGain=audioCtx.createGain();mixBus=audioCtx.createGain();masterGain=audioCtx.createGain();srcNode.connect(mainGain);mainGain.connect(mixBus);(window.NovaEQ?window.NovaEQ.attach(audioCtx,mixBus):mixBus).connect(analyser);analyser.connect(masterGain);masterGain.connect(audioCtx.destination);}catch(e){}
 };
 const reducedMotion=()=>document.documentElement.dataset.motion==='reduce';
 window.addEventListener('nova-palette-change',()=>refreshVizColor());
@@ -2500,6 +2799,7 @@ const render=()=>{
         <div class="track-meta2" data-action="play">${esc(s.folder||'ROOT')} · ${s.ext||'MP3'} · ${fmtSize(s.size)}</div>
       </div>
       <div class="track-num ${isPlaying?'pn':''}" data-action="play">${isPlaying?'▶':String(i+1).padStart(2,'0')}</div>
+      <button class="track-addpl" data-action="addpl" title="افزودن به پلی‌لیست" aria-label="افزودن ${esc(s.name)} به پلی‌لیست"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h11M3 11h11M3 16h7M18 13v8M14 17h8"/></svg></button>
       <button class="track-fav${isFav(s.id)?' on':''}" data-action="fav" aria-pressed="${isFav(s.id)}" title="${isFav(s.id)?'حذف از علاقه‌مندی‌ها':'افزودن به علاقه‌مندی‌ها'}">${HEART_SVG}</button>
       <button class="track-del" data-id="${s.id}" data-action="delete" title="حذف">✕</button>
     `;
@@ -2509,6 +2809,8 @@ const render=()=>{
   list._h=e=>{
     if(justDragged){justDragged=false;return;}
     if(e.target.closest('.track-handle'))return;
+    const addpl=e.target.closest('[data-action="addpl"]');
+    if(addpl){e.stopPropagation();const id=Number(addpl.closest('.track-item')?.dataset.id);if(id)plxAddPop(addpl,id);return;}
     const fav=e.target.closest('[data-action="fav"]');
     if(fav){e.stopPropagation();const id=Number(fav.closest('.track-item')?.dataset.id);if(id)toggleFav(id);return;}
     const del=e.target.closest('[data-action="delete"]');
@@ -2522,47 +2824,8 @@ const render=()=>{
   window.NovaMotion?.settleList(motionBefore);
 };
 
-/* ── RENDER PLAYLISTS ── */
-const renderPls=()=>{
-  const container=$('plList');
-  container.innerHTML='';
-  if(!playlists.length){
-    container.innerHTML='<div class="empty-state"><span class="empty-icon">📂</span><span>هنوز پلی‌لیستی نداری</span></div>';return;
-  }
-  playlists.forEach(pl=>{
-    const isActive=activePl?.id===pl.id;
-    const songs=pl.songIds.map(id=>playlist.find(s=>Number(s.id)===Number(id))).filter(Boolean);
-    const cover=songs.find(s=>s.cover)?.cover||null;
-    const div=document.createElement('div');
-    div.className='pl-item'+(isActive?' active-pl':'');
-    div.dataset.plid=pl.id;
-    const thumbStyle=cover?`background-image:url(${cover});background-size:cover;background-position:center;`:'';
-    div.innerHTML=`
-      <div class="pl-cover" style="${thumbStyle}">${cover?'':'🎵'}</div>
-      <div class="pl-info">
-        <div class="pl-name">${esc(pl.name)}</div>
-        <div class="pl-count">${songs.length} آهنگ</div>
-      </div>
-      <div class="pl-actions">
-        <button class="pl-act-btn" data-plaction="rename" title="تغییر نام">✏</button>
-        <button class="pl-act-btn del" data-plaction="delete" title="حذف">🗑</button>
-      </div>
-    `;
-    div.addEventListener('click',e=>{
-      const action=e.target.closest('[data-plaction]')?.dataset.plaction;
-      if(action==='rename'){openRenameModal(pl);return;}
-      if(action==='delete'){deletePl(pl.id);return;}
-      // open playlist
-      activePl=pl;
-      viewMode='playlist';
-      setTab('lib');
-      $('libPanel').style.display='';$('plPanel').style.display='none';
-      $('addToPlBtn').style.display='';
-      render();renderPls();
-    });
-    container.appendChild(div);
-  });
-};
+/* ── RENDER PLAYLISTS ── v1.10.0: Playlists 2.0 (see plxRender) */
+const renderPls=()=>plxRender();
 
 /* Cover-driven OKLCH palette. Artwork analysis stays local and never blocks playback. */
 const coverPaletteCache=new Map();
@@ -2671,6 +2934,7 @@ const ensureSrc=async song=>{
 };
 const loadSong=async i=>{
   const request=++loadRequest;
+  if(!xfSwitching)pendingNextId=null;
   /* v1.7.0: playing anything from the library ends trending preview mode. */
   window.NovaTrendEngine?.deactivate();
   if(!playlist[i])return false;
@@ -2700,12 +2964,12 @@ const loadSong=async i=>{
   if(request!==loadRequest||idx!==i)return false;
   if(src){audio.src=src;audio.load();
     /* perf: keep only the current track in memory */
-    for(const other of playlist){if(other!==s&&other.src){try{URL.revokeObjectURL(other.src);}catch(e){}other.src=null;}}
+    for(const other of playlist){if(other!==s&&other.src&&!heldSrc.has(other.src)){try{URL.revokeObjectURL(other.src);}catch(e){}other.src=null;}}
     return true;}
   toast('داده صوتی این آهنگ در دیتابیس پیدا نشد — لطفاً دوباره آپلود کنید',true);
   return false;
 };
-const playSongById=async id=>{const pi=playlist.findIndex(x=>Number(x.id)===Number(id));if(pi<0)return;const loaded=await loadSong(pi);if(loaded&&Number(currentSong()?.id)===Number(id)){play();dbSaveCfg();}};
+const playSongById=async(id,keepQueue)=>{if(!keepQueue){queueIds=null;plxPlayingId=null;}const pi=playlist.findIndex(x=>Number(x.id)===Number(id));if(pi<0)return;const loaded=await loadSong(pi);if(loaded&&Number(currentSong()?.id)===Number(id)){play();dbSaveCfg();}};
 const play=()=>{
   initViz();
   if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
@@ -2724,7 +2988,8 @@ const playPauseToggle=async()=>{
 
 /* The visible (filtered + sorted) list is the source of truth for next/prev,
    so playback order always matches what the user sees. */
-const visibleList=()=>sortedList.length?sortedList:playlist;
+/* v1.10.0: a playing playlist has its own queue; otherwise the visible list rules */
+const visibleList=()=>{if(queueIds&&queueIds.length){const m=new Map(playlist.map(s=>[Number(s.id),s]));const q=queueIds.map(id=>m.get(Number(id))).filter(Boolean);if(q.length)return q;}return sortedList.length?sortedList:playlist;};
 const curVisibleIdx=()=>{const id=Number(currentSong()?.id);return visibleList().findIndex(x=>Number(x.id)===id);};
 const pickShuffleIdx=list=>{
   if(list.length<2)return 0;
@@ -2744,12 +3009,15 @@ const nextSong=async()=>{
   if(window.NovaTrendEngine?.active)return window.NovaTrendEngine.next();
   if(!playlist.length)return;
   const list=visibleList();
-  const si=shuffle?pickShuffleIdx(list):(curVisibleIdx()+1+list.length)%list.length;
+  let si=-1;
+  if(pendingNextId!=null){si=list.findIndex(x=>Number(x.id)===Number(pendingNextId));pendingNextId=null;}
+  if(si<0)si=shuffle?pickShuffleIdx(list):(curVisibleIdx()+1+list.length)%list.length;
   if(await gotoVisible(si)){play();dbSaveCfg();}
 };
 const prevSong=async()=>{
   if(window.NovaTrendEngine?.active)return window.NovaTrendEngine.prev();
   if(!playlist.length)return;
+  pendingNextId=null;
   if(audio.currentTime>3){audio.currentTime=0;return;}
   const list=visibleList();
   const si=shuffle?pickShuffleIdx(list):(curVisibleIdx()-1+list.length)%list.length;
@@ -2769,6 +3037,7 @@ audio.addEventListener('loadedmetadata',updateProg);
 audio.addEventListener('ended',async()=>{
   /* v1.7.0: while a trending preview is on, the trending engine owns the queue. */
   if(window.NovaTrendEngine?.active)return;
+  if(sleepConsumeEnd()){await dbSaveCfg();return;}
   if(repeat==='one'){audio.currentTime=0;play();}
   else{
     const list=visibleList();
@@ -2780,12 +3049,77 @@ audio.addEventListener('ended',async()=>{
   await dbSaveCfg();
 });
 
+/* ── v1.10.0 · sleep timer ── */
+const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v;}catch{return d;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,String(v));}catch{}};
+const rampGain=(param,to,sec)=>{if(!param||!audioCtx)return;const now=audioCtx.currentTime;try{param.cancelScheduledValues(now);param.setValueAtTime(param.value,now);param.linearRampToValueAtTime(to,now+Math.max(.02,sec));}catch{}};
+/* "end of this song" sleep mode: fade out over the last 8 seconds */
+audio.addEventListener('timeupdate',()=>{
+  if(!sleepEOT||window.NovaTrendEngine?.active||audio.paused)return;
+  const d=audio.duration,t=audio.currentTime;if(!Number.isFinite(d)||d<=0)return;
+  const left=d-t;if(masterGain)rampGain(masterGain.gain,left<=8?Math.max(0,left/8):1,.3);
+});
+/* ── sleep timer ── */
+const SLEEP_FADE=20;
+let sleepEnd=0,sleepEOT=false,sleepIv=0,sleepFaded=false;
+const sleepLeft=()=>Math.max(0,sleepEnd-Date.now());
+const fmtClock=ms=>{const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`;};
+const paintSleep=()=>{
+  const btn=$('sleepBtn'),label=$('sleepLabel'),on=!!sleepEnd||sleepEOT;
+  if(btn){btn.classList.toggle('on',on);btn.setAttribute('aria-pressed',String(on));btn.title=on?'تایمر خواب فعاله':'تایمر خواب';}
+  if(label){label.innerHTML=sleepEnd?`<span class="sleep-count">${fmtClock(sleepLeft())}</span>`:sleepEOT?'آخر آهنگ':'تایمر خواب';}
+  const st=$('sleepStatus');if(st){st.hidden=!on;$('sleepStatusTime').textContent=sleepEnd?fmtClock(sleepLeft()):'♪';$('sleepStatusText').textContent=sleepEnd?'تا توقف پخش؛ ۲۰ ثانیهٔ آخر آروم کم می‌شه':'پخش بعد از همین آهنگ آروم قطع می‌شه';$('sleepAdd').hidden=!sleepEnd;}
+  document.querySelectorAll('#sleepChips [data-min]').forEach(b=>b.setAttribute('aria-pressed',String(sleepEOT?b.dataset.min==='eot':false)));
+};
+const sleepRestoreGain=()=>{if(masterGain&&audioCtx)rampGain(masterGain.gain,1,.25);sleepFaded=false;};
+const sleepClear=(quiet=false)=>{clearInterval(sleepIv);sleepIv=0;const was=!!sleepEnd||sleepEOT;sleepEnd=0;sleepEOT=false;sleepRestoreGain();paintSleep();if(was&&!quiet)toast('تایمر خواب خاموش شد');};
+const sleepFinish=()=>{
+  clearInterval(sleepIv);sleepIv=0;sleepEnd=0;sleepEOT=false;
+  if(!audio.paused)pause();
+  setTimeout(sleepRestoreGain,400);paintSleep();toast('🌙 شب بخیر؛ پخش با تایمر خواب متوقف شد');
+};
+const sleepTick=()=>{
+  if(!sleepEnd){clearInterval(sleepIv);sleepIv=0;return;}
+  const ms=sleepLeft();
+  if(ms<=0){sleepFinish();return;}
+  if(ms<=SLEEP_FADE*1000&&!audio.paused){initViz();if(masterGain){rampGain(masterGain.gain,Math.max(0,ms/(SLEEP_FADE*1000)),1);sleepFaded=true;}}
+  else if(sleepFaded)sleepRestoreGain();
+  paintSleep();
+};
+const sleepStart=min=>{
+  clearInterval(sleepIv);sleepEOT=false;sleepRestoreGain();
+  if(min==='eot'){sleepEnd=0;sleepEOT=true;paintSleep();toast('🌙 بعد از همین آهنگ، پخش متوقف می‌شه');return;}
+  const m=Math.max(1,Math.min(600,Math.round(Number(min)||0)));
+  sleepEnd=Date.now()+m*60000;sleepIv=setInterval(sleepTick,1000);paintSleep();
+  toast(`🌙 تایمر خواب: ${m} دقیقهٔ دیگه پخش آروم قطع می‌شه`);
+};
+/* "end of this song": the ended handler asks us first */
+const sleepConsumeEnd=()=>{if(!sleepEOT)return false;sleepEOT=false;stop();setTimeout(sleepRestoreGain,300);paintSleep();toast('🌙 شب بخیر؛ آهنگ تموم شد و پخش متوقف شد');return true;};
+const openSleep=()=>{paintSleep();$('sleepModalBg').classList.add('open');setTimeout(()=>$('sleepChips')?.querySelector('button')?.focus(),60);};
+$('sleepBtn')?.addEventListener('click',openSleep);
+$('sleepClose')?.addEventListener('click',()=>$('sleepModalBg').classList.remove('open'));
+$('sleepModalBg')?.addEventListener('click',e=>{if(e.target===$('sleepModalBg'))$('sleepModalBg').classList.remove('open');});
+$('sleepChips')?.addEventListener('click',e=>{const b=e.target.closest('[data-min]');if(!b)return;sleepStart(b.dataset.min);$('sleepModalBg').classList.remove('open');});
+$('sleepCustomGo')?.addEventListener('click',()=>{const v=Number($('sleepCustom').value);if(!v||v<1){toast('چند دقیقه؟ یه عدد بنویس',true);return;}sleepStart(v);$('sleepModalBg').classList.remove('open');});
+$('sleepCustom')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('sleepCustomGo').click();}});
+$('sleepCancel')?.addEventListener('click',()=>sleepClear());
+$('sleepAdd')?.addEventListener('click',()=>{if(sleepEnd){sleepEnd+=10*60000;sleepRestoreGain();paintSleep();toast('۱۰ دقیقه به تایمر اضافه شد');}});
+document.addEventListener('DOMContentLoaded',()=>{
+  paintSleep();
+});
+
 /* ── VOLUME ── */
 const applyVol=v=>{
   v=Math.min(1,Math.max(0,Number(v)||0));
   audio.volume=v;$('volumeSlider').value=v;$('volFill').style.width=(v*100)+'%';
-  $('volIco').textContent=v===0?'🔇':v<0.5?'🔉':'🔊';
+  const ico=$('volIco');if(ico){ico.dataset.level=v===0?'0':v<0.5?'1':'2';ico.setAttribute('aria-label',v===0?'صدا را باز کن':'بی‌صدا کردن');}
+  const pct=$('volPct');if(pct)pct.textContent=String(Math.round(v*100));
 };
+let volBeforeMute=0.75;
+$('volIco')?.addEventListener('click',()=>{
+  if(audio.volume>0){volBeforeMute=audio.volume;applyVol(0);}else applyVol(volBeforeMute||0.75);
+  dbSaveCfg();
+});
 $('volumeSlider').addEventListener('input',()=>{applyVol($('volumeSlider').value);dbSaveCfg();});
 
 /* ── UPLOAD ── */
@@ -2817,12 +3151,15 @@ const queueFiles=files=>{
   importQueue=job.catch(()=>{});
   return job;
 };
-const importReferences=async refs=>{
-  const unique=(refs||[]).filter(ref=>ref?.path&&!playlist.some(song=>song.referencePath===ref.path));
-  if(!unique.length){toast('این آهنگ‌ها قبلاً به کتابخانه اضافه شده‌اند');return;}
+const importReferences=async(refs,opts={})=>{
+  const list=Array.isArray(refs)?refs:[];
+  const out=new Array(list.length).fill(null),todo=[];
+  const findExisting=ref=>{const n=normPath(ref.path);return playlist.find(song=>(song.referencePath&&normPath(song.referencePath)===n)||(song.storagePath&&normPath(song.storagePath)===n))||null;};
+  list.forEach((ref,i)=>{if(!ref?.path)return;const ex=findExisting(ref);if(ex){out[i]=ex;return;}const dup=todo.find(t=>normPath(t.ref.path)===normPath(ref.path));if(dup)dup.idx.push(i);else todo.push({ref,idx:[i]});});
+  if(!todo.length){if(!opts.quiet)toast('این آهنگ‌ها قبلاً به کتابخانه اضافه شده‌اند');return out;}
   const wasEmpty=playlist.length===0;let added=0;
   const bridge=window.__TAURI__?.core?.invoke;
-  for(const ref of unique){
+  for(const {ref,idx:slots} of todo){
     try{
       let cover=null;
       if(bridge){
@@ -2833,12 +3170,16 @@ const importReferences=async refs=>{
         }catch(error){console.warn('Cover read failed for',ref.name,error);}
       }
       const saved=await dbSaveReference(ref,cover);
-      playlist.push({...saved,src:null,dbId:saved.id});manualOrder.push(Number(saved.id));added++;
+      const song={...saved,src:null,dbId:saved.id};
+      playlist.push(song);manualOrder.push(Number(saved.id));added++;
+      slots.forEach(i=>{out[i]=song;});
     }catch(e){toast('ثبت '+ref.name+' انجام نشد',true);}
   }
   sortedList=getSorted();render();renderPls();$('addToPlBtn').style.display=playlist.length?'':'none';
-  if(wasEmpty&&playlist.length){idx=0;loadSong(0);}
-  await dbSaveCfg();if(added)toast(`${added} آهنگ بدون کپی اضافه شد`);
+  if(wasEmpty&&playlist.length&&!opts.noAutoLoad){idx=0;loadSong(0);}
+  await dbSaveCfg();if(added&&!opts.quiet)toast(`${added} آهنگ بدون کپی اضافه شد`);
+  else if(added&&opts.quiet&&added>1)toast(`${added} آهنگ به کتابخانه اضافه شد`);
+  return out;
 };
 $('fileIn').addEventListener('change',e=>queueFiles(e.target.files));
 $('folderIn').addEventListener('change',e=>queueFiles(e.target.files));
@@ -2864,6 +3205,7 @@ const removeSongById=async id=>{
   favIds.delete(id);updateFavCount();
   // remove from playlists
   playlists.forEach(pl=>{pl.songIds=pl.songIds.filter(sid=>Number(sid)!==id);});
+  if(queueIds)queueIds=queueIds.filter(x=>Number(x)!==id);
   await dbSavePls();
   sortedList=getSorted();
   if(!playlist.length){stop();audio.src='';idx=0;resetPlayer();}
@@ -2879,7 +3221,7 @@ $('clearBtn').addEventListener('click',async()=>{
   const removed=playlist.slice(),deleteFile=window.__TAURI__?.core?.invoke;
   try{await dbClear();}catch(e){toast('پاک‌کردن کتابخانه انجام نشد',true);return;}
   removed.forEach(s=>{if(s.src)try{URL.revokeObjectURL(s.src);}catch(e){}});playlist=[];sortedList=[];idx=0;manualOrder=[];favIds.clear();updateFavCount();
-  playlists.forEach(pl=>pl.songIds=[]);await dbSavePls();
+  playlists.forEach(pl=>pl.songIds=[]);queueIds=null;plxPlayingId=null;await dbSavePls();
   let diskFailures=0;
   if(deleteFile){for(const song of removed){if(!song.storagePath)continue;try{await deleteFile('delete_audio_file',{path:song.storagePath});}catch(e){diskFailures++;}}}
   resetPlayer();render();renderPls();await dbSaveCfg();toast(diskFailures?'کتابخانه پاک شد؛ بعضی فایل‌های دیسک باقی ماندند':'همه آهنگ‌ها پاک شدند',diskFailures>0);
@@ -2907,111 +3249,373 @@ $('tabFav').addEventListener('click',()=>{
 });
 $('favBtn').addEventListener('click',()=>{const song=currentSong();if(song)toggleFav(song.id);});
 
-/* ── PLAYLIST CRUD ── */
-let modalMode='create',modalTargetPl=null;
-const openModal=(mode,pl=null)=>{
-  modalMode=mode;modalTargetPl=pl;
-  $('modalTitle').textContent=mode==='create'?'پلی‌لیست جدید':'تغییر نام';
-  $('modalInput').value=pl?.name||'';
-  $('modalOk').textContent=mode==='create'?'ایجاد':'ذخیره';
-  $('modalBg').classList.add('open');
-  setTimeout(()=>$('modalInput').focus(),100);
+/* ── v1.10.0 · PLAYLISTS 2.0 ──
+   The whole PLAYLISTS tab is its own little app now: mosaic cards, a detail page with
+   Play / Shuffle, a one-step song picker, pointer reordering, quick "add to playlist"
+   from any library row, smart starters and M3U import/export. Playing a playlist uses
+   its own queue, so opening one never hijacks the library list anymore. */
+const PLX_EMOJI=['🎧','🔥','🌙','💙','🚗','☕','🏋️','🎻','🌧️','✨','🎉','🕊️'];
+const PLX_COLORS=['#c8ff00','#00d4ff','#ff6130','#b388ff','#ff4f9a','#ffd166'];
+const PLX_ICON={
+  plus:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  play:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>',
+  pause:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4h4v16h-4zM13.5 4h4v16h-4z"/></svg>',
+  shuffle:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>',
+  back:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>',
+  more:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>',
+  import:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>',
+  export:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 19h16"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  palette:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="15.5" cy="10" r="1"/></svg>',
+  copy:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+  search:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg>'
 };
-const closeModal=()=>{$('modalBg').classList.remove('open');};
-$('newPlBtn').addEventListener('click',()=>openModal('create'));
-$('modalCancel').addEventListener('click',closeModal);
-$('modalBg').addEventListener('click',e=>{if(e.target===$('modalBg'))closeModal();});
-$('modalOk').addEventListener('click',async()=>{
-  const name=$('modalInput').value.trim();
-  if(!name){toast('نام وارد کن',true);return;}
-  if(modalMode==='create'){
-    const pl={id:Date.now(),name,songIds:[]};
-    playlists.push(pl);
-  }else if(modalTargetPl){
-    modalTargetPl.name=name;
-    if(activePl?.id===modalTargetPl.id)activePl.name=name;
+let plxView={screen:'home',id:null},plxFilter='',plxCreating=false,plxDraft={emoji:PLX_EMOJI[0],color:PLX_COLORS[0]},plxPicker=null;
+const songById=id=>playlist.find(s=>Number(s.id)===Number(id))||null;
+const plById=id=>playlists.find(p=>Number(p.id)===Number(id))||null;
+const plSongs=pl=>(pl?.songIds||[]).map(songById).filter(Boolean);
+const plColor=pl=>/^#[0-9a-f]{6}$/i.test(pl?.color||'')?pl.color:PLX_COLORS[Math.abs(Math.floor(Number(pl?.id)||0))%PLX_COLORS.length];
+const plEmoji=pl=>esc(String(pl?.emoji||'🎵').slice(0,8));
+const cssUrl=u=>String(u||'').replace(/["'()\\\s]/g,m=>encodeURIComponent(m));
+const plxUniqueName=base=>{base=String(base||'پلی‌لیست').trim().slice(0,60)||'پلی‌لیست';if(!playlists.some(p=>p.name===base))return base;let n=2;while(playlists.some(p=>p.name===`${base} ${n}`))n++;return `${base} ${n}`;};
+const plxMosaic=pl=>{
+  const covers=[...new Set(plSongs(pl).map(s=>s.cover).filter(Boolean))].slice(0,4);
+  const style=`--plx-c:${plColor(pl)}`;
+  if(covers.length>=4)return `<div class="plx-art m4" style="${style}">${covers.map(c=>`<i style="background-image:url('${cssUrl(c)}')"></i>`).join('')}</div>`;
+  if(covers.length)return `<div class="plx-art m1" style="${style}"><i style="background-image:url('${cssUrl(covers[0])}')"></i>${pl.emoji?`<b class="plx-emoji-badge">${plEmoji(pl)}</b>`:''}</div>`;
+  return `<div class="plx-art m0" style="${style}"><span>${plEmoji(pl)}</span></div>`;
+};
+const plxPanelOpen=()=>$('plPanel')&&$('plPanel').style.display!=='none';
+const plxIsPlaying=()=>!!currentSong()&&!audio.paused&&!audio.ended&&!window.NovaTrendEngine?.active;
+const plxTopFolders=()=>{
+  const m=new Map();
+  for(const s of playlist){const f=String(s.folder||'');if(!f||f==='ROOT')continue;m.set(f,(m.get(f)||0)+1);}
+  return [...m.entries()].filter(([,n])=>n>=3).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([name,n])=>({name,n,label:name.split('/').pop().slice(0,24)}));
+};
+const plxSwatches=(draft)=>`<div class="plx-swatches" role="group" aria-label="آیکون">${PLX_EMOJI.map(e=>`<button type="button" class="plx-sw" data-emoji="${e}" aria-pressed="${draft.emoji===e}">${e}</button>`).join('')}</div>
+  <div class="plx-swatches" role="group" aria-label="رنگ">${PLX_COLORS.map(c=>`<button type="button" class="plx-sw c" data-color="${c}" style="--sw:${c}" aria-pressed="${draft.color===c}" aria-label="رنگ ${c}"></button>`).join('')}</div>`;
+const plxHomeHtml=()=>{
+  const total=playlists.length;
+  let h=`<div class="plx-head"><div><div class="plx-kicker">PLAYLISTS</div><div class="plx-sub">${total?`${total} پلی‌لیست`:'مجموعه‌های خودت رو بساز'}</div></div>
+    <div class="plx-head-actions"><button type="button" class="plx-icon" data-plx="import" title="وارد کردن پلی‌لیست M3U" aria-label="وارد کردن پلی‌لیست M3U">${PLX_ICON.import}</button><button type="button" class="plx-new" data-plx="new">${PLX_ICON.plus}<span>جدید</span></button></div></div>`;
+  if(plxCreating){
+    h+=`<form class="plx-creator" data-plx-form="create" autocomplete="off">
+      <div class="plx-creator-row"><span class="plx-creator-art" id="plxDraftArt" style="--plx-c:${plxDraft.color}">${plxDraft.emoji}</span><input class="plx-input" id="plxName" maxlength="60" placeholder="اسم پلی‌لیست… مثلاً «رانندگی شبانه»" aria-label="نام پلی‌لیست"></div>
+      ${plxSwatches(plxDraft)}
+      <div class="plx-creator-actions"><button type="button" class="plx-ghost" data-plx="cancel-new">انصراف</button><button type="submit" class="plx-primary">ساختن و افزودن آهنگ</button></div></form>`;
+  }else if(playlist.length){
+    const starters=[];
+    if(favIds.size)starters.push({k:'fav',label:'♥ از علاقه‌مندی‌ها',n:favIds.size});
+    starters.push({k:'recent',label:'🕒 تازه‌ها',n:Math.min(25,playlist.length)});
+    plxTopFolders().forEach(f=>starters.push({k:'folder:'+f.name,label:'📁 '+f.label,n:f.n}));
+    h+=`<div class="plx-starters"><span>ساخت سریع:</span>${starters.map(s=>`<button type="button" class="plx-chip" data-plx="starter" data-k="${esc(s.k)}" title="یک پلی‌لیست آماده بساز">${esc(s.label)}<small>${s.n}</small></button>`).join('')}</div>`;
   }
-  await dbSavePls();renderPls();closeModal();toast('✅ ذخیره شد');
-});
-$('modalInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('modalOk').click();});
-
-const openRenameModal=pl=>openModal('rename',pl);
-const deletePl=async id=>{
-  const wasOpen=activePl?.id===id;
-  playlists=playlists.filter(p=>p.id!==id);
-  if(wasOpen){
-    activePl=null;viewMode='library';
-    document.querySelector('.lib-title').textContent='LIBRARY';
-    setTab('lib');
+  if(!total&&!plxCreating){
+    h+=`<div class="plx-empty"><span class="plx-empty-art">🎧</span><b>هنوز پلی‌لیستی نداری</b><span>یه اسم بذار، چندتا آهنگ تیک بزن، تمام. یا از «ساخت سریع» بالا شروع کن.</span><button type="button" class="plx-primary" data-plx="new">${PLX_ICON.plus} ساخت اولین پلی‌لیست</button></div>`;
+  }else if(total){
+    const playingPl=plxIsPlaying()?plxPlayingId:null;
+    h+=`<div class="plx-grid">${playlists.map(pl=>{
+      const n=plSongs(pl).length,live=Number(pl.id)===Number(plxPlayingId);
+      return `<div class="plx-card${live?' is-playing':''}" data-plx="open" data-id="${pl.id}" role="button" tabindex="0" aria-label="${esc(pl.name)}، ${n} آهنگ">
+        <div class="plx-card-art">${plxMosaic(pl)}<button type="button" class="plx-fab" data-plx="play" data-id="${pl.id}" title="پخش" aria-label="پخش ${esc(pl.name)}" ${n?'':'disabled'}>${Number(playingPl)===Number(pl.id)?PLX_ICON.pause:PLX_ICON.play}</button>${live?`<span class="plx-live${playingPl?'':' paused'}" aria-hidden="true"><i></i><i></i><i></i></span>`:''}</div>
+        <div class="plx-card-name">${esc(pl.name)}</div><div class="plx-card-meta">${n} آهنگ</div></div>`;}).join('')}</div>`;
   }
-  await dbSavePls();renderPls();
-  if(wasOpen)render();
-  await dbSaveCfg();toast('پلی‌لیست حذف شد');
+  return h;
 };
-
-/* ── ADD TO PLAYLIST MODAL ── */
-let addPlSelectedIds=new Set();
-let addPlTargetId=null; // which playlist to add to
-
-const openAddPlModal=()=>{
-  if(!playlists.length){toast('ابتدا یک پلی‌لیست بساز',true);return;}
-  addPlSelectedIds=new Set();
-  // default target = activePl or first playlist
-  addPlTargetId=activePl?.id||playlists[0].id;
-
-  // ① render playlist selector
-  const sel=$('addPlSelector');
-  sel.innerHTML='';
-  playlists.forEach(pl=>{
-    const songs=pl.songIds.map(id=>playlist.find(s=>Number(s.id)===Number(id))).filter(Boolean);
-    const div=document.createElement('div');
-    div.className='pl-sel-item'+(pl.id===addPlTargetId?' chosen':'');
-    div.dataset.plid=pl.id;
-    const cover=songs.find(s=>s.cover)?.cover||null;
-    const thumbStyle=cover?`background-image:url(${cover});background-size:cover;background-position:center;width:32px;height:32px;border-radius:7px;display:inline-block;`:'';
-    div.innerHTML=`${cover?`<span style="${thumbStyle}"></span>`:'<span class="psi-icon">🎵</span>'}<span class="psi-name">${esc(pl.name)}</span><span class="psi-count">${songs.length} آهنگ</span><span class="psi-check">✓</span>`;
-    div.addEventListener('click',()=>{
-      addPlTargetId=pl.id;
-      sel.querySelectorAll('.pl-sel-item').forEach(el=>el.classList.remove('chosen'));
-      div.classList.add('chosen');
-    });
-    sel.appendChild(div);
-  });
-
-  // ② render song selector (all songs)
-  const container=$('addPlTrackList');
-  container.innerHTML='';
-  playlist.forEach(s=>{
-    const div=document.createElement('div');
-    div.className='modal-track-item';
-    div.dataset.id=s.id;
-    const thumbStyle=s.cover?`background-image:url(${s.cover});background-size:cover;background-position:center;`:'';
-    div.innerHTML=`<div class="mti-thumb" style="${thumbStyle}">${s.cover?'':'🎵'}</div><div class="mti-name">${esc(s.name)}</div><span class="mti-check">✓</span>`;
-    div.addEventListener('click',()=>{
-      const id=Number(div.dataset.id);
-      if(addPlSelectedIds.has(id)){addPlSelectedIds.delete(id);div.classList.remove('selected');}
-      else{addPlSelectedIds.add(id);div.classList.add('selected');}
-    });
-    container.appendChild(div);
-  });
-
-  $('addPlModalBg').classList.add('open');
+const plxRowsHtml=(pl,songs)=>{
+  const q=plxFilter.trim().toLowerCase(),cur=Number(currentSong()?.id),here=Number(plxPlayingId)===Number(pl.id);
+  const shown=q?songs.filter(s=>s.name.toLowerCase().includes(q)||String(s.folder||'').toLowerCase().includes(q)):songs;
+  if(!shown.length)return '<div class="plx-note">چیزی با این جستجو پیدا نشد</div>';
+  return shown.map((s,i)=>{const on=here&&Number(s.id)===cur;const thumb=s.cover?`background-image:url('${cssUrl(s.cover)}')`:'';
+    return `<div class="plx-row${on?' playing':''}" data-plx="row" data-id="${s.id}" role="button" tabindex="0" aria-current="${on}"><span class="plx-grip" data-grip aria-hidden="true" title="بکش و جابه‌جا کن">⠿</span><span class="plx-num">${on?'▶':String(i+1).padStart(2,'0')}</span><span class="plx-thumb" style="${thumb}">${s.cover?'':'♪'}</span><span class="plx-row-text"><span class="plx-row-name">${esc(s.name)}</span><span class="plx-row-meta">${esc(s.folder||'ROOT')} · ${esc(s.ext||'MP3')}</span></span><button type="button" class="plx-x" data-plx="remove" data-id="${s.id}" title="حذف از پلی‌لیست" aria-label="حذف ${esc(s.name)} از پلی‌لیست">✕</button></div>`;}).join('');
 };
-const closeAddPlModal=()=>{$('addPlModalBg').classList.remove('open');};
-$('addToPlBtn').addEventListener('click',openAddPlModal);
-$('addPlCancel').addEventListener('click',closeAddPlModal);
-$('addPlModalBg').addEventListener('click',e=>{if(e.target===$('addPlModalBg'))closeAddPlModal();});
-$('addPlOk').addEventListener('click',async()=>{
-  if(!addPlSelectedIds.size){toast('آهنگی انتخاب نشده',true);return;}
-  if(!addPlTargetId){toast('پلی‌لیست مقصد انتخاب نشده',true);return;}
-  const target=playlists.find(p=>p.id===addPlTargetId);
-  if(!target){toast('پلی‌لیست پیدا نشد',true);return;}
-  let added=0;
-  addPlSelectedIds.forEach(id=>{if(!target.songIds.map(Number).includes(Number(id))){target.songIds.push(id);added++;}});
-  await dbSavePls();renderPls();
-  if(activePl&&activePl.id===target.id)render();
-  closeAddPlModal();toast(added?`✅ ${added} آهنگ به "${target.name}" اضافه شد`:`همه آهنگ‌ها قبلاً در "${target.name}" بودن`);
+const plxDetailHtml=pl=>{
+  const songs=plSongs(pl),here=Number(plxPlayingId)===Number(pl.id),playingHere=here&&plxIsPlaying();
+  const bytes=songs.reduce((a,s)=>a+(Number(s.size)||0),0);
+  let h=`<div class="plx-top"><button type="button" class="plx-back" data-plx="back">${PLX_ICON.back}<span>همهٔ پلی‌لیست‌ها</span></button><button type="button" class="plx-icon" data-plx="menu" aria-haspopup="menu" title="گزینه‌ها" aria-label="گزینه‌های پلی‌لیست">${PLX_ICON.more}</button></div>
+    <div class="plx-hero" style="--plx-c:${plColor(pl)}">${plxMosaic(pl)}<div class="plx-hero-text"><div class="plx-kicker">PLAYLIST</div><h3 class="plx-title" data-plx="rename" title="برای تغییر نام بزن" tabindex="0">${esc(pl.name)}</h3><div class="plx-sub">${songs.length} آهنگ${bytes?' · '+fmtSize(bytes):''}</div></div></div>
+    <div class="plx-actions"><button type="button" class="plx-primary" data-plx="play-all" ${songs.length?'':'disabled'}>${playingHere?PLX_ICON.pause:PLX_ICON.play}<span>${playingHere?'مکث':'پخش'}</span></button><button type="button" class="plx-ghost" data-plx="shuffle-all" ${songs.length>1?'':'disabled'}>${PLX_ICON.shuffle}<span>تصادفی</span></button><button type="button" class="plx-ghost" data-plx="add">${PLX_ICON.plus}<span>افزودن</span></button></div>`;
+  if(songs.length>8)h+=`<label class="plx-search">${PLX_ICON.search}<input id="plxFilter" placeholder="جستجو در این پلی‌لیست…" value="${esc(plxFilter)}" autocomplete="off"></label>`;
+  if(!songs.length)h+=`<div class="plx-empty"><span class="plx-empty-art">${plEmoji(pl)}</span><b>این پلی‌لیست هنوز خالیه</b><span>آهنگ‌ها رو تیک بزن تا اضافه بشن؛ از کتابخونه هم با دکمهٔ + کنار هر آهنگ می‌شه.</span><button type="button" class="plx-primary" data-plx="add">${PLX_ICON.plus} افزودن آهنگ</button></div>`;
+  else h+=`<div class="plx-rows${plxFilter.trim()?' filtered':''}" id="plxRows">${plxRowsHtml(pl,songs)}</div>${songs.length>1&&!plxFilter.trim()?'<div class="plx-note">برای جابه‌جایی، ⠿ رو بکش · Alt + ↑/↓ هم کار می‌کنه</div>':''}`;
+  if(plxPicker&&Number(plxPicker.plId)===Number(pl.id))h+=plxPickerHtml(pl);
+  return h;
+};
+const plxPickerHtml=pl=>`<div class="plx-picker" role="dialog" aria-label="افزودن آهنگ به ${esc(pl.name)}">
+  <div class="plx-picker-head"><button type="button" class="plx-icon" data-plx="picker-close" aria-label="بستن">✕</button><div><b>افزودن به «${esc(pl.name)}»</b><small id="plxPickCount">آهنگ‌ها رو تیک بزن</small></div></div>
+  <label class="plx-search">${PLX_ICON.search}<input id="plxPickQ" placeholder="جستجو در کتابخانه…" autocomplete="off" value="${esc(plxPicker.q)}"></label>
+  <div class="plx-picker-tools"><button type="button" class="plx-link" data-plx="pick-all">انتخاب همهٔ نتایج</button><button type="button" class="plx-link" data-plx="pick-none">هیچ‌کدام</button></div>
+  <div class="plx-pick-list" id="plxPickList"></div>
+  <div class="plx-picker-foot"><button type="button" class="plx-primary" data-plx="pick-apply" disabled>افزودن</button></div></div>`;
+const plxPickMatches=()=>{const q=(plxPicker?.q||'').trim().toLowerCase();return q?playlist.filter(s=>s.name.toLowerCase().includes(q)||String(s.folder||'').toLowerCase().includes(q)):playlist;};
+const plxPaintPicker=()=>{
+  const list=$('plxPickList'),pl=plById(plxPicker?.plId);if(!list||!pl)return;
+  const has=new Set(pl.songIds.map(Number)),all=plxPickMatches(),LIMIT=300,shown=all.slice(0,LIMIT);
+  list.innerHTML=shown.length?shown.map(s=>{const inPl=has.has(Number(s.id)),on=plxPicker.sel.has(Number(s.id));const thumb=s.cover?`background-image:url('${cssUrl(s.cover)}')`:'';
+    return `<button type="button" class="plx-pick${on?' on':''}" data-pick="${s.id}" ${inPl?'disabled':''} aria-pressed="${on}"><span class="plx-thumb" style="${thumb}">${s.cover?'':'♪'}</span><span class="plx-row-name">${esc(s.name)}</span><span class="plx-check">${inPl?'موجود':'✓'}</span></button>`;}).join('')+(all.length>LIMIT?`<div class="plx-note">${all.length-LIMIT} آهنگ دیگه هم هست؛ برای دیدنشون جستجو کن</div>`:'')
+    :`<div class="plx-note">${playlist.length?'چیزی پیدا نشد':'کتابخونه خالیه؛ اول چندتا آهنگ اضافه کن'}</div>`;
+  const n=plxPicker.sel.size,btn=document.querySelector('[data-plx="pick-apply"]');
+  if(btn){btn.disabled=!n;btn.textContent=n?`افزودن ${n} آهنگ`:'افزودن';}
+  const c=$('plxPickCount');if(c)c.textContent=n?`${n} آهنگ انتخاب شده`:'آهنگ‌ها رو تیک بزن';
+};
+const plxRender=()=>{
+  const root=$('plx');if(!root)return;
+  const pl=plxView.screen==='detail'?plById(plxView.id):null;
+  if(plxView.screen==='detail'&&!pl){plxView={screen:'home',id:null};plxPicker=null;}
+  const keep=root.querySelector('.plx-rows,.plx-grid')?.scrollTop||0;
+  root.innerHTML=pl?plxDetailHtml(pl):plxHomeHtml();
+  const scroller=root.querySelector('.plx-rows,.plx-grid');if(scroller)scroller.scrollTop=keep;
+  if(pl&&plxPicker){plxPaintPicker();setTimeout(()=>$('plxPickQ')?.focus(),60);}
+  if(!pl&&plxCreating)setTimeout(()=>$('plxName')?.focus(),60);
+  if(pl&&$('plxRows'))plxInitReorder($('plxRows'),pl);
+};
+/* cheap refresh for play/pause/track changes: no rebuild, so scroll and focus stay */
+let plxPaintQueued=false;
+const plxPaintState=()=>{
+  if(plxPaintQueued)return;plxPaintQueued=true;
+  requestAnimationFrame(()=>{plxPaintQueued=false;if(!plxPanelOpen())return;
+    const root=$('plx');if(!root||root.querySelector('.plx-picker, .plx-title-input, .plx-creator'))return;
+    const f=document.activeElement&&root.contains(document.activeElement)?document.activeElement:null;
+    const fid=f?.id,fsel=f?.selectionStart;plxRender();
+    if(fid){const el=$(fid);if(el){el.focus();try{el.setSelectionRange(fsel,fsel);}catch{}}}
+  });
+};
+['play','pause','emptied','loadstart'].forEach(ev=>audio.addEventListener(ev,plxPaintState));
+const plxSave=async()=>{try{await dbSavePls();}catch{toast('ذخیرهٔ پلی‌لیست انجام نشد',true);}};
+const plxSyncQueue=pl=>{if(pl&&Number(pl.id)===Number(plxPlayingId))queueIds=plSongs(pl).map(s=>Number(s.id));};
+const plxOpen=id=>{plxView={screen:'detail',id:Number(id)};plxFilter='';plxPicker=null;plxCreating=false;plxRender();$('plx')?.querySelector('.plx-back')?.focus({preventScroll:true});};
+const plxHome=()=>{plxView={screen:'home',id:null};plxPicker=null;plxFilter='';plxRender();};
+const plxCreate=async(name,songIds=[],look={})=>{
+  const pl={id:Date.now(),name:plxUniqueName(name),songIds:[...new Set(songIds.map(Number))],emoji:look.emoji||plxDraft.emoji,color:look.color||plxDraft.color,created:Date.now()};
+  playlists.push(pl);await plxSave();return pl;
+};
+const plxPlay=async(pl,{shuffled=false,startId=null}={})=>{
+  const songs=plSongs(pl);if(!songs.length){toast('این پلی‌لیست خالیه',true);return;}
+  if(Number(plxPlayingId)===Number(pl.id)&&startId==null&&!shuffled&&currentSong()&&songs.some(s=>Number(s.id)===Number(currentSong().id))){playPauseToggle();return;}
+  queueIds=songs.map(s=>Number(s.id));plxPlayingId=Number(pl.id);
+  let first=startId!=null?songById(startId):songs[0];
+  if(shuffled){if(!shuffle)toggleShuffle();first=songs[Math.floor(Math.random()*songs.length)];}
+  const pi=playlist.indexOf(first);
+  if(pi>=0&&await loadSong(pi)){play();dbSaveCfg();}
+  plxRender();
+};
+const plxRemove=async(pl,id)=>{
+  const s=songById(id);pl.songIds=pl.songIds.filter(x=>Number(x)!==Number(id));plxSyncQueue(pl);await plxSave();plxRender();render();
+  toast(`«${s?.name||'آهنگ'}» از «${pl.name}» برداشته شد`);
+};
+const plxDelete=async pl=>{
+  playlists=playlists.filter(p=>Number(p.id)!==Number(pl.id));
+  if(Number(plxPlayingId)===Number(pl.id)){plxPlayingId=null;queueIds=null;}
+  await plxSave();plxHome();dbSaveCfg();toast(`پلی‌لیست «${pl.name}» حذف شد`);
+};
+const plxStartRename=()=>{
+  const pl=plById(plxView.id),h=document.querySelector('.plx-title');if(!pl||!h)return;
+  const input=document.createElement('input');input.className='plx-input plx-title-input';input.maxLength=60;input.value=pl.name;input.setAttribute('aria-label','نام پلی‌لیست');
+  h.replaceWith(input);input.focus();input.select();let done=false;
+  const finish=async save=>{if(done)return;done=true;const v=input.value.trim();if(save&&v&&v!==pl.name){pl.name=v.slice(0,60);await plxSave();toast('✅ نام پلی‌لیست عوض شد');}plxRender();};
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();finish(true);}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();finish(false);}});
+  input.addEventListener('blur',()=>finish(true));
+};
+/* ── popover ── */
+let plxPopEl=null;
+const plxClosePop=()=>{if(plxPopEl){plxPopEl.remove();plxPopEl=null;}document.removeEventListener('pointerdown',plxPopOutside,true);};
+const plxPopOutside=e=>{if(plxPopEl&&!plxPopEl.contains(e.target))plxClosePop();};
+const plxPlacePop=(el,anchor)=>{const r=anchor.getBoundingClientRect(),w=el.offsetWidth,h=el.offsetHeight;el.style.left=Math.min(Math.max(8,r.left+r.width/2-w/2),innerWidth-w-8)+'px';let top=r.bottom+6;if(top+h>innerHeight-8)top=Math.max(8,r.top-h-6);el.style.top=top+'px';};
+const plxOpenPop=(anchor,html,onPick)=>{
+  plxClosePop();const el=document.createElement('div');el.className='plx-pop';el.setAttribute('role','menu');el.innerHTML=html;document.body.appendChild(el);plxPlacePop(el,anchor);
+  el.addEventListener('click',e=>{const b=e.target.closest('[data-pop]');if(b){e.stopPropagation();onPick(b,el);}});
+  el.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();plxClosePop();anchor.focus?.();}});
+  plxPopEl=el;setTimeout(()=>document.addEventListener('pointerdown',plxPopOutside,true));
+  el.querySelector('button,input')?.focus();return el;
+};
+window.addEventListener('resize',plxClosePop);
+const plxAddPopHtml=songId=>`<div class="plx-pop-title">افزودن به پلی‌لیست</div>`+(playlists.length?playlists.map(pl=>{const has=pl.songIds.map(Number).includes(Number(songId));
+  return `<button type="button" class="plx-pop-item${has?' on':''}" role="menuitemcheckbox" aria-checked="${has}" data-pop="toggle" data-id="${pl.id}"><span>${plEmoji(pl)}</span><span class="plx-pop-name">${esc(pl.name)}</span><span class="plx-pop-check">${has?'✓':'+'}</span></button>`;}).join(''):'<div class="plx-pop-empty">هنوز پلی‌لیستی نداری</div>')
+  +`<button type="button" class="plx-pop-item new" data-pop="new">${PLX_ICON.plus}<span class="plx-pop-name">پلی‌لیست جدید با این آهنگ</span></button>`;
+const plxAddPop=(anchor,songId)=>{
+  const song=songById(songId);if(!song)return;
+  plxOpenPop(anchor,plxAddPopHtml(songId),async(b,el)=>{
+    if(b.dataset.pop==='toggle'){
+      const pl=plById(b.dataset.id);if(!pl)return;const has=pl.songIds.map(Number).includes(Number(songId));
+      pl.songIds=has?pl.songIds.filter(x=>Number(x)!==Number(songId)):[...pl.songIds,Number(songId)];
+      plxSyncQueue(pl);await plxSave();
+      b.classList.toggle('on',!has);b.setAttribute('aria-checked',String(!has));b.querySelector('.plx-pop-check').textContent=has?'+':'✓';
+      toast(has?`از «${pl.name}» برداشته شد`:`✅ به «${pl.name}» اضافه شد`);if(plxPanelOpen())plxRender();return;
+    }
+    if(b.dataset.pop==='new'){
+      el.innerHTML=`<div class="plx-pop-title">پلی‌لیست جدید</div><form data-pop-form><input class="plx-input" maxlength="60" placeholder="اسم پلی‌لیست…" aria-label="نام پلی‌لیست"><button type="submit" class="plx-primary">ساختن و افزودن</button></form>`;
+      plxPlacePop(el,anchor);const input=el.querySelector('input');input.focus();
+      el.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const name=input.value.trim();if(!name){input.focus();return;}
+        const pl=await plxCreate(name,[songId],{emoji:PLX_EMOJI[playlists.length%PLX_EMOJI.length],color:PLX_COLORS[playlists.length%PLX_COLORS.length]});
+        plxClosePop();toast(`✅ «${pl.name}» ساخته شد و «${song.name}» توش رفت`);if(plxPanelOpen())plxRender();});
+    }
+  });
+};
+const plxMenu=(anchor,pl)=>{
+  const html=`<button type="button" class="plx-pop-item" data-pop="rename">${PLX_ICON.edit}<span class="plx-pop-name">تغییر نام</span></button>
+    <button type="button" class="plx-pop-item" data-pop="look">${PLX_ICON.palette}<span class="plx-pop-name">رنگ و آیکون</span></button>
+    <button type="button" class="plx-pop-item" data-pop="export">${PLX_ICON.export}<span class="plx-pop-name">خروجی M3U</span></button>
+    <button type="button" class="plx-pop-item" data-pop="dup">${PLX_ICON.copy}<span class="plx-pop-name">ساخت کپی</span></button>
+    <button type="button" class="plx-pop-item danger" data-pop="delete">${PLX_ICON.trash}<span class="plx-pop-name">حذف پلی‌لیست</span></button>`;
+  plxOpenPop(anchor,html,async(b,el)=>{
+    const k=b.dataset.pop;
+    if(k==='rename'){plxClosePop();plxStartRename();}
+    else if(k==='export'){plxClosePop();plxExport(pl);}
+    else if(k==='dup'){plxClosePop();const copy=await plxCreate(pl.name+' (کپی)',pl.songIds,{emoji:pl.emoji,color:pl.color});toast(`✅ «${copy.name}» ساخته شد`);plxOpen(copy.id);}
+    else if(k==='delete'){
+      if(b.dataset.armed!=='1'){b.dataset.armed='1';b.querySelector('.plx-pop-name').textContent='مطمئنی؟ دوباره بزن';return;}
+      plxClosePop();plxDelete(pl);
+    }else if(k==='look'){
+      const draft={emoji:pl.emoji||PLX_EMOJI[0],color:plColor(pl)};
+      el.innerHTML=`<div class="plx-pop-title">رنگ و آیکون</div>${plxSwatches(draft)}`;plxPlacePop(el,anchor);
+      el.addEventListener('click',async e=>{const em=e.target.closest('[data-emoji]'),co=e.target.closest('[data-color]');if(!em&&!co)return;
+        if(em)pl.emoji=em.dataset.emoji;if(co)pl.color=co.dataset.color;
+        el.querySelectorAll('[data-emoji]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.emoji===pl.emoji)));
+        el.querySelectorAll('[data-color]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.color===pl.color)));
+        await plxSave();plxRender();});
+    }
+  });
+};
+/* ── pointer reorder (HTML5 drag & drop is swallowed by the native file drop) ── */
+const plxCommitOrder=async(rowsEl,pl)=>{
+  const ids=[...rowsEl.querySelectorAll('.plx-row')].map(r=>Number(r.dataset.id));
+  const before=plSongs(pl).map(s=>Number(s.id));
+  if(ids.join()===before.join())return;
+  pl.songIds=ids;plxSyncQueue(pl);await plxSave();
+  rowsEl.querySelectorAll('.plx-row').forEach((r,i)=>{const n=r.querySelector('.plx-num');if(n&&!r.classList.contains('playing'))n.textContent=String(i+1).padStart(2,'0');});
+};
+const plxInitReorder=(rowsEl,pl)=>{
+  rowsEl.addEventListener('pointerdown',e=>{
+    const grip=e.target.closest('[data-grip]');if(!grip||plxFilter.trim()||e.button!==0)return;
+    const row=grip.closest('.plx-row');if(!row)return;e.preventDefault();
+    row.classList.add('lift');rowsEl.classList.add('sorting');let lastY=e.clientY,scrollT=0;
+    const place=y=>{for(const r of rowsEl.querySelectorAll('.plx-row')){if(r===row)continue;const b=r.getBoundingClientRect();if(y>b.top&&y<b.bottom){if(y>b.top+b.height/2){if(r.nextElementSibling!==row)r.after(row);}else if(r.previousElementSibling!==row)r.before(row);break;}}};
+    const tick=()=>{const b=rowsEl.getBoundingClientRect();const edge=36;let d=0;if(lastY<b.top+edge)d=-8;else if(lastY>b.bottom-edge)d=8;if(d){rowsEl.scrollTop+=d;place(lastY);}scrollT=requestAnimationFrame(tick);};
+    scrollT=requestAnimationFrame(tick);
+    const move=ev=>{lastY=ev.clientY;place(ev.clientY);};
+    const up=async()=>{cancelAnimationFrame(scrollT);window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);row.classList.remove('lift');rowsEl.classList.remove('sorting');await plxCommitOrder(rowsEl,pl);};
+    window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);
+  });
+  rowsEl.addEventListener('keydown',async e=>{
+    if(!e.altKey||!['ArrowUp','ArrowDown'].includes(e.key)||plxFilter.trim())return;
+    const row=e.target.closest('.plx-row');if(!row)return;e.preventDefault();e.stopPropagation();
+    const sib=e.key==='ArrowUp'?row.previousElementSibling:row.nextElementSibling;if(!sib)return;
+    if(e.key==='ArrowUp')sib.before(row);else sib.after(row);row.focus();await plxCommitOrder(rowsEl,pl);
+  });
+};
+/* ── M3U import / export ── */
+const plxSafeName=n=>String(n||'playlist').replace(/[\\/:*?"<>|\r\n]+/g,' ').trim().slice(0,80)||'playlist';
+const saveTextFile=async(defaultName,text,ext,label)=>{
+  const T=window.__TAURI__,inv=T?.core?.invoke;
+  if(inv&&T?.dialog?.save){const path=await T.dialog.save({title:label,defaultPath:defaultName,filters:[{name:label,extensions:[ext]}]});if(!path)return false;await inv('write_text_file',{path,contents:text});return path;}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:ext==='json'?'application/json':'audio/x-mpegurl'}));a.download=defaultName;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);return true;
+};
+const openTextFile=async(exts,label)=>{
+  const T=window.__TAURI__,inv=T?.core?.invoke;
+  if(inv&&T?.dialog?.open){const picked=await T.dialog.open({multiple:false,title:label,filters:[{name:label,extensions:exts}]});if(!picked)return null;const path=typeof picked==='string'?picked:picked.path;return {path,text:await inv('read_text_file',{path})};}
+  return new Promise(res=>{const input=document.createElement('input');input.type='file';input.accept=exts.map(x=>'.'+x).join(',');input.addEventListener('change',async()=>{const f=input.files?.[0];res(f?{path:f.name,text:await f.text()}:null);});input.click();});
+};
+const parseM3U=(text,filePath)=>{
+  const dir=String(filePath||'').replace(/[\\/][^\\/]*$/,'');let name='';const entries=[];
+  for(let line of String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/)){
+    line=line.trim();if(!line)continue;
+    if(line.startsWith('#')){const m=line.match(/^#PLAYLIST:(.+)$/i);if(m)name=m[1].trim();continue;}
+    let p=line;
+    if(/^file:\/\//i.test(p)){try{p=decodeURIComponent(p.replace(/^file:\/\/\/?/i,''));}catch{continue;}}
+    else if(/^[a-z][a-z0-9+.-]+:\/\//i.test(p))continue;   /* web streams are not files */
+    p=p.replace(/\//g,'\\');
+    if(!/^[a-zA-Z]:\\/.test(p)&&!p.startsWith('\\\\'))p=dir+'\\'+p.replace(/^\.\\/,'');
+    entries.push(p);
+  }
+  return {name,entries};
+};
+const plxExport=async pl=>{
+  const songs=plSongs(pl),withPath=songs.filter(s=>s.referencePath||s.storagePath);
+  if(!withPath.length){toast('آهنگ‌های این پلی‌لیست فایل روی دیسک ندارن؛ خروجی M3U توی نسخهٔ ویندوز کار می‌کنه',true);return;}
+  const lines=['#EXTM3U','#PLAYLIST:'+pl.name.replace(/[\r\n]+/g,' ')];
+  for(const s of withPath){lines.push('#EXTINF:-1,'+s.name.replace(/[\r\n]+/g,' '));lines.push(plainPath(s.referencePath||s.storagePath));}
+  try{const ok=await saveTextFile(plxSafeName(pl.name)+'.m3u8',lines.join('\r\n')+'\r\n','m3u8','پلی‌لیست M3U');
+    if(ok)toast(`✅ ${withPath.length} آهنگ توی فایل M3U ذخیره شد`+(withPath.length<songs.length?`؛ ${songs.length-withPath.length} آهنگ بدون فایل رد شد`:''));}
+  catch{toast('ذخیرهٔ فایل M3U انجام نشد',true);}
+};
+const plxImport=async()=>{
+  const inv=window.__TAURI__?.core?.invoke;
+  if(!inv){toast('وارد کردن M3U فقط توی نسخهٔ ویندوز NOVA کار می‌کنه',true);return;}
+  let file;try{file=await openTextFile(['m3u','m3u8'],'پلی‌لیست M3U');}catch{toast('خواندن فایل پلی‌لیست انجام نشد',true);return;}
+  if(!file)return;
+  const {name,entries}=parseM3U(file.text,file.path);
+  if(!entries.length){toast('آهنگی داخل این فایل پیدا نشد',true);return;}
+  let found=[];try{found=await inv('probe_audio_paths',{paths:entries.slice(0,5000)});}catch{toast('بررسی فایل‌های پلی‌لیست انجام نشد',true);return;}
+  const refs=(found||[]).filter(Boolean);
+  if(!refs.length){toast('هیچ‌کدوم از فایل‌های این پلی‌لیست روی این سیستم پیدا نشد',true);return;}
+  const songs=await importReferences(refs,{quiet:true});
+  const ids=[...new Set(songs.filter(Boolean).map(s=>Number(s.id)))];
+  const base=name||String(file.path).split(/[\\/]/).pop().replace(/\.m3u8?$/i,'');
+  const pl=await plxCreate(base||'پلی‌لیست واردشده',ids,{emoji:'📥',color:PLX_COLORS[1]});
+  const miss=entries.length-refs.length;
+  setTab('pl');$('plPanel').style.display='';$('libPanel').style.display='none';$('trendPanel')&&($('trendPanel').style.display='none');
+  plxOpen(pl.id);
+  toast(miss?`«${pl.name}» با ${ids.length} آهنگ ساخته شد؛ ${miss} فایل پیدا نشد`:`✅ «${pl.name}» با ${ids.length} آهنگ وارد شد`,miss>0);
+};
+const plxStarter=async k=>{
+  let name='',ids=[],look={};
+  if(k==='fav'){name='علاقه‌مندی‌های من';ids=mergeFavOrder([]).filter(id=>favIds.has(Number(id)));if(!ids.length)ids=[...favIds];look={emoji:'💙',color:PLX_COLORS[4]};}
+  else if(k==='recent'){name='تازه‌ها';ids=[...playlist].sort((a,b)=>(b.dateAdded||0)-(a.dateAdded||0)).slice(0,25).map(s=>s.id);look={emoji:'✨',color:PLX_COLORS[5]};}
+  else if(k.startsWith('folder:')){const f=k.slice(7);name=f.split('/').pop()||'پوشه';ids=playlist.filter(s=>s.folder===f).sort(sortFns.az).map(s=>s.id);look={emoji:'🎧',color:PLX_COLORS[1]};}
+  if(!ids.length){toast('آهنگی برای این پلی‌لیست پیدا نشد',true);return;}
+  const pl=await plxCreate(name,ids,look);toast(`✅ «${pl.name}» با ${pl.songIds.length} آهنگ ساخته شد`);plxOpen(pl.id);
+};
+/* ── events (one delegated listener for the whole tab) ── */
+const plxRoot=$('plx');
+plxRoot.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-plx],[data-pick],[data-emoji],[data-color]');if(!t||!plxRoot.contains(t))return;
+  if(t.dataset.pick){const id=Number(t.dataset.pick);if(plxPicker.sel.has(id))plxPicker.sel.delete(id);else plxPicker.sel.add(id);const on=plxPicker.sel.has(id);t.classList.toggle('on',on);t.setAttribute('aria-pressed',String(on));
+    const n=plxPicker.sel.size,btn=plxRoot.querySelector('[data-plx="pick-apply"]');if(btn){btn.disabled=!n;btn.textContent=n?`افزودن ${n} آهنگ`:'افزودن';}const c=$('plxPickCount');if(c)c.textContent=n?`${n} آهنگ انتخاب شده`:'آهنگ‌ها رو تیک بزن';return;}
+  if(t.dataset.emoji||t.dataset.color){if(t.dataset.emoji)plxDraft.emoji=t.dataset.emoji;if(t.dataset.color)plxDraft.color=t.dataset.color;
+    plxRoot.querySelectorAll('.plx-creator [data-emoji]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.emoji===plxDraft.emoji)));
+    plxRoot.querySelectorAll('.plx-creator [data-color]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.color===plxDraft.color)));
+    const art=$('plxDraftArt');if(art){art.textContent=plxDraft.emoji;art.style.setProperty('--plx-c',plxDraft.color);}return;}
+  const act=t.dataset.plx,pl=plById(t.dataset.id||plxView.id);
+  switch(act){
+    case 'new':plxCreating=true;plxDraft={emoji:PLX_EMOJI[playlists.length%PLX_EMOJI.length],color:PLX_COLORS[playlists.length%PLX_COLORS.length]};plxView={screen:'home',id:null};plxRender();break;
+    case 'cancel-new':plxCreating=false;plxRender();break;
+    case 'import':plxImport();break;
+    case 'starter':plxStarter(t.dataset.k||'');break;
+    case 'open':if(e.target.closest('.plx-fab'))break;plxOpen(t.dataset.id);break;
+    case 'play':e.stopPropagation();if(pl)plxPlay(pl);break;
+    case 'back':plxHome();break;
+    case 'menu':if(pl)plxMenu(t,pl);break;
+    case 'rename':plxStartRename();break;
+    case 'play-all':if(pl)plxPlay(pl);break;
+    case 'shuffle-all':if(pl)plxPlay(pl,{shuffled:true});break;
+    case 'add':if(pl){plxPicker={plId:Number(pl.id),q:'',sel:new Set()};plxRender();}break;
+    case 'picker-close':plxPicker=null;plxRender();break;
+    case 'pick-all':plxPickMatches().slice(0,300).forEach(s=>{if(!plById(plxPicker.plId)?.songIds.map(Number).includes(Number(s.id)))plxPicker.sel.add(Number(s.id));});plxPaintPicker();break;
+    case 'pick-none':plxPicker.sel.clear();plxPaintPicker();break;
+    case 'pick-apply':{const target=plById(plxPicker?.plId);if(!target)break;const have=new Set(target.songIds.map(Number));const add=[...plxPicker.sel].filter(id=>!have.has(id));
+      target.songIds=[...target.songIds,...add];plxSyncQueue(target);await plxSave();plxPicker=null;plxRender();toast(add.length?`✅ ${add.length} آهنگ به «${target.name}» اضافه شد`:'همه‌شون از قبل توی پلی‌لیست بودن');break;}
+    case 'remove':e.stopPropagation();{const cur=plById(plxView.id);if(cur)plxRemove(cur,t.dataset.id);}break;
+    case 'row':{if(e.target.closest('[data-grip]'))break;const cur=plById(plxView.id);if(cur)plxPlay(cur,{startId:Number(t.dataset.id)});break;}
+  }
 });
+plxRoot.addEventListener('keydown',e=>{
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('.plx-card,.plx-row,.plx-title')){e.preventDefault();e.target.click();}
+  if(e.key==='Escape'){if(plxPicker){e.preventDefault();e.stopPropagation();plxPicker=null;plxRender();}else if(plxCreating){e.preventDefault();e.stopPropagation();plxCreating=false;plxRender();}}
+},true);
+plxRoot.addEventListener('input',e=>{
+  if(e.target.id==='plxPickQ'&&plxPicker){plxPicker.q=e.target.value;plxPaintPicker();}
+  else if(e.target.id==='plxFilter'){plxFilter=e.target.value;const pl=plById(plxView.id),rows=$('plxRows');if(pl&&rows){rows.innerHTML=plxRowsHtml(pl,plSongs(pl));rows.classList.toggle('filtered',!!plxFilter.trim());}}
+});
+plxRoot.addEventListener('submit',async e=>{
+  const form=e.target.closest('[data-plx-form="create"]');if(!form)return;e.preventDefault();
+  const name=$('plxName')?.value.trim();if(!name){$('plxName')?.focus();toast('یه اسم براش بنویس',true);return;}
+  const pl=await plxCreate(name,[],plxDraft);plxCreating=false;plxOpen(pl.id);
+  if(playlist.length){plxPicker={plId:Number(pl.id),q:'',sel:new Set()};plxRender();}
+});
+$('addToPlBtn').addEventListener('click',()=>{const s=currentSong();if(s)plxAddPop($('addToPlBtn'),s.id);else toast('اول یه آهنگ پخش کن',true);});
+$('addToPlBtn').title='افزودن آهنگ فعلی به پلی‌لیست';
+
 
 /* ── HELP MODAL ── */
 $('helpBtn').addEventListener('click',()=>$('helpModalBg').classList.add('open'));
@@ -3074,6 +3678,7 @@ const desktopSupported=()=>window.isSecureContext&&window.top===window&&
 const desktopMessage=(text,error=false)=>{
   desktopStatus.textContent=text;
   desktopStatus.classList.toggle('desktop-error',error);
+  if(error&&typeof toast==='function')toast(text,true);
 };
 const desktopTheme=()=>{
   if(!desktopWindow||desktopWindow.closed)return;
@@ -3237,7 +3842,7 @@ document.addEventListener('keydown',e=>{
   if(e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.target.matches('input,textarea,[contenteditable="true"]')||document.querySelector('.modal-bg.open'))return;
   /* v1.8.1 fix: in the Windows app, D went straight to the browser PiP path and showed
      "browser not supported". Clicking the button lets the native bridge take over. */
-  if(e.code==='KeyD'){e.preventDefault();if(window.__TAURI__?.core?.invoke)desktopButton.click();else toggleDesktop();}
+  if(!window.NovaCustomShortcutsActive&&e.code==='KeyD'){e.preventDefault();if(window.__TAURI__?.core?.invoke)desktopButton.click();else toggleDesktop();}
 });
 new MutationObserver(desktopTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','data-motion']});
 window.addEventListener('nova-motion-change',desktopTheme);
@@ -3308,7 +3913,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&cinemaOn){e.preventDefault();setCinema(false);$('cinemaBtn').focus();return;}
   if(e.target.closest('input,textarea,button,[role="button"],[contenteditable="true"]'))return;
   if(!window.NovaCustomShortcutsActive&&e.code==='KeyC'){e.preventDefault();setCinema(!cinemaOn);}
-  if(e.code==='KeyL'){e.preventDefault();setLyricsOpen($('lyricsPanel').hidden);}
+  if(!window.NovaCustomShortcutsActive&&e.code==='KeyL'){e.preventDefault();setLyricsOpen($('lyricsPanel').hidden);}
 });
 
 /* Circular audio visualizer: real FFT bars radiating around the cover disc.
@@ -3806,8 +4411,16 @@ const applyLyricHit=async(id,hit)=>{
   return !!synced;
 };
 const setOnlineBusy=on=>{lyricOnlineBusy=on;const btn=$('lrcOnlineBtn');btn.disabled=on||!currentSong();if(on){btn.setAttribute('aria-busy','true');btn.textContent='در حال جستجو…';}else{btn.removeAttribute('aria-busy');btn.textContent='جستجوی هوشمند';}paintLyricMeta();};
+let lyricOfflineWait=null;
+window.addEventListener('nova-net-change',e=>{if(!e.detail?.online||lyricOfflineWait==null)return;const s=currentSong();const wait=lyricOfflineWait;lyricOfflineWait=null;if(s&&Number(s.id)===Number(wait)&&!lyricSourceLines().length)onlineLyrics(s,{auto:true});});
 const onlineLyrics=async(song,{auto=false,request=lyricRequest}={})=>{
   if(!song||(lyricOnlineBusy&&!auto))return;const id=Number(song.id),job=++lyricOnlineSeq;
+  if(window.NovaNet&&!window.NovaNet.online){
+    lyricOfflineWait=id;
+    if(!lyricSourceLines().length)showLyricEmpty('الان آفلاینی','متن این آهنگ از اینترنت پیدا می‌شه؛ وقتی وصل شدی، خودش دوباره امتحان می‌کنه.',{action:{label:'تلاش دوباره',run:()=>onlineLyrics(song,{auto:false})}});
+    if(!auto)window.NovaNet.notify('جستجوی متن آهنگ',()=>onlineLyrics(song,{auto:false}));
+    return;
+  }
   const still=()=>request===lyricRequest&&Number(currentSong()?.id)===id;
   setOnlineBusy(true);
   if(!lyricSourceLines().length)showLyricEmpty('در حال جستجوی متن…','برچسب‌های فایل، نام آهنگ و خواننده بررسی می‌شوند',{loading:true});
@@ -3898,6 +4511,7 @@ const translateLines=async lines=>{
 const translateLyrics=async({auto=false}={})=>{
   const lines=lyricSourceLines();if(!lines.length||lyricIsFa||lyricTransBusy)return;
   if(auto&&lyricTransFailed)return;
+  if(window.NovaNet&&!window.NovaNet.online){if(!auto)window.NovaNet.notify('ترجمهٔ فارسی متن');return;}
   const id=lyricSongId,req=lyricRequest,key=lyricKey(lines);
   lyricTransBusy=true;paintLyricViews();
   try{
@@ -3993,7 +4607,9 @@ window.NovaPlayerBridge={
     return {title:ts?ts.name:(song?.name||'آهنگی انتخاب نشده'),subtitle:ts?ts.artist:(song?.artist||'NOVA'),cover:ts?ts.cover:(song?.cover||'🎵'),playing:(!!ts||!!song)&&!audio.paused&&!audio.ended&&!audio.error,current:Number.isFinite(audio.currentTime)?audio.currentTime:0,duration:Number.isFinite(audio.duration)?audio.duration:0,volume:audio.volume,shuffle,repeat,lyric,hasSong:!!ts||!!song,
       format:ts?'PREVIEW':(String(song?.referencePath||song?.storagePath||song?.fileName||'').match(/\.([a-z0-9]{2,5})$/i)?.[1]||'').toUpperCase()};},
   command(type,value){if(type==='toggle'){$('playBtn').click();return;}if(type==='prev'){$('prevBtn').click();return;}if(type==='next'){$('nextBtn').click();return;}if(type==='shuffle'){$('shuffleBtn').click();return;}if(type==='repeat'){$('repeatBtn').click();return;}if(type==='volume'&&Number.isFinite(Number(value))){applyVol(value);dbSaveCfg();return;}if(type==='seek'&&Number.isFinite(Number(value))&&Number.isFinite(audio.duration))audio.currentTime=Math.max(0,Math.min(audio.duration,Number(value)));},
-  async importReferences(refs){await importReferences(refs);render();}
+  async importReferences(refs,opts){const r=await importReferences(refs,opts);render();return r;},
+  ready:novaReady,
+  async playSong(id){await playSongById(id);}
 };
 
 /* ── COVER REPAIR ──
@@ -4043,6 +4659,122 @@ const repairCovers=async()=>{
   coverRepairRunning=false;
 };
 
+/* ── v1.10.0 · BACKUP & RESTORE ──
+   One JSON file with everything that is not the audio itself: song list and paths,
+   lyrics + translations + timing, playlists, favorites, order, EQ, shortcuts and the
+   other preferences. Restore merges (never wipes) and can re-find moved files by name. */
+const novaConfirm=({title,body,ok='باشه',cancel='انصراف',danger=false})=>new Promise(res=>{
+  const bg=document.createElement('div');bg.className='modal-bg open';
+  bg.innerHTML=`<div class="modal nx-modal" role="alertdialog" aria-modal="true"><div class="modal-title"></div><div class="nx-body"></div><div class="nx-actions">${cancel?'<button type="button" class="modal-btn modal-btn-cancel" data-r="0"></button>':''}<button type="button" class="modal-btn modal-btn-primary" data-r="1"></button></div></div>`;
+  bg.querySelector('.modal-title').textContent=title;bg.querySelector('.nx-body').textContent=body;
+  if(cancel)bg.querySelector('[data-r="0"]').textContent=cancel;bg.querySelector('[data-r="1"]').textContent=ok;
+  if(danger)bg.querySelector('[data-r="1"]').style.background='var(--ember)';
+  let done=false;const close=v=>{if(done)return;done=true;window.removeEventListener('keydown',key,true);bg.remove();res(v);};
+  const key=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close(false);}else if(e.key==='Enter'&&document.activeElement?.tagName!=='BUTTON'){e.preventDefault();close(true);}};
+  bg.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(b)close(b.dataset.r==='1');else if(e.target===bg)close(false);});
+  window.addEventListener('keydown',key,true);document.body.appendChild(bg);setTimeout(()=>bg.querySelector('[data-r="1"]').focus(),40);
+});
+window.NovaConfirm=novaConfirm;
+const BACKUP_KIND='nova-backup',LS_SKIP=/^(nova-trending-v1|nova-storage-directory)$/;
+const LYRIC_FIELD=/^lrc(?!Miss$)/;
+const dbAllRecords=()=>new Promise((res,rej)=>{try{const tx=db.transaction([ST],'readonly'),r=tx.objectStore(ST).getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});
+const buildBackup=async()=>{
+  const recs=await dbAllRecords();
+  const songs=recs.map(r=>{const o={};for(const [k,v] of Object.entries(r)){if(k==='data'||k==='cover'||k==='coverV'||k==='referencePath'||k==='storagePath')continue;o[k]=v;}
+    o.path=plainPath(r.referencePath||r.storagePath||'');o.storage=r.referencePath?'reference':r.storagePath?'copy':'browser';return o;});
+  const ls={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&/^nova/.test(k)&&!LS_SKIP.test(k))ls[k]=localStorage.getItem(k);}}catch{}
+  return {kind:BACKUP_KIND,format:1,app:'NOVA Player',appVersion:'1.10.0',created:new Date().toISOString(),
+    songs,playlists:playlists.map(p=>({...p,songIds:[...p.songIds]})),favorites:[...favIds],manualOrder:[...manualOrder],
+    settings:{repeat,shuffle,volume:audio.volume,sort:sortMode,theme:document.documentElement.dataset.theme||'dark'},localStorage:ls};
+};
+const exportBackup=async()=>{
+  if(!db){toast('کتابخانه هنوز آماده نیست',true);return;}
+  try{
+    const b=await buildBackup(),d=new Date(),stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const ok=await saveTextFile(`NOVA-backup-${stamp}.json`,JSON.stringify(b,null,1),'json','پشتیبان NOVA');
+    if(ok)toast(`✅ پشتیبان ساخته شد: ${b.songs.length} آهنگ، ${b.playlists.length} پلی‌لیست`);
+  }catch(e){console.error(e);toast('ساخت فایل پشتیبان انجام نشد',true);}
+};
+const songKey=(name,size)=>String(name||'').toLowerCase().trim()+'|'+(Number(size)||0);
+const restoreBackup=async()=>{
+  if(!db){toast('کتابخانه هنوز آماده نیست',true);return;}
+  let file;try{file=await openTextFile(['json'],'پشتیبان NOVA');}catch{toast('خواندن فایل پشتیبان انجام نشد',true);return;}
+  if(!file)return;
+  let b;try{b=JSON.parse(String(file.text).replace(/^\uFEFF/,''));}catch{b=null;}
+  if(b?.kind!==BACKUP_KIND||!Array.isArray(b.songs)){toast('این فایل، پشتیبان معتبر NOVA نیست',true);return;}
+  const go=await novaConfirm({title:'بازیابی پشتیبان',body:`${b.songs.length} آهنگ، ${(b.playlists||[]).length} پلی‌لیست، متن‌ها و ترجمه‌ها، اکولایزر و تنظیمات.\nچیزی از کتابخونهٔ فعلی پاک نمی‌شه؛ همه‌چی ادغام می‌شه.`,ok:'بازیابی'});
+  if(!go)return;
+  const inv=window.__TAURI__?.core?.invoke;
+  const note=(window.NovaVelocityToast||(o=>{toast(o.title);return null;}))({title:'در حال بازیابی…',description:'آهنگ‌ها، پلی‌لیست‌ها و متن‌ها',variant:'loading',duration:0});
+  const map=new Map(),byPath=new Map(),byName=new Map();
+  playlist.forEach(s=>{const p=s.referencePath||s.storagePath;if(p)byPath.set(normPath(p),s);if(!byName.has(songKey(s.name,s.size)))byName.set(songKey(s.name,s.size),s);});
+  const pending=[];
+  for(const bs of b.songs){if(!bs||bs.id==null)continue;const ex=(bs.path&&byPath.get(normPath(bs.path)))||byName.get(songKey(bs.name,bs.size));if(ex)map.set(Number(bs.id),ex);else pending.push(bs);}
+  try{
+    if(pending.length&&inv){
+      const probe=await inv('probe_audio_paths',{paths:pending.map(p=>String(p.path||''))});
+      const refs=[],who=[];(probe||[]).forEach((r,i)=>{if(r){refs.push(r);who.push(pending[i]);}});
+      if(refs.length){const got=await importReferences(refs,{quiet:true});got.forEach((s,j)=>{if(s)map.set(Number(who[j].id),s);});}
+    }
+  }catch(e){console.warn('restore: probe failed',e);}
+  let missing=b.songs.filter(bs=>bs&&!map.has(Number(bs.id)));
+  note?.dismiss?.();
+  if(missing.length&&inv&&window.__TAURI__?.dialog?.open){
+    const pick=await novaConfirm({title:`${missing.length} آهنگ پیدا نشد`,body:'خود فایل‌های صوتی داخل پشتیبان نیستن. اگه آهنگ‌ها رو به این ویندوز آوردی، پوشه‌شون رو نشون بده تا با اسم فایل پیداشون کنم (زیرپوشه‌ها هم گشته می‌شن).',ok:'انتخاب پوشه',cancel:'رد شدن'});
+    if(pick){
+      try{
+        const folder=await window.__TAURI__.dialog.open({directory:true,multiple:false,title:'پوشهٔ آهنگ‌ها'});
+        if(folder){
+          const all=await inv('scan_audio_folder',{path:typeof folder==='string'?folder:folder.path});
+          const idx=new Map();(all||[]).forEach(r=>{const k=String(r.name||'').toLowerCase();if(!idx.has(k))idx.set(k,[]);idx.get(k).push(r);});
+          const want=[],who=[],used=new Set();
+          for(const bs of missing){const fname=String(bs.originalName||String(bs.path||'').split(/[\\/]/).pop()||'').toLowerCase();const c=(idx.get(fname)||[]).filter(r=>!used.has(r.path));const hit=c.find(r=>bs.size&&Number(r.size)===Number(bs.size))||c[0];if(hit){used.add(hit.path);want.push(hit);who.push(bs);}}
+          if(want.length){const got=await importReferences(want,{quiet:true});got.forEach((s,j)=>{if(s)map.set(Number(who[j].id),s);});}
+        }
+      }catch(e){console.warn('restore: folder scan failed',e);toast('گشتن پوشه انجام نشد',true);}
+      missing=b.songs.filter(bs=>bs&&!map.has(Number(bs.id)));
+    }
+  }
+  /* lyrics, translations, timing: fill what the current record does not have */
+  for(const bs of b.songs){
+    const s=bs&&map.get(Number(bs.id));if(!s)continue;
+    const fields={};for(const [k,v] of Object.entries(bs))if(LYRIC_FIELD.test(k))fields[k]=v;
+    if(!Object.keys(fields).length||!(fields.lrc||fields.lrcPlain))continue;
+    try{const rec=await getSongRecord(s.id);if(!rec)continue;
+      if(!(rec.lrc||rec.lrcPlain))await saveSongLyrics(s.id,fields);
+      else if(fields.lrcTrans&&!rec.lrcTrans&&(rec.lrc||'')===(fields.lrc||'')&&(rec.lrcPlain||'')===(fields.lrcPlain||''))await saveSongLyrics(s.id,{lrcTrans:fields.lrcTrans,lrcTransKey:fields.lrcTransKey||'',lrcTransLang:fields.lrcTransLang||'fa'});
+    }catch{}
+  }
+  let plNew=0,plMerged=0;
+  for(const bp of (b.playlists||[])){
+    if(!bp||typeof bp.name!=='string'||!bp.name.trim())continue;
+    const ids=[...new Set((Array.isArray(bp.songIds)?bp.songIds:[]).map(id=>map.get(Number(id))).filter(Boolean).map(s=>Number(s.id)))];
+    const same=playlists.find(p=>p.name===bp.name);
+    if(same){const have=new Set(same.songIds.map(Number));ids.forEach(id=>{if(!have.has(id))same.songIds.push(id);});plMerged++;}
+    else{playlists.push({id:Date.now()+plNew,name:bp.name.trim().slice(0,80),songIds:ids,emoji:typeof bp.emoji==='string'?bp.emoji.slice(0,8):undefined,color:/^#[0-9a-f]{6}$/i.test(bp.color||'')?bp.color:undefined,created:Number(bp.created)||Date.now()});plNew++;}
+  }
+  (b.favorites||[]).forEach(id=>{const s=map.get(Number(id));if(s)favIds.add(Number(s.id));});updateFavCount();
+  (b.manualOrder||[]).forEach(id=>{const s=map.get(Number(id));if(s&&!manualOrder.includes(Number(s.id)))manualOrder.push(Number(s.id));});
+  const st=b.settings||{};
+  if(['off','one','all'].includes(st.repeat))repeat=st.repeat;
+  if(typeof st.shuffle==='boolean')shuffle=st.shuffle;
+  if(sortFns[st.sort]||st.sort==='manual')sortMode=st.sort;
+  if(st.theme==='light'||st.theme==='dark'){document.documentElement.dataset.theme=st.theme;setThemeIcon(st.theme);}
+  if(Number.isFinite(Number(st.volume)))applyVol(Number(st.volume));
+  updateRepeat();$('shuffleBtn').classList.toggle('active',shuffle);
+  document.querySelectorAll('.sort-pill').forEach(x=>x.classList.toggle('on',x.dataset.sort===sortMode));
+  let lsCount=0;
+  if(b.localStorage&&typeof b.localStorage==='object')for(const [k,v] of Object.entries(b.localStorage)){if(/^nova/.test(k)&&!LS_SKIP.test(k)&&typeof v==='string'){lsSet(k,v);lsCount++;}}
+  await dbSavePls().catch(()=>{});await dbSaveCfg();
+  sortedList=getSorted();render();renderPls();if(currentSong())loadLyrics(currentSong());
+  const again=await novaConfirm({title:'بازیابی انجام شد ✓',body:`${map.size} از ${b.songs.length} آهنگ برگشت، ${plNew} پلی‌لیست جدید${plMerged?` و ${plMerged} پلی‌لیست ادغام‌شده`:''}.${missing.length?`\n${missing.length} آهنگ پیدا نشد (فایلش روی این سیستم نیست).`:''}${lsCount?'\nبرای اینکه اکولایزر، میانبرها و زبان کامل اعمال بشن، برنامه یه بار دوباره بارگذاری می‌شه.':''}`,ok:lsCount?'بارگذاری مجدد':'عالی',cancel:lsCount?'بعداً':''});
+  if(again&&lsCount)location.reload();
+};
+document.addEventListener('DOMContentLoaded',()=>{
+  $('backupExportBtn')?.addEventListener('click',exportBackup);
+  $('backupImportBtn')?.addEventListener('click',restoreBackup);
+});
+
 /* ── INIT ── */
 const init=async()=>{
   applyVol(0.75);
@@ -4065,33 +4797,25 @@ const init=async()=>{
     document.querySelectorAll('.sort-pill').forEach(b=>{b.classList.toggle('on',b.dataset.sort===sortMode);});
     applyVol(audio.volume);
     updateRepeat();$('shuffleBtn').classList.toggle('active',shuffle);
-    if(cfg.activePl){
-      activePl=playlists.find(p=>p.id===cfg.activePl)||null;
-      /* the sidebar showed the playlist as open while the list still held the
-         whole library — restore the real playlist view instead */
-      if(activePl){
-        viewMode='playlist';
-        $('libPanel').style.display='';$('plPanel').style.display='none';
-        setTab('lib');
-      }
-    }
+    /* v1.10.0: playlists no longer take over the library view; restore the playing queue instead */
+    if(cfg.queuePl){const qp=playlists.find(p=>Number(p.id)===Number(cfg.queuePl));if(qp){plxPlayingId=Number(qp.id);queueIds=qp.songIds.map(Number).filter(id=>playlist.some(s=>Number(s.id)===id));}}
   }
   setLoad(90,'BUILDING UI');
   if(playlist.length){sortedList=getSorted();render();loadSong(idx);}else render();
   renderPls();
   $('addToPlBtn').style.display=playlist.length?'':'none';
-  setLoad(100,'READY');setTimeout(hideLoad,400);
+  setLoad(100,'READY');setTimeout(hideLoad,400);novaReadyResolve();
   setTimeout(()=>{repairCovers();},1200);
 };
 init().catch(error=>{
-  hideLoad();
+  hideLoad();novaReadyResolve();
   $('trackTitle').textContent='دسترسی به کتابخانه ممکن نشد';
   $('trackSub').textContent='فایل را در مرورگر معمولی باز کن و مجوز ذخیره‌سازی را بررسی کن';
   toast('ذخیره‌سازی مرورگر در دسترس نیست؛ صفحه را پس از بررسی مجوزها دوباره باز کن',true);
 });
 /* bridge for scripts outside this closure (media keys / Windows media overlay) */
 /* v1.7.0: while a trending preview plays, report it to the OS media overlay too. */
-window.NovaCore={currentSong:()=>{const t=window.NovaTrendEngine;return t?.active?t.currentSong()||currentSong():currentSong();},play,pause,stop,prevSong,nextSong,playPauseToggle,get activePl(){return activePl;}};
+window.NovaCore={currentSong:()=>{const t=window.NovaTrendEngine;return t?.active?t.currentSong()||currentSong():currentSong();},play,pause,stop,prevSong,nextSong,playPauseToggle,get activePl(){return plxPlayingId?playlists.find(p=>Number(p.id)===Number(plxPlayingId))||null:null;}};
 })();
 </script>
 <script id="nova-polish-script">
@@ -4144,7 +4868,7 @@ function motion(el,frames,opts={}){
 function reveal(el,y=16,delay=0){return motion(el,[{opacity:0,transform:`translate3d(0,${y}px,0)`},{opacity:1,transform:'translate3d(0,0,0)'}],{duration:560,delay,key:'layout'})}
 const visible=el=>el&&el.isConnected&&el.getClientRects().length&&!el.hidden;
 const rect=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height}};
-const sceneSelectors=['.experience-tools','.artwork-wrapper','.track-meta','.progress-area','.controls-row','.volume-row','.desktop-mini-entry','.lyrics-panel'];
+const sceneSelectors=['.experience-tools','.artwork-wrapper','.track-meta','.progress-area','.controls-row','.volume-row','.lyrics-panel'];
 let layoutEnd=0,layoutTimer=0,sidebarGhost=null;
 function captureLayout(){
  if(less()||document.hidden)return null;
@@ -4326,6 +5050,38 @@ for(const bg of document.querySelectorAll('.modal-bg')){let open=bg.classList.co
   rail.addEventListener('click',e=>{if(moved){e.preventDefault();e.stopPropagation();}},true);
 })();
 </script>
+
+<style id="nova-vol-pro">
+/* compact pro volume pill: mute button, slim track, % readout */
+.volume-row.nova-vol{width:min(100%,380px);margin-inline:auto;gap:12px;padding:6px 16px 6px 6px;border-radius:999px;
+  background:var(--frost);border:1px solid var(--glass-border);direction:ltr;transition:border-color .2s var(--motion-out,ease)}
+.volume-row.nova-vol:hover,.volume-row.nova-vol:focus-within{border-color:color-mix(in oklch,var(--ice) 35%,var(--glass-border))}
+.nova-vol .vol-icon{flex:0 0 auto;width:32px;height:32px;min-width:32px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;
+  background:transparent;color:var(--muted);cursor:pointer;font-size:0;transition:background-color .2s,color .2s}
+.nova-vol .vol-icon:hover{background:var(--glass-hover,var(--frost));color:var(--text)}
+.nova-vol .vol-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.nova-vol .vol-icon .vi-body{fill:currentColor;fill-opacity:.18}
+.nova-vol .vol-icon path{transition:opacity .18s}
+.nova-vol .vol-icon .vi-x{opacity:0}
+.nova-vol .vol-icon[data-level="1"] .vi-w2{opacity:0}
+.nova-vol .vol-icon[data-level="0"] .vi-w1,.nova-vol .vol-icon[data-level="0"] .vi-w2{opacity:0}
+.nova-vol .vol-icon[data-level="0"] .vi-x{opacity:1}
+.nova-vol .vol-icon[data-level="0"]{color:var(--ember,var(--muted))}
+.nova-vol .vol-track{height:4px;border-radius:4px;background:color-mix(in oklch,var(--text) 12%,transparent)}
+.nova-vol .vol-track:hover,.nova-vol .vol-track.vol-drag{height:4px}
+.nova-vol .vol-track::before{content:'';position:absolute;inset:-12px 0}   /* bigger hit area, same slim look */
+.nova-vol .vol-fill{box-shadow:none}
+.nova-vol .vol-thumb{width:12px;height:12px;box-shadow:0 0 0 3px var(--surface)}
+.nova-vol .vol-track:hover .vol-thumb,.nova-vol .vol-track.vol-drag .vol-thumb,.nova-vol .vol-track:focus-within .vol-thumb{box-shadow:0 0 0 3px var(--surface),0 0 0 7px color-mix(in oklch,var(--ice) 22%,transparent)}
+.nova-vol .vol-pct{flex:0 0 auto;min-width:3ch;text-align:end;font:600 11px/1 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.nova-vol .vol-pct::after{content:'%';opacity:.55;margin-inline-start:1px}
+@media(max-width:480px){.volume-row.nova-vol{width:100%}}
+/* player card: no dead space under the controls; sidebar lists adapt to the card height */
+@media(min-width:881px){
+  .player-card{align-self:start}
+  .track-list,.pl-list,.trend-list{min-height:240px!important}
+}
+</style>
 <script id="nova-rubber-volume-script">
 /* Rubber-band volume drag: 32% overshoot travel, spring release. */
 (()=>{'use strict';
@@ -4734,8 +5490,9 @@ body.nova-cinema .nova-dock-sep{display:none}
 (()=>{
   const T=window.__TAURI__;
   if(!T?.core?.invoke||!T?.event?.listen)return;
-  const invoke=T.core.invoke;
+  const invoke=(...a)=>T.core.invoke(...a);   /* late-bound: goes through the offline-aware wrapper */
   const listen=T.event.listen;
+  const toast=(m,e)=>window.NovaToast?.(m,e);
   const btn=document.getElementById('desktopMiniBtn');
   const status=document.getElementById('desktopMiniStatus');
   const label=document.getElementById('desktopMiniLabel');
@@ -4818,6 +5575,20 @@ body.nova-cinema .nova-dock-sep{display:none}
     try{await registerAndImport(paths);}
     catch(error){console.error('Dropped files could not be imported',error);toast(error?.message||'وارد کردن فایل‌های رهاشده انجام نشد',true);}
   });
+  /* v1.10.0: files double-clicked in Explorer (file association) and files handed over by
+     a second NOVA launch (single-instance) open and play in this window. */
+  const openFiles=async paths=>{
+    const clean=(Array.isArray(paths)?paths:[]).filter(p=>typeof p==='string'&&p);if(!clean.length)return;
+    try{await player.ready;}catch{}
+    try{
+      const refs=await invoke('register_audio_paths',{paths:clean.slice(0,500)});
+      const songs=await player.importReferences(refs,{quiet:true,noAutoLoad:true});
+      const first=(songs||[]).find(Boolean);
+      if(first){await player.playSong(first.id);if(refs.length>1)toast(`▶ ${refs.length} فایل باز شد`);}
+    }catch(error){console.error('Opening files failed',error);toast(error?.message||'باز کردن فایل انجام نشد',true);}
+  };
+  listen('nova-open-files',({payload})=>openFiles(payload));
+  invoke('take_launch_files').then(openFiles).catch(()=>{});
   window.addEventListener('beforeunload',closeNative);
 })();
 </script>
@@ -4879,6 +5650,8 @@ body.nova-cinema .nova-dock-sep{display:none}
   const $=id=>document.getElementById(id);
   const audio=$('audio'),LIST=$('trendList'),SUB=$('trendSub'),PANEL=$('trendPanel'),REFRESH=$('trendRefresh'),TAB=$('tabTrend');
   if(!audio||!LIST||!PANEL||!TAB)return;
+  /* v1.10.0 (CSP): no inline onerror handlers */
+  LIST.addEventListener('error',e=>{if(e.target?.classList?.contains('trend-art'))e.target.style.visibility='hidden';},true);
   const CACHE_KEY='nova-trending-v1',CACHE_TTL=6*3600*1000;
   const FEED='https://itunes.apple.com/us/rss/topsongs/limit=25/json';
   const FEED_ALT='https://rss.applemarketingtools.com/api/v2/us/music/most-played/25/songs.json';
@@ -4930,7 +5703,7 @@ body.nova-cinema .nova-dock-sep{display:none}
     LIST.innerHTML=items.map((t,i)=>
       '<div class="trend-row'+(i===activeIdx?' playing':'')+'" data-i="'+i+'" role="button" tabindex="0" aria-pressed="'+(i===activeIdx)+'" aria-label="پخش '+esc(t.name)+'">'
       +'<span class="trend-rank">'+(i+1)+'</span>'
-      +'<img class="trend-art" loading="lazy" src="'+esc(t.art)+'" alt="" onerror="this.style.visibility=\'hidden\'">'
+      +'<img class="trend-art" loading="lazy" src="'+esc(t.art)+'" alt="">'
       +'<span class="trend-meta"><span class="trend-name">'+esc(t.name)+'</span><span class="trend-artist">'+esc(t.artist)+'</span></span>'
       +'<span class="trend-chip">30s</span>'
       +'<span class="trend-eq" aria-hidden="true"><i></i><i></i><i></i></span>'
@@ -5097,15 +5870,15 @@ body.nova-cinema .nova-dock-sep{display:none}
 <div class="modal-bg" id="settingsModalBg">
   <section class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
     <div class="modal-head"><h2 class="modal-title" id="settingsTitle">تنظیمات NOVA</h2><button type="button" class="modal-x" id="settingsClose" aria-label="بستن">×</button></div>
-    <div class="settings-grid">
-      <div class="settings-card"><h3>میانبرهای قابل تغییر</h3><p>روی کلید هر فرمان بزن، سپس کلید موردنظر را فشار بده. هنگام تایپ در جستجو و کادرها، میانبرها خودشان کنار می‌روند.</p><div class="shortcut-list" id="shortcutList"></div><div class="settings-status" id="shortcutStatus" aria-live="polite"></div></div>
-      <div class="settings-card"><h3>رفتار برنامه</h3><p>تنظیمات این بخش روی همین دستگاه ذخیره می‌شوند.</p><label class="settings-checkbox"><input type="checkbox" id="trayOnClose" checked> بستن پنجره یعنی رفتن به Tray</label><p class="settings-note">Portable هم تنظیماتش را در پوشهٔ کاربر ویندوز ذخیره می‌کند و با حذف برنامه از بین نمی‌روند.</p></div>
-      <div class="settings-card"><h3>راهنمای کاربری</h3><p>آموزش مرحله‌به‌مرحله برای شروع.</p><button type="button" class="settings-btn" id="resetTutorialBtn">دوباره نشان بده</button></div>
-      <div class="settings-card"><h3 data-i18n-key="lang-h">زبان رابط کاربری</h3><p>انتخاب زبان روی همین دستگاه ذخیره می‌شود.</p><div class="lang-switch" role="group" aria-label="Language"><button type="button" class="lang-opt" data-lang="fa" aria-pressed="true">فارسی</button><button type="button" class="lang-opt" data-lang="en" aria-pressed="false">English</button></div></div>
-      <div class="settings-card"><h3>فایل‌های موسیقی</h3><p>آهنگ‌ها از مسیر اصلی خودشان پخش می‌شوند و هیچ کپی اضافه‌ای ساخته نمی‌شود.</p><p class="settings-note">اگر فایل اصلی جابه‌جا یا حذف شود، باید دوباره آن را به کتابخانه معرفی کنی.</p></div>
-      <div class="settings-card" id="novaUpdateCard"><h3>به‌روزرسانی برنامه</h3><p id="updateStatus">NOVA هنگام اجرا نسخه‌های جدید GitHub را بررسی می‌کند.</p><div class="nu-meta" id="novaUpdateMeta"></div><div class="nu-actions"><button type="button" class="settings-btn" id="checkUpdateBtn">بررسی نسخهٔ جدید</button><button type="button" class="settings-btn primary" id="novaUpdateDl" hidden>دانلود نسخهٔ جدید</button></div><label class="settings-checkbox"><input type="checkbox" id="novaAutoUpd" checked> <span id="novaAutoUpdLbl">بررسی خودکار (هنگام اجرا و هر ۲ ساعت)</span></label><div class="nu-links"><a href="https://mehdi138iimm.github.io/NovaPlayer/#download" data-nu-open id="novaSiteLink">سایت NOVA</a><span aria-hidden="true">·</span><a href="https://github.com/Mehdi138iimm/NovaPlayer/releases" data-nu-open id="novaRelLink">همهٔ نسخه‌ها در GitHub</a></div></div>
+    <div class="nset-body">
+      <nav class="nset-nav" role="tablist" aria-orientation="vertical" aria-label="بخش‌های تنظیمات">
+        <button type="button" class="nset-tab" role="tab" id="nsetTab-gen" aria-controls="nsetPane-gen" aria-selected="true" tabindex="0" data-pane="gen"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></span><span class="nset-tab-l">عمومی</span><span class="nset-n" aria-hidden="true">01</span></button><button type="button" class="nset-tab" role="tab" id="nsetTab-look" aria-controls="nsetPane-look" aria-selected="false" tabindex="-1" data-pane="look"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-.6-.4-1-1-1h-4a2 2 0 0 1-2-2V5c0-.6-.4-1-1-1Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="8" cy="15.5" r="1"/></svg></span><span class="nset-tab-l">ظاهر</span><span class="nset-n" aria-hidden="true">02</span></button><button type="button" class="nset-tab" role="tab" id="nsetTab-play" aria-controls="nsetPane-play" aria-selected="false" tabindex="-1" data-pane="play"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 21v-6M5 11V3M12 21v-9M12 8V3M19 21v-4M19 13V3M2 15h6M9 8h6M16 17h6"/></svg></span><span class="nset-tab-l">پخش</span><span class="nset-n" aria-hidden="true">03</span></button><button type="button" class="nset-tab" role="tab" id="nsetTab-keys" aria-controls="nsetPane-keys" aria-selected="false" tabindex="-1" data-pane="keys"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg></span><span class="nset-tab-l">میانبرها</span><span class="nset-n" aria-hidden="true">04</span></button><button type="button" class="nset-tab" role="tab" id="nsetTab-lib" aria-controls="nsetPane-lib" aria-selected="false" tabindex="-1" data-pane="lib"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v14M9 19V8h4v11M13 19l2.6-12.4 3.9.8L17 19.9"/><path d="M3 20h18"/></svg></span><span class="nset-tab-l">کتابخانه و پشتیبان</span><span class="nset-n" aria-hidden="true">05</span></button><button type="button" class="nset-tab" role="tab" id="nsetTab-upd" aria-controls="nsetPane-upd" aria-selected="false" tabindex="-1" data-pane="upd"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg></span><span class="nset-tab-l">به‌روزرسانی</span><span class="nset-n" aria-hidden="true">06</span></button>
+        <div class="nset-ver" aria-hidden="true"><b>NOVA</b><span id="nsetVer">v1.10.0</span></div>
+      </nav>
+      <div class="nset-panes">
+<section class="nset-pane" role="tabpanel" id="nsetPane-gen" aria-labelledby="nsetTab-gen"><header class="nset-head"><span class="nset-kicker">GENERAL</span><h3>عمومی</h3><p>رفتار پایهٔ برنامه روی همین دستگاه.</p></header><div class="nset-row "><div class="nset-txt"><h4><span data-i18n-key="lang-h">زبان رابط کاربری</span></h4><p>فارسی یا انگلیسی؛ بلافاصله اعمال می‌شود.</p></div><div class="nset-ctl"><div class="lang-switch" role="group" aria-label="Language"><button type="button" class="lang-opt" data-lang="fa" aria-pressed="true">فارسی</button><button type="button" class="lang-opt" data-lang="en" aria-pressed="false">English</button></div></div></div><div class="nset-row "><div class="nset-txt"><h4>بستن پنجره</h4><p>با دکمهٔ ×، NOVA به Tray می‌رود و موسیقی قطع نمی‌شود.</p></div><div class="nset-ctl"><label class="settings-checkbox nset-switch"><input type="checkbox" id="trayOnClose" checked aria-label="بستن پنجره یعنی رفتن به Tray"></label></div></div><div class="nset-row "><div class="nset-txt"><h4>راهنمای شروع</h4><p>آموزش مرحله‌به‌مرحلهٔ اولین اجرا را دوباره ببین.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" id="resetTutorialBtn">دوباره نشان بده</button></div></div><p class="nset-foot">Portable هم تنظیماتش را در پوشهٔ کاربر ویندوز نگه می‌دارد؛ با حذف برنامه از بین نمی‌روند.</p></section><section class="nset-pane" role="tabpanel" id="nsetPane-look" aria-labelledby="nsetTab-look" hidden><header class="nset-head"><span class="nset-kicker">APPEARANCE</span><h3>ظاهر</h3><p>تم، حرکت و ابزارهای Listening Room.</p></header><div class="nset-row "><div class="nset-txt"><h4>تم</h4><p>رنگ‌ها از کاور آهنگ فعلی گرفته می‌شوند؛ در هر دو تم.</p></div><div class="nset-ctl"><div class="nset-seg" role="group" id="nsetTheme"><button type="button" data-v="dark" aria-pressed="false">تیره</button><button type="button" data-v="light" aria-pressed="false">روشن</button></div></div></div><div class="nset-row "><div class="nset-txt"><h4>کاهش حرکت</h4><p>چرخش دیسک، انیمیشن‌ها و حلقهٔ صدا آرام می‌شوند.</p></div><div class="nset-ctl"><label class="settings-checkbox nset-switch"><input type="checkbox" id="nsetMotion" aria-label="کاهش حرکت"></label></div></div><div class="nset-row "><div class="nset-txt"><h4>حالت سینمایی</h4><p>دیسک بزرگ، نور کاور و متن آهنگ؛ با Esc برمی‌گردی.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" data-nset-click="cinemaBtn">ورود</button></div></div></section><section class="nset-pane" role="tabpanel" id="nsetPane-play" aria-labelledby="nsetTab-play" hidden><header class="nset-head"><span class="nset-kicker">PLAYBACK</span><h3>پخش</h3><p>صدا، اکولایزر و پایان شب.</p></header><div class="nset-row "><div class="nset-txt"><h4>اکولایزر</h4><p>۱۰ باند، ۲۱ پریست و پریست‌های خودت.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" data-nset-click="eqBtn">باز کردن</button></div></div><div class="nset-row "><div class="nset-txt"><h4>تایمر خواب</h4><p>۱۵ تا ۱۲۰ دقیقه یا «آخر همین آهنگ»، با کم شدن آرام صدا.</p></div><div class="nset-ctl"><span class="nset-live" id="nsetSleepState"></span><button type="button" class="settings-btn" data-nset-click="sleepBtn">تنظیم</button></div></div><div class="nset-row "><div class="nset-txt"><h4>مینی‌پلیر دسکتاپ</h4><p>پنجرهٔ وینیل کوچک، همیشه روی برنامه‌های دیگر.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" data-nset-click="desktopMiniBtn">باز کردن</button></div></div><div class="nset-row "><div class="nset-txt"><h4>پیدا کردن خودکار متن</h4><p>وقتی آهنگ متن ندارد، از LRCLIB و lyrics.ovh پیدا می‌شود.</p></div><div class="nset-ctl"><label class="settings-checkbox nset-switch"><input type="checkbox" id="nsetAutoLrc" aria-label="پیدا کردن خودکار متن"></label></div></div></section><section class="nset-pane" role="tabpanel" id="nsetPane-keys" aria-labelledby="nsetTab-keys" hidden><header class="nset-head"><span class="nset-kicker">SHORTCUTS</span><h3>میانبرها</h3><p>روی کلید هر فرمان بزن و کلید تازه را فشار بده. موقع تایپ، میانبرها خودشان کنار می‌روند.</p></header><div class="shortcut-list" id="shortcutList"></div><div class="nset-keys-foot"><div class="settings-status" id="shortcutStatus" aria-live="polite"></div><button type="button" class="settings-btn" id="shortcutReset">بازنشانی میانبرها</button></div><p class="nset-foot">ثابت‌ها: F علاقه‌مندی، ↑ و ↓ بلندی صدا، Esc خروج از حالت سینمایی.</p></section><section class="nset-pane" role="tabpanel" id="nsetPane-lib" aria-labelledby="nsetTab-lib" hidden><header class="nset-head"><span class="nset-kicker">LIBRARY</span><h3>کتابخانه و پشتیبان</h3><p>آهنگ‌ها از مسیر اصلی خودشان پخش می‌شوند و هیچ کپی اضافه‌ای ساخته نمی‌شود.</p></header><div class="nset-stat"><b id="nsetLibCount">0</b><span>آهنگ در کتابخانه</span><b id="nsetPlCount">0</b><span>پلی‌لیست</span></div><div id="novaBackupCard" class="nset-block"><div class="nset-row nset-stack"><div class="nset-txt"><h4>پشتیبان کامل</h4><p>پلی‌لیست‌ها، علاقه‌مندی‌ها، متن‌ها و ترجمه‌ها، اکولایزر و تنظیمات؛ همه در یک فایل JSON.</p></div><div class="nset-ctl"><div class="nu-actions"><button type="button" class="settings-btn primary" id="backupExportBtn">ساخت فایل پشتیبان</button><button type="button" class="settings-btn" id="backupImportBtn">بازیابی از فایل</button></div></div></div></div><p class="nset-foot">خود فایل‌های صوتی داخل پشتیبان نیستند. اگر جای فایلی عوض شده باشد، موقع بازیابی فقط پوشه‌اش را نشان بده. پلی‌لیست‌ها را هم می‌شود از صفحهٔ هر پلی‌لیست به M3U خروجی گرفت.</p></section><section class="nset-pane" role="tabpanel" id="nsetPane-upd" aria-labelledby="nsetTab-upd" hidden><header class="nset-head"><span class="nset-kicker">UPDATES</span><h3>به‌روزرسانی</h3><p>NOVA خودش Releases گیت‌هاب را می‌خواند؛ نسخه‌های پایدار و بتا.</p></header><div id="novaUpdateCard" class="nset-block"><p id="updateStatus" class="nset-upd-status">NOVA هنگام اجرا نسخه‌های جدید GitHub را بررسی می‌کند.</p><div class="nu-meta" id="novaUpdateMeta"></div><div class="nu-actions"><button type="button" class="settings-btn" id="checkUpdateBtn">بررسی نسخهٔ جدید</button><button type="button" class="settings-btn primary" id="novaUpdateDl" hidden>دانلود نسخهٔ جدید</button></div><label class="settings-checkbox"><input type="checkbox" id="novaAutoUpd" checked> <span id="novaAutoUpdLbl">بررسی خودکار (هنگام اجرا و هر ۲ ساعت)</span></label><div class="nu-links"><a href="https://mehdi138iimm.github.io/NovaPlayer/#download" data-nu-open id="novaSiteLink">سایت NOVA</a><span aria-hidden="true">·</span><a href="https://github.com/Mehdi138iimm/NovaPlayer/releases" data-nu-open id="novaRelLink">همهٔ نسخه‌ها در GitHub</a></div></div></section>      </div>
     </div>
-    <div class="settings-actions"><button type="button" class="settings-btn" id="shortcutReset">بازنشانی میانبرها</button><button type="button" class="settings-btn primary" id="settingsDone">ذخیره و بستن</button></div>
+    <div class="settings-actions"><span class="nset-hint">تغییرها همان لحظه ذخیره می‌شوند؛ میانبرها با «ذخیره».</span><button type="button" class="settings-btn primary" id="settingsDone">ذخیره و بستن</button></div>
   </section>
 </div>
 
@@ -5114,8 +5887,8 @@ body.nova-cinema .nova-dock-sep{display:none}
   const $=id=>document.getElementById(id);
   window.NovaCustomShortcutsActive=true;
   const invoke=window.__TAURI__?.core?.invoke;
-  const defaults={play:'Space',next:'ArrowRight',prev:'ArrowLeft',theme:'KeyT',cinema:'KeyC',eq:'KeyE'};
-  const labels={play:'پخش / مکث',next:'آهنگ بعدی',prev:'آهنگ قبلی',theme:'تغییر تم',cinema:'حالت سینمایی',eq:'اکولایزر'};
+  const defaults={play:'Space',next:'ArrowRight',prev:'ArrowLeft',theme:'KeyT',cinema:'KeyC',eq:'KeyE',lyrics:'KeyL',mini:'KeyD',sleep:'KeyS'};
+  const labels={play:'پخش / مکث',next:'آهنگ بعدی',prev:'آهنگ قبلی',theme:'تغییر تم',cinema:'حالت سینمایی',eq:'اکولایزر',lyrics:'متن آهنگ',mini:'مینی‌پلیر دسکتاپ',sleep:'تایمر خواب'};
   let shortcuts={...defaults};let draft={...defaults};let recording=null;
   const read=()=>{try{const x=JSON.parse(localStorage.getItem('nova-shortcuts')||'{}');shortcuts={...defaults,...x};}catch{shortcuts={...defaults};}draft={...shortcuts};};
   const write=()=>{shortcuts={...draft};try{localStorage.setItem('nova-shortcuts',JSON.stringify(shortcuts));}catch{};};
@@ -5151,7 +5924,7 @@ body.nova-cinema .nova-dock-sep{display:none}
     if(e.target.closest('input,textarea,select,[contenteditable="true"]'))return;
     const key=e.code||e.key;const action=Object.keys(shortcuts).find(a=>shortcuts[a]===key);if(!action)return;
     e.preventDefault();e.stopImmediatePropagation();
-    const targets={play:'playBtn',next:'nextBtn',prev:'prevBtn',theme:'themeBtn',cinema:'cinemaBtn',eq:'eqBtn'};
+    const targets={play:'playBtn',next:'nextBtn',prev:'prevBtn',theme:'themeBtn',cinema:'cinemaBtn',eq:'eqBtn',lyrics:'lyricsBtn',mini:'desktopMiniBtn',sleep:'sleepBtn'};
     $(targets[action])?.click();
   },true);
   read();const trayEnabled=localStorage.getItem('nova-tray-on-close')!=='false';$('trayOnClose').checked=trayEnabled;applyTray(trayEnabled);
@@ -5159,6 +5932,145 @@ body.nova-cinema .nova-dock-sep{display:none}
     localStorage.removeItem(TUTORIAL_SHOWN);tutorialIdx=0;showTutorial();
     $('settingsModalBg').classList.remove('open');
   });loadStorage();
+})();
+</script>
+<style id="nova-settings-v110">
+/* ===== Settings v1.10: section rail + panes, same language as the side dock ===== */
+.settings-modal{height:min(660px,88svh)}
+.settings-modal .modal-head{padding:18px 24px 14px}
+.nset-body{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:212px minmax(0,1fr)}
+.nset-nav{display:flex;flex-direction:column;gap:3px;padding:16px 12px;background:var(--frost);border-inline-end:1px solid var(--glass-border);overflow:auto;scrollbar-width:none}
+.nset-tab{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;min-height:46px;padding:6px 8px 6px 10px;border:1px solid transparent;border-radius:14px;background:transparent;color:var(--muted);font:500 13.5px/1.4 var(--sans);text-align:start;cursor:pointer;transition:background-color .2s var(--ease-out),color .2s var(--ease-out),border-color .2s var(--ease-out)}
+.nset-ico{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;color:currentColor;transition:background-color .2s var(--ease-out),color .2s var(--ease-out)}
+.nset-ico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nset-n{font:600 10px var(--mono);letter-spacing:.08em;opacity:.45;direction:ltr}
+.nset-tab:hover{color:var(--text);background:var(--surface)}
+.nset-tab[aria-selected="true"]{color:var(--text);background:var(--surface);border-color:var(--glass-border)}
+.nset-tab[aria-selected="true"] .nset-ico{background:var(--neon);color:var(--on-accent)}
+.nset-tab[aria-selected="true"] .nset-n{color:var(--neon);opacity:1}
+.nset-ver{margin-top:auto;padding:14px 10px 2px;display:flex;align-items:baseline;gap:8px;direction:ltr;font:10px var(--mono);letter-spacing:.16em;color:var(--muted)}
+.nset-ver b{font-weight:700;color:var(--text);letter-spacing:.2em}
+.nset-panes{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--glass-border) transparent}
+.nset-pane{padding:26px 30px 32px;animation:nsetIn .32s var(--ease-out)}
+.nset-pane[hidden]{display:none}
+@keyframes nsetIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.nset-head{margin-bottom:10px}
+.nset-kicker{display:block;text-align:start;font:10px var(--mono);letter-spacing:.18em;color:var(--neon);margin-bottom:6px}
+.nset-head h3{font-size:22px;font-weight:800;line-height:1.35;letter-spacing:-.015em;margin:0 0 4px}
+.nset-head p{font-size:12.5px;line-height:1.85;color:var(--muted);max-width:54ch;margin:0}
+.nset-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 24px;padding:16px 0;border-top:1px solid var(--glass-border)}
+.nset-head+.nset-row{margin-top:14px}
+.nset-txt h4{font-size:14px;font-weight:600;line-height:1.6;margin:0}
+.nset-txt p{font-size:12px;line-height:1.8;color:var(--muted);margin:2px 0 0;max-width:46ch}
+.nset-ctl{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.nset-row.nset-stack{grid-template-columns:minmax(0,1fr)}
+.nset-row.nset-stack .nset-ctl{justify-content:flex-start}
+.nset-ctl .nu-actions{margin:0}
+.nset-ctl .lang-switch{margin:0}
+.settings-checkbox.nset-switch{margin:0!important;padding:0;border:0;display:inline-flex!important}
+.nset-seg{display:inline-flex;gap:4px;padding:4px;border-radius:12px;background:var(--frost);border:1px solid var(--glass-border)}
+.nset-seg button{min-height:34px;padding:6px 16px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:600 12.5px var(--sans);cursor:pointer;transition:background-color .2s var(--ease-out),color .2s var(--ease-out)}
+.nset-seg button:hover{color:var(--text)}
+.nset-seg button[aria-pressed="true"]{background:var(--neon);color:var(--on-accent)}
+.nset-live{font:600 11px var(--mono);color:var(--neon);direction:ltr}
+.nset-live:empty{display:none}
+.nset-foot{margin:18px 0 0;padding-top:14px;border-top:1px dashed var(--glass-border);font-size:11.5px;line-height:1.9;color:var(--muted);max-width:60ch}
+.nset-keys-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
+.nset-keys-foot .settings-status{margin:0!important}
+#nsetPane-keys .shortcut-list{margin-top:14px!important;border-top:1px solid var(--glass-border)}
+.nset-stat{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:16px 0 4px;padding:14px 16px;border-radius:14px;background:var(--frost);border:1px solid var(--glass-border);font-size:12.5px;color:var(--muted)}
+.nset-stat b{font:700 18px var(--mono);color:var(--text);font-variant-numeric:tabular-nums}
+.nset-stat span+b{margin-inline-start:14px}
+.nset-block>.nset-row:first-child{margin-top:14px}
+#nsetPane-upd .nset-block{margin-top:14px;padding-top:16px;border-top:1px solid var(--glass-border)}
+.nset-upd-status{font-size:13px;line-height:1.8;color:var(--text);margin:0 0 4px}
+#nsetPane-upd .settings-checkbox{margin-top:14px!important}
+.settings-modal .settings-actions{display:flex;gap:12px;padding:12px 24px 14px}
+.nset-hint{font-size:11.5px;color:var(--muted)}
+@media(max-width:700px){
+  .nset-body{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .nset-nav{flex-direction:row;gap:4px;padding:8px 10px;border-inline-end:0;border-bottom:1px solid var(--glass-border);overflow-x:auto}
+  .nset-tab{grid-template-columns:auto auto;width:auto;flex:none;min-height:40px;padding:4px 12px 4px 6px;white-space:nowrap}
+  .nset-ico{width:30px;height:30px}
+  .nset-n,.nset-ver{display:none}
+  .nset-pane{padding:20px 18px 26px}
+  .nset-row{grid-template-columns:minmax(0,1fr)}
+  .nset-ctl{justify-content:flex-start;flex-wrap:wrap}
+  .nset-hint{display:none}
+}
+:root[data-motion="reduce"] .nset-pane{animation:none}
+</style>
+<script id="nova-settings-v110-script">
+(()=>{
+  const $=id=>document.getElementById(id);
+  const bg=$('settingsModalBg'),tabs=[...document.querySelectorAll('.nset-tab')];
+  if(!bg||!tabs.length)return;
+  const show=(key,focus)=>{
+    tabs.forEach(t=>{const on=t.dataset.pane===key;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;const p=$('nsetPane-'+t.dataset.pane);if(p)p.hidden=!on;if(on&&focus)t.focus();});
+    const panes=document.querySelector('.nset-panes');if(panes)panes.scrollTop=0;
+    try{localStorage.setItem('nova-settings-pane',key);}catch{}
+  };
+  tabs.forEach((t,i)=>{
+    t.addEventListener('click',()=>show(t.dataset.pane));
+    t.addEventListener('keydown',e=>{
+      const k=e.key,n=tabs.length;let j=-1;
+      if(k==='ArrowDown'||(k==='ArrowLeft'&&document.dir!=='ltr')||(k==='ArrowRight'&&document.dir==='ltr'))j=(i+1)%n;
+      else if(k==='ArrowUp'||(k==='ArrowRight'&&document.dir!=='ltr')||(k==='ArrowLeft'&&document.dir==='ltr'))j=(i-1+n)%n;
+      else if(k==='Home')j=0;else if(k==='End')j=n-1;
+      if(j>=0){e.preventDefault();show(tabs[j].dataset.pane,true);}
+    });
+  });
+  const pressSeg=(id,v)=>document.querySelectorAll('#'+id+' [data-v]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));
+  const root=document.documentElement;
+  const sync=()=>{
+    pressSeg('nsetTheme',root.dataset.theme==='light'?'light':'dark');
+    const m=$('nsetMotion');if(m)m.checked=root.dataset.motion==='reduce';
+    const a=$('nsetAutoLrc'),lb=$('lrcAutoBtn');if(a&&lb)a.checked=lb.getAttribute('aria-checked')!=='false';
+    const sb=$('sleepBtn'),ss=$('nsetSleepState');if(ss)ss.textContent=sb?.classList.contains('on')?($('sleepLabel')?.textContent||'').trim():'';
+    const c=$('nsetLibCount');if(c)c.textContent=($('statTotal')?.textContent||'0').trim();
+    const pc=$('nsetPlCount');if(pc){let n=0;try{n=typeof playlists!=='undefined'&&Array.isArray(playlists)?playlists.length:0;}catch{}pc.textContent=String(n);}
+  };
+  let last='gen';try{last=localStorage.getItem('nova-settings-pane')||'gen';}catch{}
+  if(!$('nsetPane-'+last))last='gen';
+  show(last);
+  new MutationObserver(()=>{if(bg.classList.contains('open'))sync();}).observe(bg,{attributes:true,attributeFilter:['class']});
+  document.querySelectorAll('#nsetTheme [data-v]').forEach(b=>b.addEventListener('click',()=>{
+    const want=b.dataset.v,now=root.dataset.theme==='light'?'light':'dark';
+    if(want!==now)$('themeBtn')?.click();
+    pressSeg('nsetTheme',want);
+  }));
+  $('nsetMotion')?.addEventListener('change',e=>{const on=root.dataset.motion==='reduce';if(e.target.checked!==on)$('novaMotionBtn')?.click();});
+  $('nsetAutoLrc')?.addEventListener('change',e=>{const lb=$('lrcAutoBtn');if(!lb)return;const on=lb.getAttribute('aria-checked')!=='false';if(e.target.checked!==on)lb.click();});
+  document.querySelectorAll('[data-nset-click]').forEach(b=>b.addEventListener('click',()=>{
+    const target=$(b.dataset.nsetClick);if(!target)return;
+    bg.classList.remove('open');
+    setTimeout(()=>target.click(),160);
+  }));
+  (async()=>{try{const v=await window.__TAURI__?.app?.getVersion?.();if(v)$('nsetVer').textContent='v'+v;}catch{}})();
+  const dict={"عمومی":"General","ظاهر":"Appearance","پخش":"Playback","میانبرها":"Shortcuts","کتابخانه و پشتیبان":"Library & backup","به‌روزرسانی":"Updates",
+    "بخش‌های تنظیمات":"Settings sections","رفتار پایهٔ برنامه روی همین دستگاه.":"How NOVA behaves on this device.",
+    "فارسی یا انگلیسی؛ بلافاصله اعمال می‌شود.":"Persian or English; applies instantly.","بستن پنجره":"Closing the window",
+    "با دکمهٔ ×، NOVA به Tray می‌رود و موسیقی قطع نمی‌شود.":"The × button sends NOVA to the tray; the music keeps playing.",
+    "راهنمای شروع":"Getting started","آموزش مرحله‌به‌مرحلهٔ اولین اجرا را دوباره ببین.":"Replay the first-run walkthrough.",
+    "Portable هم تنظیماتش را در پوشهٔ کاربر ویندوز نگه می‌دارد؛ با حذف برنامه از بین نمی‌روند.":"The portable build also keeps its settings in your Windows user folder, so uninstalling does not erase them.",
+    "تم، حرکت و ابزارهای Listening Room.":"Theme, motion and Listening Room tools.","تم":"Theme","تیره":"Dark","روشن":"Light",
+    "رنگ‌ها از کاور آهنگ فعلی گرفته می‌شوند؛ در هر دو تم.":"Colors follow the current album art in both themes.","کاهش حرکت":"Reduce motion",
+    "چرخش دیسک، انیمیشن‌ها و حلقهٔ صدا آرام می‌شوند.":"Calms the spinning disc, animations and the sound ring.","حالت سینمایی":"Cinema mode",
+    "دیسک بزرگ، نور کاور و متن آهنگ؛ با Esc برمی‌گردی.":"Big disc, cover glow and lyrics; Esc brings you back.","ورود":"Enter",
+    "صدا، اکولایزر و پایان شب.":"Sound, equalizer and winding down.","اکولایزر":"Equalizer","۱۰ باند، ۲۱ پریست و پریست‌های خودت.":"10 bands, 21 presets, plus your own.",
+    "باز کردن":"Open","تایمر خواب":"Sleep timer","۱۵ تا ۱۲۰ دقیقه یا «آخر همین آهنگ»، با کم شدن آرام صدا.":"15 to 120 minutes or “end of this song”, with a gentle fade.",
+    "تنظیم":"Set","مینی‌پلیر دسکتاپ":"Desktop mini player","پنجرهٔ وینیل کوچک، همیشه روی برنامه‌های دیگر.":"A small vinyl window that stays on top of other apps.",
+    "پیدا کردن خودکار متن":"Find lyrics automatically","وقتی آهنگ متن ندارد، از LRCLIB و lyrics.ovh پیدا می‌شود.":"When a track has no lyrics, NOVA looks them up on LRCLIB and lyrics.ovh.",
+    "روی کلید هر فرمان بزن و کلید تازه را فشار بده. موقع تایپ، میانبرها خودشان کنار می‌روند.":"Click a command’s key, then press the new one. Shortcuts step aside while you type.",
+    "ثابت‌ها: F علاقه‌مندی، ↑ و ↓ بلندی صدا، Esc خروج از حالت سینمایی.":"Fixed keys: F favorite, ↑ and ↓ volume, Esc leaves cinema mode.",
+    "متن آهنگ":"Lyrics","آهنگ‌ها از مسیر اصلی خودشان پخش می‌شوند و هیچ کپی اضافه‌ای ساخته نمی‌شود.":"Tracks play from where they already live; no extra copies are made.",
+    "آهنگ در کتابخانه":"tracks in library","پلی‌لیست":"playlists","پشتیبان کامل":"Full backup",
+    "پلی‌لیست‌ها، علاقه‌مندی‌ها، متن‌ها و ترجمه‌ها، اکولایزر و تنظیمات؛ همه در یک فایل JSON.":"Playlists, favorites, lyrics and translations, EQ and settings, all in one JSON file.",
+    "خود فایل‌های صوتی داخل پشتیبان نیستند. اگر جای فایلی عوض شده باشد، موقع بازیابی فقط پوشه‌اش را نشان بده. پلی‌لیست‌ها را هم می‌شود از صفحهٔ هر پلی‌لیست به M3U خروجی گرفت.":"Audio files are not inside the backup. If a file moved, just point to its folder while restoring. Any playlist can also be exported to M3U from its page.",
+    "NOVA خودش Releases گیت‌هاب را می‌خواند؛ نسخه‌های پایدار و بتا.":"NOVA reads GitHub Releases itself, stable and beta.",
+    "تغییرها همان لحظه ذخیره می‌شوند؛ میانبرها با «ذخیره».":"Changes save instantly; shortcuts save with “Save”."};
+  const add=()=>window.NovaI18nAdd?.(dict);
+  if(window.NovaI18nAdd)add();else document.addEventListener('DOMContentLoaded',add);
 })();
 </script>
 <style id="nova-update-notify-css">
@@ -5194,7 +6106,7 @@ body.nova-cinema .nova-dock-sep{display:none}
   const REPO='Mehdi138iimm/NovaPlayer';
   const RELEASES='https://github.com/'+REPO+'/releases';
   const SITE='https://mehdi138iimm.github.io/NovaPlayer/#download';
-  const FALLBACK_VER='1.9.0';
+  const FALLBACK_VER='1.10.0';
   const EVERY=2*3600*1000;
   const T=window.__TAURI__, invoke=T?.core?.invoke;
   const $=id=>document.getElementById(id);
@@ -5815,6 +6727,8 @@ body.nova-cinema .nova-dock-sep{display:none}
 .nova-side-dock .experience-btn[aria-pressed="true"]:hover{color:var(--on-accent);background:var(--neon)}
 .nova-side-dock .eq-btn-dot{position:absolute;top:7px;right:7px;width:6px;height:6px;border:1.5px solid var(--surface);box-sizing:content-box}
 .nova-side-dock #eqBtn[aria-pressed="true"] .eq-btn-dot{background:var(--on-accent)}
+.nova-side-dock #desktopMiniBtn.desktop-active,.nova-side-dock #sleepBtn.on{background:var(--neon);color:var(--on-accent);border-color:transparent}
+.nova-side-dock #desktopMiniBtn:disabled{opacity:.5;cursor:wait}
 .nova-side-sep{width:24px;height:1px;background:var(--glass-border);margin:2px 0}
 .nova-side-label{position:absolute;left:calc(100% + 12px);top:0;padding:5px 11px;border-radius:10px;
   background:var(--raised);border:1px solid var(--glass-border);color:var(--text);
@@ -5832,14 +6746,15 @@ body.has-side-dock .experience-tools .experience-actions{display:none}
 <script id="nova-side-dock-script">
 (function(){
   var home=document.querySelector('.experience-actions');if(!home)return;
-  var ids=['cinemaBtn','orbitBtn','lyricsBtn','eqBtn'];
+  var ids=['cinemaBtn','orbitBtn','lyricsBtn','eqBtn','sleepBtn','desktopMiniBtn'];
   var btns=ids.map(function(id){return document.getElementById(id);}).filter(Boolean);
   var rail=document.createElement('nav');rail.className='nova-side-dock';rail.id='novaSideDock';rail.setAttribute('aria-label','LISTENING ROOM');
   var label=document.createElement('span');label.className='nova-side-label';label.setAttribute('aria-hidden','true');
   var sep=document.createElement('span');sep.className='nova-side-sep';sep.setAttribute('aria-hidden','true');
+  var sep2=sep.cloneNode();
   document.body.appendChild(rail);
   var mq=window.matchMedia('(min-width:881px)');
-  var KEYS={cinemaBtn:'C',lyricsBtn:'L',eqBtn:'E'};
+  var KEYS={cinemaBtn:'C',lyricsBtn:'L',eqBtn:'E',desktopMiniBtn:'D'};
   function text(b){var t=(b.textContent||'').replace(/\s+/g,' ').trim()||b.getAttribute('aria-label')||'';
     if(b.id==='cinemaBtn'&&b.getAttribute('aria-pressed')==='true')return t+'  ·  Esc';
     return KEYS[b.id]?t+'  ·  '+KEYS[b.id]:t;}
@@ -5847,7 +6762,7 @@ body.has-side-dock .experience-tools .experience-actions{display:none}
     var side=mq.matches;
     document.body.classList.toggle('has-side-dock',side);
     btns.forEach(function(b,i){
-      if(side){if(b.id==='eqBtn')rail.appendChild(sep);rail.appendChild(b);}
+      if(side){if(b.id==='eqBtn')rail.appendChild(sep);if(b.id==='desktopMiniBtn')rail.appendChild(sep2);rail.appendChild(b);}
       else home.appendChild(b);
     });
     if(side){rail.appendChild(label);btns.forEach(function(b){b.removeAttribute('title');});}else label.classList.remove('on');
@@ -5952,6 +6867,7 @@ body.has-side-dock .experience-tools .experience-actions{display:none}
     if(typeof mo!=='undefined')arm();
   }
   window.NovaSetLang=function(l){setLang(l,true)};
+  window.NovaI18nAdd=function(d){for(var k in d)if(Object.prototype.hasOwnProperty.call(d,k))DICT[k]=d[k];if(lang==='en')paint();};
 
   var mo=new MutationObserver(function(recs){
     if(busy||lang!=='en')return;
@@ -5974,6 +6890,34 @@ body.has-side-dock .experience-tools .experience-actions{display:none}
 
   setLang(lang,false);arm();
 })();
+</script>
+
+<script id="nova-i18n-v110">
+/* v1.10.0 strings for the English UI */
+window.NovaI18nAdd&&window.NovaI18nAdd({
+"تایمر خواب":"Sleep timer","🌙 تایمر خواب":"🌙 Sleep timer","آخر آهنگ":"End of song","♪ آخر همین آهنگ":"♪ End of this song","دقیقه":"min","یا دلخواه:":"or custom:","شروع":"Start","لغو تایمر":"Cancel timer","+۱۰ دقیقه":"+10 min","بستن":"Close",
+"بعد از زمانی که انتخاب می‌کنی، صدا آروم کم می‌شه و پخش خودش متوقف می‌شه.":"When the time is up, the music fades out gently and stops.",
+"تا توقف پخش؛ ۲۰ ثانیهٔ آخر آروم کم می‌شه":"until playback stops; the last 20 s fade out","پخش بعد از همین آهنگ آروم قطع می‌شه":"playback stops after this song",
+"آفلاین":"Offline","وضعیت اینترنت":"Internet status","این بخش به اینترنت نیاز داره":"This needs the internet","تلاش دوباره":"Try again","باشه":"OK","دوباره آنلاین شدی":"You're back online","الان آفلاینی":"You're offline","به اینترنت وصلی":"You're online",
+"آفلاینی؛ آخرین چارت ذخیره‌شده رو می‌بینی. برای به‌روزرسانی و پخش پیش‌نمایش، به اینترنت وصل شو.":"Offline: showing the last saved chart. Connect to refresh and play previews.",
+"آفلاینی؛ جستجوی متن و ترجمه به اینترنت نیاز دارن. متن‌ها و ترجمه‌هایی که قبلاً پیدا شدن، آفلاین هم کار می‌کنن.":"Offline: lyrics search and translation need the internet. Lyrics and translations found before still work.",
+"خاموش":"Off",
+
+"پشتیبان‌گیری و انتقال":"Backup & transfer","ساخت فایل پشتیبان":"Create backup","بازیابی از فایل":"Restore from file",
+"پلی‌لیست‌ها، علاقه‌مندی‌ها، متن‌ها و ترجمه‌ها، اکولایزر و تنظیمات، همه در یک فایل JSON. برای ویندوز جدید یا نصب دوباره.":"Playlists, favorites, lyrics and translations, EQ and settings, all in one JSON file. For a new Windows or a reinstall.",
+"خود فایل‌های صوتی داخل پشتیبان نیستن؛ اگه موقع بازیابی جاشون عوض شده باشه، فقط پوشه‌شون رو نشون می‌دی.":"Audio files themselves are not in the backup; if they moved, just point NOVA to their folder when restoring.",
+"مجموعه‌های خودت رو بساز":"Build your own collections","جدید":"New","وارد کردن پلی‌لیست M3U":"Import M3U playlist","ساخت سریع:":"Quick create:","♥ از علاقه‌مندی‌ها":"♥ From favorites","🕒 تازه‌ها":"🕒 Recently added","یک پلی‌لیست آماده بساز":"Create a ready-made playlist",
+"هنوز پلی‌لیستی نداری":"No playlists yet","ساخت اولین پلی‌لیست":"Create your first playlist","یه اسم بذار، چندتا آهنگ تیک بزن، تمام. یا از «ساخت سریع» بالا شروع کن.":"Name it, tick a few songs, done. Or start from “Quick create” above.",
+"اسم پلی‌لیست… مثلاً «رانندگی شبانه»":"Playlist name… e.g. “Night drive”","نام پلی‌لیست":"Playlist name","انصراف":"Cancel","ساختن و افزودن آهنگ":"Create & add songs","آیکون":"Icon","رنگ":"Color",
+"همهٔ پلی‌لیست‌ها":"All playlists","گزینه‌ها":"Options","گزینه‌های پلی‌لیست":"Playlist options","برای تغییر نام بزن":"Click to rename","پخش":"Play","مکث":"Pause","تصادفی":"Shuffle","افزودن":"Add","افزودن آهنگ":"Add songs",
+"جستجو در این پلی‌لیست…":"Search this playlist…","این پلی‌لیست هنوز خالیه":"This playlist is empty","آهنگ‌ها رو تیک بزن تا اضافه بشن؛ از کتابخونه هم با دکمهٔ + کنار هر آهنگ می‌شه.":"Tick songs to add them, or use the + next to any library song.",
+"برای جابه‌جایی، ⠿ رو بکش · Alt + ↑/↓ هم کار می‌کنه":"Drag ⠿ to reorder · Alt + ↑/↓ works too","بکش و جابه‌جا کن":"Drag to reorder","حذف از پلی‌لیست":"Remove from playlist","چیزی با این جستجو پیدا نشد":"Nothing matches",
+"آهنگ‌ها رو تیک بزن":"Tick the songs","جستجو در کتابخانه…":"Search the library…","انتخاب همهٔ نتایج":"Select all results","هیچ‌کدام":"None","چیزی پیدا نشد":"Nothing found","کتابخونه خالیه؛ اول چندتا آهنگ اضافه کن":"Library is empty; add some songs first","موجود":"Added",
+"افزودن به پلی‌لیست":"Add to playlist","پلی‌لیست جدید با این آهنگ":"New playlist with this song","پلی‌لیست جدید":"New playlist","اسم پلی‌لیست…":"Playlist name…","ساختن و افزودن":"Create & add","افزودن آهنگ فعلی به پلی‌لیست":"Add current song to playlist",
+"تغییر نام":"Rename","رنگ و آیکون":"Color & icon","خروجی M3U":"Export M3U","ساخت کپی":"Duplicate","حذف پلی‌لیست":"Delete playlist","مطمئنی؟ دوباره بزن":"Sure? Click again",
+"بازیابی پشتیبان":"Restore backup","بازیابی":"Restore","انتخاب پوشه":"Choose folder","رد شدن":"Skip","بازیابی انجام شد ✓":"Restore complete ✓","بارگذاری مجدد":"Reload","بعداً":"Later","عالی":"Great",
+"✨ تازه‌های 1.10.0":"✨ New in 1.10.0","باز کردن فایل":"Opening files","بدون اینترنت":"Offline","M3U و پشتیبان":"M3U & backup"
+});
 </script>
 
 </body>
