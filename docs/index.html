@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NOVA Player</title>
+  <title>NOVA Player · پخش‌کننده موسیقی آفلاین برای ویندوز، مک و لینوکس</title>
   <meta name="description" content="NOVA Player، پخش‌کننده موسیقی سریع، خصوصی و آفلاین برای ویندوز، مک و لینوکس؛ با چارت ترندهای جهانی، متن هم‌زمان آهنگ با ترجمهٔ فارسی و مینی‌پلیر وینیل. دانلود رایگان آخرین نسخه، مستقیم از GitHub.">
   <meta name="theme-color" content="#11130f">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23b9ee50'/%3E%3Cpath d='M26 19l19 13-19 13z' fill='%23273016'/%3E%3C/svg%3E">
@@ -104,6 +104,130 @@
 .prev-vol b{font:600 10px var(--mono);font-variant-numeric:tabular-nums}
 .prev-vol b::after{content:'%';opacity:.55}
 </style>
+<style id="nv-preview-v112">
+/* v1.12 preview: mirrors the app's three-column layout (sections · listening room · library) + now-playing bar */
+.player-preview.pv12{max-width:1080px}
+.pv12 .pv-app{direction:ltr;display:flex;flex-direction:column;gap:12px;padding:12px 14px 14px;background:var(--ink)}
+.pv12 .pv-app [data-en]{unicode-bidi:plaintext}
+.pv12 svg{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+/* header */
+.pv-head{display:grid;grid-template-columns:196px minmax(0,1fr) 196px;align-items:center;gap:12px}
+.pv-logo{display:flex;align-items:center;gap:10px;min-width:0}
+.pv-logo-ico{width:32px;height:32px;border-radius:11px;flex:none;display:grid;place-items:center;background:var(--neon);color:var(--on-accent);box-shadow:0 0 14px var(--neon-glow)}
+.pv-logo-ico svg{width:15px;height:15px;stroke-width:2.4}
+.pv-logo-txt{display:flex;flex-direction:column;line-height:1.15}
+.pv-logo-txt b{font:700 15px var(--mono);letter-spacing:-.03em;color:var(--text)}
+.pv-logo-txt b span{color:var(--neon)}
+.pv-logo-txt small{font:8px var(--mono);letter-spacing:.18em;color:var(--muted)}
+.pv-search{justify-self:center;width:min(100%,420px);height:36px;display:flex;align-items:center;gap:9px;padding:0 6px 0 13px;border-radius:13px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:11.5px;transition:border-color .2s var(--ease-out),color .2s var(--ease-out)}
+.pv-search:hover{border-color:var(--neon);color:var(--text)}
+.pv-search svg{width:14px;height:14px;flex:none}
+.pv-search-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:right}
+:root[data-lang="en"] .pv-search-txt{direction:ltr;text-align:left}
+.pv-search kbd{flex:none;font:600 8.5px var(--mono);letter-spacing:.06em;padding:5px 7px;border-radius:8px;background:var(--raised);border:1px solid var(--border)}
+
+/* three columns */
+.pv-cols{display:grid;grid-template-columns:196px minmax(0,1fr) 262px;gap:12px;min-height:372px}
+.pv-cols>*{background:var(--surface);border:1px solid var(--border);border-radius:16px;min-width:0}
+
+.pv-nav{display:flex;flex-direction:column;gap:3px;padding:10px 9px}
+.pv-nav-btn{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:7px;min-height:34px;padding:3px 8px 3px 5px;border-radius:11px;border:1px solid transparent;color:var(--muted);font:600 9.5px var(--mono);letter-spacing:.12em;cursor:pointer;transition:background-color .2s var(--ease-out),color .2s var(--ease-out)}
+.pv-nav-btn svg{width:15px;height:15px;justify-self:center}
+.pv-nav-btn i{font:600 8.5px var(--mono);font-style:normal;opacity:.45}
+.pv-nav-btn:hover{color:var(--text);background:var(--hover)}
+.pv-nav-btn.on{color:var(--text);background:var(--raised);border-color:var(--border)}
+.pv-nav-btn.on svg,.pv-nav-btn.on i{color:var(--neon);opacity:1}
+.pv-nav-sep{height:1px;background:var(--border);margin:6px 5px}
+.pv-upload{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 8px 10px;border-radius:13px;border:1px dashed var(--border-2);text-align:center;direction:rtl}
+.pv-upload-ico{font-size:15px;color:var(--neon)}
+.pv-upload b{font-size:11px;font-weight:700}
+.pv-upload small{font:7.5px var(--mono);letter-spacing:.08em;color:var(--muted)}
+.pv-upload-btns{display:flex;gap:4px;margin-top:6px;width:100%}
+.pv-upload-btns span{flex:1;font-size:9.5px;padding:4px 0;border-radius:8px;background:var(--raised);color:var(--muted)}
+.pv-timer{margin-top:auto;display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:13px;border:1px solid var(--border);background:var(--ink);direction:rtl;cursor:pointer;transition:border-color .2s var(--ease-out)}
+.pv-timer:hover{border-color:var(--neon)}
+.pv-timer-ico{width:30px;height:30px;flex:none;border-radius:10px;display:grid;place-items:center;background:var(--raised);color:var(--muted)}
+.pv-timer-ico svg{width:14px;height:14px}
+.pv-timer-txt{display:flex;flex-direction:column;line-height:1.45;min-width:0}
+.pv-timer-txt b{font-size:10.5px;font-weight:700}
+.pv-timer-txt small{font:9px var(--mono);color:var(--muted)}
+:root[data-lang="en"] .pv-upload,:root[data-lang="en"] .pv-timer{direction:ltr}
+
+/* center: listening room */
+.pv12 .preview-player{border-inline-end:1px solid var(--border);padding:14px 16px 16px;gap:13px}
+.pv12 .preview-disc-wrap{aspect-ratio:auto;flex:1 1 auto;min-height:200px}
+.pv12 .preview-disc{width:auto;height:76%;max-width:62%}
+.pv12 .disc-glow{width:auto;height:66%}
+.pv12 .preview-track-name{font-size:19px;font-weight:800;letter-spacing:-.01em}
+.pv12 .preview-prog-wrap{width:min(100%,400px);margin-inline:auto}
+.pv12 .preview-controls{gap:11px}
+.pv12 .prev-ctrl{border-radius:50%;width:34px;height:34px}
+.pv12 .prev-ctrl-play{border-radius:50%;width:50px;height:50px}
+
+/* right: library */
+.pv12 .preview-library{padding:12px 10px;gap:4px;direction:ltr}
+.pv-lib-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px 9px;margin-bottom:3px;border-bottom:1px solid var(--border)}
+.pv-lib-title{font:800 12.5px var(--sans);letter-spacing:.03em;color:var(--text)}
+.pv-lib-count{font-size:9.5px;color:var(--muted);padding:3px 9px;border-radius:999px;background:var(--raised);border:1px solid var(--border)}
+.pv12 .preview-track-item{gap:10px;padding:7px 8px;border-radius:12px;min-height:48px}
+.pv12 .pti-thumb{width:34px;height:34px;border-radius:9px;font-size:14px}
+.pv12 .preview-track-item.active .pti-thumb{border-radius:50%}
+.pv12 .pti-name{font-size:11.5px;font-weight:700}
+.pv12 .pti-play-anim{margin-inline-start:auto}
+
+/* bottom: now-playing bar */
+.pv-bar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(max-content,1fr);align-items:center;gap:12px;height:62px;padding:0 12px;border-radius:18px;background:var(--surface);border:1px solid var(--border);box-shadow:0 14px 34px oklch(var(--sh) / .35)}
+.pv-now{display:flex;align-items:center;gap:10px;min-width:0}
+.pv-now-art{width:40px;height:40px;flex:none;border-radius:11px;border:1px solid var(--border);background:conic-gradient(from 24deg,oklch(79% .035 130),oklch(40% .032 190),oklch(89% .04 110),oklch(56% .045 310),oklch(84% .04 180),oklch(79% .035 130))}
+.pv-now-txt{display:flex;flex-direction:column;min-width:0;line-height:1.45}
+.pv-now-txt b{font-size:11.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-now-txt small{font:9px var(--mono);letter-spacing:.06em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-now-fav{flex:none;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;color:var(--ember)}
+.pv-now-fav svg{width:14px;height:14px;fill:currentColor}
+.pv-dock{display:flex;gap:6px;padding:4px 8px;border-radius:15px;background:var(--raised)}
+.pv-dock span,.pv-tools span{display:grid;place-items:center;width:32px;height:32px;border-radius:11px;color:var(--icon,var(--muted));cursor:pointer;transition:color .18s var(--ease-out),background-color .18s var(--ease-out)}
+.pv-dock span:hover,.pv-tools span:hover{color:var(--neon);background:var(--hover)}
+.pv-dock svg,.pv-tools svg{width:15px;height:15px}
+.pv-bar-end{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0}
+.pv-tools{display:flex;align-items:center;gap:1px}
+.pv-tools span{width:30px;height:30px;border-radius:10px}
+.pv-tools span.on{color:var(--neon);background:var(--neon-dim)}
+.pv-tools i{width:1px;height:18px;margin:0 4px;background:var(--border)}
+.pv12 .prev-vol{width:140px;margin:0;padding:4px 10px 4px 7px;background:var(--ink)}
+
+/* tablet: icon-only sections, like the app under 1100px */
+@media (max-width:1100px){
+  .pv-head{grid-template-columns:auto minmax(0,1fr) 0}
+  .pv-logo-txt small{display:none}
+  .pv-cols{grid-template-columns:56px minmax(0,1fr) 236px}
+  .pv-nav{padding:9px 6px;align-items:stretch}
+  .pv-nav-btn{grid-template-columns:1fr;justify-items:center;padding:6px}
+  .pv-nav-btn span,.pv-nav-btn i,.pv-upload b,.pv-upload small,.pv-upload-btns,.pv-timer-txt,.pv-now-txt small{display:none}
+  .pv-upload{padding:10px 0}
+  .pv-timer{justify-content:center;padding:7px 0}
+  .pv12 .prev-vol{width:110px}
+  .pv12 .prev-vol b{display:none}
+}
+/* small screens: one column, listening room first */
+@media (max-width:760px){
+  .pv12 .pv-app{padding:10px;gap:10px}
+  .pv-head{grid-template-columns:auto minmax(0,1fr)}
+  .pv-head-end{display:none}
+  .pv-search kbd{display:none}
+  .pv-cols{grid-template-columns:1fr;min-height:0}
+  .pv-nav{flex-direction:row;justify-content:space-between;padding:6px}
+  .pv-nav-btn{flex:1;min-height:32px}
+  .pv-nav-sep,.pv-upload,.pv-timer{display:none}
+  .pv12 .preview-player{border-inline-end:1px solid var(--border)}
+  .pv12 .preview-disc-wrap{aspect-ratio:1.5;min-height:0}
+  .pv12 .preview-disc{height:auto;width:52%;max-width:none}
+  .pv-bar{grid-template-columns:minmax(0,1fr) auto;height:56px}
+  .pv-dock,.pv-tools,.pv12 .prev-vol{display:none}
+  .pv-bar-end::before{content:'';width:34px;height:34px;border-radius:50%;background:var(--neon) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23222'%3E%3Crect x='7' y='5' width='3.5' height='14' rx='1'/%3E%3Crect x='13.5' y='5' width='3.5' height='14' rx='1'/%3E%3C/svg%3E") center/16px no-repeat}
+}
+</style>
+
 </head>
 
 <body class="is-loading"><link rel="preconnect" href="https://unpkg.com" />
@@ -229,7 +353,7 @@
   <div class="hero-inner">
     <div class="hero-badge fade-up">
       <span class="hero-badge-dot" aria-hidden="true"></span>
-      <span id="nvHeroBadge" data-en="Version 1.11.0 is live">نسخه 1.11.0 منتشر شد</span>
+      <span id="nvHeroBadge" data-en="Version 1.12.0 is live">نسخه 1.12.0 منتشر شد</span>
     </div>
     <h1 class="hero-title fade-up d1" id="heroTitle" data-en="Hear your music&lt;br&gt;the &lt;span class=&quot;hero-title-accent&quot;&gt;NOVA&lt;/span&gt; way">
       موزیک خود را<br>با <span class="hero-title-accent">NOVA</span> تجربه کن
@@ -239,7 +363,7 @@
     </p>
     <div class="hero-actions fade-up d3">
       <a id="nvHeroDl" href="https://github.com/Mehdi138iimm/NovaPlayer/releases/latest"
-         class="btn-primary wipe" aria-label="دانلود Nova Player نسخه 1.11.0 برای ویندوز" data-en-aria="Download Nova Player 1.11.0 for Windows">
+         class="btn-primary wipe" aria-label="دانلود Nova Player نسخه 1.12.0 برای ویندوز" data-en-aria="Download Nova Player 1.12.0 for Windows">
         <span class="wipe-base"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download for Windows">دانلود برای ویندوز</span></span>
         <span class="wipe-over over" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download for Windows">دانلود برای ویندوز</span></span>
       </a>
@@ -249,7 +373,7 @@
       </a>
     </div>
     <div class="hero-meta fade-up d4">
-      <span class="hero-meta-item"><span class="hero-meta-val" id="nvHeroVer">v1.11.0</span></span>
+      <span class="hero-meta-item"><span class="hero-meta-val" id="nvHeroVer">v1.12.0</span></span>
       <span class="hero-meta-sep">·</span>
       <span class="hero-meta-item">Windows · macOS · Linux</span>
       <span class="hero-meta-sep">·</span>
@@ -258,77 +382,136 @@
   </div>
 </section>
 
-<!-- ══ PLAYER PREVIEW ══ -->
+<!-- ══ PLAYER PREVIEW (v1.12 · three-column layout) ══ -->
 <div class="player-preview-wrap section" aria-hidden="true">
-  <div class="player-preview warp-grid reveal" role="img" aria-label="پیش‌نمایش رابط کاربری Nova Player" data-en-aria="Nova Player interface preview">
+  <div class="player-preview pv12 warp-grid reveal" role="img" aria-label="پیش‌نمایش رابط کاربری Nova Player" data-en-aria="Nova Player interface preview">
     <div class="preview-bar">
       <div class="preview-dot"></div>
       <div class="preview-dot"></div>
       <div class="preview-dot"></div>
-      <span class="preview-title">NOVA PLAYER · v1.11</span>
+      <span class="preview-title">NOVA PLAYER · v1.12</span>
     </div>
-    <div class="preview-body">
-      <div class="preview-player">
-        <div class="preview-disc-wrap">
-          <div class="disc-glow"></div>
-          <div class="preview-disc"></div>
-          <div class="preview-eq">
-            <div class="preview-eq-bar"></div>
-            <div class="preview-eq-bar"></div>
-            <div class="preview-eq-bar"></div>
-            <div class="preview-eq-bar"></div>
-            <div class="preview-eq-bar"></div>
-            <div class="preview-eq-bar"></div>
-          </div>
-          <div class="prev-live">LIVE</div>
+    <div class="pv-app">
+      <div class="pv-head">
+        <div class="pv-logo">
+          <span class="pv-logo-ico"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+          <span class="pv-logo-txt"><b>NO<span>VA</span></b><small>AUDIO PLAYER</small></span>
         </div>
-        <div class="preview-track">
-          <div class="preview-track-name">Midnight Frequencies</div>
-          <div class="preview-track-sub">Nova Artist · Electronic · 2024</div>
+        <div class="pv-search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg>
+          <span class="pv-search-txt" data-en="What do you want to listen to?">چی دوست داری گوش بدی؟</span>
+          <kbd>Ctrl K</kbd>
         </div>
-        <div class="preview-prog-wrap">
-          <div class="preview-prog-bar">
-            <div class="preview-prog-fill"></div>
-            <div class="preview-prog-thumb"></div>
-          </div>
-          <div class="preview-time"><span>1:23</span><span>3:45</span></div>
-        </div>
-        <div class="preview-controls">
-          <div class="prev-ctrl" tabindex="0" role="button" aria-label="تکرار" data-en-aria="Repeat"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
-          <div class="prev-ctrl" tabindex="0" role="button" aria-label="قبلی" data-en-aria="Previous"><svg viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></div>
-          <div class="prev-ctrl-play" tabindex="0" role="button" aria-label="مکث" data-en-aria="Pause"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></div>
-          <div class="prev-ctrl" tabindex="0" role="button" aria-label="بعدی" data-en-aria="Next"><svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></div>
-          <div class="prev-ctrl" tabindex="0" role="button" aria-label="تصادفی" data-en-aria="Shuffle"><svg viewBox="0 0 24 24"><polyline points="11 17 6 12 11 7"/><line x1="18" y1="12" x2="6" y2="12"/></svg></div>
-        </div>
-        <div class="prev-vol"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z"/><path d="M15.5 9.3a3.8 3.8 0 0 1 0 5.4"/><path d="M18.2 6.7a7.5 7.5 0 0 1 0 10.6"/></svg><span class="prev-vol-track"><i></i></span><b>72</b></div>
+        <span class="pv-head-end"></span>
       </div>
-      <div class="preview-library">
-        <div class="preview-lib-title" data-en="LIBRARY — 12 TRACKS">LIBRARY — ۱۲ آهنگ</div>
-        <div class="preview-track-item active">
-          <div class="pti-play-anim" aria-hidden="true"><div class="pti-play-bar"></div><div class="pti-play-bar"></div><div class="pti-play-bar"></div></div>
-          <div class="pti-thumb">🎵</div>
-          <div class="pti-info"><div class="pti-name">Midnight Frequencies</div><div class="pti-meta">Nova Artist</div></div>
-          <div class="pti-dur">3:45</div>
+
+      <div class="pv-cols">
+        <!-- left: sections -->
+        <div class="pv-nav">
+          <div class="pv-nav-btn on"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span>LIBRARY</span><i>01</i></div>
+          <div class="pv-nav-btn"><svg viewBox="0 0 24 24"><path d="M3 6h12M3 11h12M3 16h8"/><circle cx="17" cy="17" r="3"/><path d="M20 17V5h2"/></svg><span>PLAYLISTS</span><i>02</i></div>
+          <div class="pv-nav-btn"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg><span>FAVORITES</span><i>03</i></div>
+          <div class="pv-nav-btn"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg><span>TRENDING</span><i>04</i></div>
+          <div class="pv-nav-btn"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg><span>SEARCH</span><i>05</i></div>
+          <div class="pv-nav-sep"></div>
+          <div class="pv-upload">
+            <span class="pv-upload-ico">⬆</span>
+            <b data-en="Upload music">آپلود موسیقی</b>
+            <small>MP3 · FLAC · OPUS</small>
+            <span class="pv-upload-btns"><span data-en="📁 File">📁 فایل</span><span data-en="📂 Folder">📂 پوشه</span></span>
+          </div>
+          <div class="pv-timer">
+            <span class="pv-timer-ico"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg></span>
+            <span class="pv-timer-txt"><b data-en="Sleep timer">تایمر خواب</b><small data-en="Off">خاموش</small></span>
+          </div>
         </div>
-        <div class="preview-track-item">
-          <div class="pti-thumb">🎸</div>
-          <div class="pti-info"><div class="pti-name">Crystal Echo</div><div class="pti-meta">Sound Lab</div></div>
-          <div class="pti-dur">4:12</div>
+
+        <!-- center: listening room -->
+        <div class="preview-player">
+          <div class="preview-disc-wrap">
+            <div class="disc-glow"></div>
+            <div class="preview-disc"></div>
+            <div class="preview-eq">
+              <div class="preview-eq-bar"></div><div class="preview-eq-bar"></div><div class="preview-eq-bar"></div>
+              <div class="preview-eq-bar"></div><div class="preview-eq-bar"></div><div class="preview-eq-bar"></div>
+            </div>
+            <div class="prev-live">LIVE</div>
+          </div>
+          <div class="preview-track">
+            <div class="preview-track-name">Midnight Frequencies</div>
+            <div class="preview-track-sub">Nova Artist · Electronic · 2024</div>
+          </div>
+          <div class="preview-prog-wrap">
+            <div class="preview-prog-bar">
+              <div class="preview-prog-fill"></div>
+              <div class="preview-prog-thumb"></div>
+            </div>
+            <div class="preview-time"><span>1:23</span><span>3:45</span></div>
+          </div>
+          <div class="preview-controls">
+            <div class="prev-ctrl" tabindex="0" role="button" aria-label="تصادفی" data-en-aria="Shuffle"><svg viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></div>
+            <div class="prev-ctrl" tabindex="0" role="button" aria-label="قبلی" data-en-aria="Previous"><svg viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></div>
+            <div class="prev-ctrl-play" tabindex="0" role="button" aria-label="مکث" data-en-aria="Pause"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></div>
+            <div class="prev-ctrl" tabindex="0" role="button" aria-label="بعدی" data-en-aria="Next"><svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></div>
+            <div class="prev-ctrl" tabindex="0" role="button" aria-label="تکرار" data-en-aria="Repeat"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
+          </div>
         </div>
-        <div class="preview-track-item">
-          <div class="pti-thumb">🎹</div>
-          <div class="pti-info"><div class="pti-name">Deep Horizon</div><div class="pti-meta">Ambient Waves</div></div>
-          <div class="pti-dur">5:30</div>
+
+        <!-- right: library -->
+        <div class="preview-library">
+          <div class="pv-lib-head"><span class="pv-lib-title">LIBRARY</span><span class="pv-lib-count" data-en="12 tracks">۱۲ آهنگ</span></div>
+          <div class="preview-track-item active">
+            <div class="pti-thumb">🎵</div>
+            <div class="pti-info"><div class="pti-name">Midnight Frequencies</div><div class="pti-meta">Nova Artist</div></div>
+            <div class="pti-play-anim" aria-hidden="true"><div class="pti-play-bar"></div><div class="pti-play-bar"></div><div class="pti-play-bar"></div></div>
+            <div class="pti-dur">3:45</div>
+          </div>
+          <div class="preview-track-item">
+            <div class="pti-thumb">🎸</div>
+            <div class="pti-info"><div class="pti-name">Crystal Echo</div><div class="pti-meta">Sound Lab</div></div>
+            <div class="pti-dur">4:12</div>
+          </div>
+          <div class="preview-track-item">
+            <div class="pti-thumb">🎹</div>
+            <div class="pti-info"><div class="pti-name">Deep Horizon</div><div class="pti-meta">Ambient Waves</div></div>
+            <div class="pti-dur">5:30</div>
+          </div>
+          <div class="preview-track-item">
+            <div class="pti-thumb">🎷</div>
+            <div class="pti-info"><div class="pti-name">Neon Rain</div><div class="pti-meta">City Lights</div></div>
+            <div class="pti-dur">3:58</div>
+          </div>
+          <div class="preview-track-item">
+            <div class="pti-thumb">🥁</div>
+            <div class="pti-info"><div class="pti-name">Orbit Loop</div><div class="pti-meta">Beat Studio</div></div>
+            <div class="pti-dur">2:47</div>
+          </div>
         </div>
-        <div class="preview-track-item">
-          <div class="pti-thumb">🎷</div>
-          <div class="pti-info"><div class="pti-name">Neon Rain</div><div class="pti-meta">City Lights</div></div>
-          <div class="pti-dur">3:58</div>
+      </div>
+
+      <!-- bottom: now-playing bar -->
+      <div class="pv-bar">
+        <div class="pv-now">
+          <span class="pv-now-art"></span>
+          <span class="pv-now-txt"><b>Midnight Frequencies</b><small>Nova Artist · Electronic</small></span>
+          <span class="pv-now-fav"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg></span>
         </div>
-        <div class="preview-track-item">
-          <div class="pti-thumb">🥁</div>
-          <div class="pti-info"><div class="pti-name">Orbit Loop</div><div class="pti-meta">Beat Studio</div></div>
-          <div class="pti-dur">2:47</div>
+        <div class="pv-dock">
+          <span><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg></span>
+          <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+          <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span>
+          <span><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg></span>
+        </div>
+        <div class="pv-bar-end">
+          <div class="pv-tools">
+            <span class="on"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg></span>
+            <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></span>
+            <span><svg viewBox="0 0 24 24"><path d="M4 6h16M4 11h10M4 16h13"/></svg></span>
+            <i></i>
+            <span><svg viewBox="0 0 24 24"><path d="M5 20v-6M5 10V4M12 20v-9M12 7V4M19 20v-4M19 12V4M3 14h4M10 7h4M17 16h4"/></svg></span>
+            <span><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><rect x="12" y="11" width="7" height="5" rx="1"/></svg></span>
+          </div>
+          <div class="prev-vol"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z"/><path d="M15.5 9.3a3.8 3.8 0 0 1 0 5.4"/><path d="M18.2 6.7a7.5 7.5 0 0 1 0 10.6"/></svg><span class="prev-vol-track"><i></i></span><b>72</b></div>
         </div>
       </div>
     </div>
@@ -437,6 +620,14 @@
   <p class="section-sub reveal d1" data-en="The latest updates at a glance. Full notes for every release live on GitHub.">خلاصهٔ آخرین آپدیت‌ها؛ یادداشت کامل هر نسخه در GitHub است.</p>
   <ol class="wn-list" id="nvWhatsNew" aria-live="polite">
     <li class="wn-item reveal d1">
+      <div class="wn-head"><span class="wn-ver">v1.12.0</span><span class="wn-tag" data-en="New">جدید</span></div>
+      <ul class="wn-points">
+        <li data-en="🎨 A new look: sections, the listening room and the library side by side in three columns.">🎨 ظاهر جدید: بخش‌ها، اتاق شنیدن و کتابخانه کنار هم در سه ستون.</li>
+        <li data-en="A big search bar on top and a full now-playing bar at the bottom.">نوار جستجوی بزرگ بالای صفحه و نوار پخش کامل پایین صفحه.</li>
+        <li data-en="Themes and every feature work exactly as before.">تم‌ها و همهٔ امکانات دقیقاً مثل قبل.</li>
+      </ul>
+    </li>
+    <li class="wn-item reveal d2">
       <div class="wn-head"><span class="wn-ver">v1.11.0</span><span class="wn-tag" data-en="New">جدید</span></div>
       <ul class="wn-points">
         <li data-en="🔎 A new SEARCH page: the 🔎 button or Ctrl+K from anywhere, with everything from 1.10.0 still in place.">🔎 صفحهٔ جدید SEARCH: دکمهٔ 🔎 یا Ctrl+K از هر جا، و همهٔ امکانات 1.10.0 هم سر جایشان.</li>
@@ -483,13 +674,13 @@
       <div class="dl-title">NOVA Player</div>
       <div class="dl-sub" data-en="Official builds for Windows 10/11, macOS (Apple Silicon and Intel) and Linux. The button picks the right file for your system.">نسخهٔ رسمی برای ویندوز ۱۰ و ۱۱، مک (Apple Silicon و Intel) و لینوکس. دکمه خودش فایل مناسب سیستم تو را برمی‌دارد.</div>
       <div class="dl-chips">
-        <span class="dl-chip hi" id="nvChipVer">v1.11.0</span>
+        <span class="dl-chip hi" id="nvChipVer">v1.12.0</span>
         <span class="dl-chip" id="nvChipOs">Windows x64</span>
         <span class="dl-chip" id="nvChipSize" hidden></span>
         <span class="dl-chip nv-date" id="nvChipDate" hidden></span>
         <span class="dl-chip" data-en="Free">رایگان</span>
       </div>
-      <code class="dl-filename" id="nvFile">NOVA.Player_1.11.0_x64-setup.exe</code>
+      <code class="dl-filename" id="nvFile">NOVA.Player_1.12.0_x64-setup.exe</code>
       <a id="nvDlBtn" href="https://github.com/Mehdi138iimm/NovaPlayer/releases/latest"
          class="btn-download wipe"
          aria-label="دانلود آخرین نسخه NOVA Player برای ویندوز ۶۴ بیتی" data-en-aria="Download the latest NOVA Player for Windows x64">
