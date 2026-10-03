@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NOVA Player · پخش‌کننده موسیقی آفلاین برای ویندوز، مک و لینوکس</title>
+  <title>NOVA Player</title>
   <meta name="description" content="NOVA Player، پخش‌کننده موسیقی سریع، خصوصی و آفلاین برای ویندوز، مک و لینوکس؛ با چارت ترندهای جهانی، متن هم‌زمان آهنگ با ترجمهٔ فارسی و مینی‌پلیر وینیل. دانلود رایگان آخرین نسخه، مستقیم از GitHub.">
   <meta name="theme-color" content="#11130f">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23b9ee50'/%3E%3Cpath d='M26 19l19 13-19 13z' fill='%23273016'/%3E%3C/svg%3E">
@@ -176,6 +176,57 @@
 .pv12 .pti-name{font-size:11.5px;font-weight:700}
 .pv12 .pti-play-anim{margin-inline-start:auto}
 
+/* v1.13: NOVA buddy (dances while the preview "plays") + Support us card at the bottom of the sections column */
+.pv-buddy{flex:1 1 0;min-height:0;display:flex;align-items:flex-end;justify-content:center;padding:6px 0 2px;--b-cream:#f1ebdf;--b-body:oklch(25% .012 120);--b-face:oklch(15% .01 120);--b-ember:var(--ember,oklch(70% .17 40))}
+.pv-buddy svg{height:100%;max-height:132px;width:auto;max-width:100%;overflow:visible;fill:initial;stroke:none}
+.pv-buddy svg *{transform-box:fill-box}
+.pv-buddy .nm-cream,.pv-buddy .nm-legs rect,.pv-buddy .nm-dot{fill:var(--b-cream)}
+.pv-buddy .nm-body,.pv-buddy .nm-arm path{fill:var(--b-body)}
+.pv-buddy .nm-arm path{stroke:var(--b-face);stroke-width:1.2;stroke-opacity:.55}
+.pv-buddy .nm-face,.pv-buddy .nm-pupil{fill:var(--b-face)}
+.pv-buddy .nm-inner,.pv-buddy .nm-scarf path{fill:var(--b-ember)}
+.pv-buddy .nm-scarf-tail{filter:brightness(.85)}
+.pv-buddy .nm-eye{fill:var(--neon)}
+.pv-buddy .nm-glint{fill:#fff;opacity:.85}
+.pv-buddy .nm-zip,.pv-buddy .nm-seam{fill:none;stroke:oklch(40% .012 120);stroke-width:1.4;stroke-linecap:round;stroke-dasharray:2 3}
+.pv-buddy .nm-seam{stroke:oklch(80% .01 80)}
+.pv-buddy .nm-tag{fill:var(--b-cream);opacity:.75}
+.pv-buddy .nm-nv{font:800 11px/1 var(--mono);fill:var(--b-face)}
+.pv-buddy .nm-shadow{fill:#000;opacity:.22;transform-origin:center}
+.pv-buddy .nm-note,.pv-buddy .nm-note-h{fill:var(--neon);stroke:var(--neon);stroke-width:2.2;stroke-linecap:round;opacity:0}
+.pv-buddy .nm-note{fill:none}
+.pv-buddy .nm-all{transform-origin:50% 100%;animation:pvbBounce .5s ease-in-out infinite alternate}
+.pv-buddy .nm-head{transform-origin:50% 90%;animation:pvbTilt 1s ease-in-out infinite alternate}
+.pv-buddy .nm-arm-l{transform-origin:95% 5%;animation:pvbWaveL .5s ease-in-out infinite alternate}
+.pv-buddy .nm-arm-r{transform-origin:5% 5%;animation:pvbWaveR .5s ease-in-out infinite alternate-reverse}
+.pv-buddy .nm-ear-l{transform-origin:70% 100%;animation:pvbEarL 1s ease-in-out infinite alternate}
+.pv-buddy .nm-ear-r{transform-origin:30% 100%;animation:pvbEarR 1s ease-in-out infinite alternate-reverse}
+.pv-buddy .nm-leg-l{animation:pvbStep .5s ease-in-out infinite alternate}
+.pv-buddy .nm-leg-r{animation:pvbStep .5s ease-in-out infinite alternate-reverse}
+.pv-buddy .nm-shadow{animation:pvbShadow .5s ease-in-out infinite alternate}
+.pv-buddy .nm-eyes{transform-origin:center;animation:pvbBlink 5.2s infinite}
+.pv-buddy .nm-look{transform:translate(calc(var(--lx,0)*1px),calc(var(--ly,0)*1px));transition:transform .18s ease-out}
+.pv-buddy .nm-note-a{animation:pvbNote 2.4s ease-out infinite}
+.pv-buddy .nm-note-b{animation:pvbNote 2.4s ease-out 1.2s infinite}
+@keyframes pvbBounce{from{transform:translateY(0) rotate(-4deg)}to{transform:translateY(-5px) rotate(4deg)}}
+@keyframes pvbTilt{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
+@keyframes pvbWaveL{from{transform:rotate(-8deg)}to{transform:rotate(60deg)}}
+@keyframes pvbWaveR{from{transform:rotate(8deg)}to{transform:rotate(-60deg)}}
+@keyframes pvbEarL{from{transform:rotate(-4deg)}to{transform:rotate(-16deg)}}
+@keyframes pvbEarR{from{transform:rotate(4deg)}to{transform:rotate(16deg)}}
+@keyframes pvbStep{to{transform:translateY(-3px)}}
+@keyframes pvbShadow{to{transform:scaleX(.82);opacity:.14}}
+@keyframes pvbBlink{0%,92%,100%{transform:none}95%{transform:scaleY(.1)}}
+@keyframes pvbNote{0%{opacity:0;transform:translate(0,6px) scale(.7)}20%{opacity:.95}100%{opacity:0;transform:translate(-6px,-22px) scale(1)}}
+@media (prefers-reduced-motion:reduce){.pv-buddy *{animation:none!important}}
+.pv-support{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:13px;border:1px solid var(--border);background:var(--ink);direction:rtl;cursor:pointer;transition:border-color .2s var(--ease-out)}
+.pv-support:hover{border-color:var(--neon)}
+.pv-support-ico{width:30px;height:30px;flex:none;border-radius:10px;display:grid;place-items:center;background:var(--raised);color:var(--b-ember,oklch(70% .17 40))}
+.pv-support-ico svg{width:14px;height:14px;fill:currentColor;stroke:none}
+.pv-support-txt{display:flex;flex-direction:column;line-height:1.45;min-width:0}
+.pv-support-txt b{font-size:10.5px;font-weight:700}
+.pv-support-txt small{font:8.5px var(--mono);color:var(--muted);direction:ltr;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root[data-lang="en"] .pv-support{direction:ltr}:root[data-lang="en"] .pv-support-txt small{text-align:left}
 /* bottom: now-playing bar */
 .pv-bar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(max-content,1fr);align-items:center;gap:12px;height:62px;padding:0 12px;border-radius:18px;background:var(--surface);border:1px solid var(--border);box-shadow:0 14px 34px oklch(var(--sh) / .35)}
 .pv-now{display:flex;align-items:center;gap:10px;min-width:0}
@@ -203,9 +254,10 @@
   .pv-cols{grid-template-columns:56px minmax(0,1fr) 236px}
   .pv-nav{padding:9px 6px;align-items:stretch}
   .pv-nav-btn{grid-template-columns:1fr;justify-items:center;padding:6px}
-  .pv-nav-btn span,.pv-nav-btn i,.pv-upload b,.pv-upload small,.pv-upload-btns,.pv-timer-txt,.pv-now-txt small{display:none}
+  .pv-nav-btn span,.pv-nav-btn i,.pv-upload b,.pv-upload small,.pv-upload-btns,.pv-support-txt,.pv-now-txt small{display:none}
   .pv-upload{padding:10px 0}
-  .pv-timer{justify-content:center;padding:7px 0}
+  .pv-support{justify-content:center;padding:7px 0}
+  .pv-buddy svg{max-height:70px}
   .pv12 .prev-vol{width:110px}
   .pv12 .prev-vol b{display:none}
 }
@@ -218,7 +270,7 @@
   .pv-cols{grid-template-columns:1fr;min-height:0}
   .pv-nav{flex-direction:row;justify-content:space-between;padding:6px}
   .pv-nav-btn{flex:1;min-height:32px}
-  .pv-nav-sep,.pv-upload,.pv-timer{display:none}
+  .pv-nav-sep,.pv-upload,.pv-support,.pv-buddy{display:none}
   .pv12 .preview-player{border-inline-end:1px solid var(--border)}
   .pv12 .preview-disc-wrap{aspect-ratio:1.5;min-height:0}
   .pv12 .preview-disc{height:auto;width:52%;max-width:none}
@@ -353,7 +405,7 @@
   <div class="hero-inner">
     <div class="hero-badge fade-up">
       <span class="hero-badge-dot" aria-hidden="true"></span>
-      <span id="nvHeroBadge" data-en="Version 1.12.0 is live">نسخه 1.12.0 منتشر شد</span>
+      <span id="nvHeroBadge" data-en="Version 1.13.0 is live">نسخه 1.13.0 منتشر شد</span>
     </div>
     <h1 class="hero-title fade-up d1" id="heroTitle" data-en="Hear your music&lt;br&gt;the &lt;span class=&quot;hero-title-accent&quot;&gt;NOVA&lt;/span&gt; way">
       موزیک خود را<br>با <span class="hero-title-accent">NOVA</span> تجربه کن
@@ -363,7 +415,7 @@
     </p>
     <div class="hero-actions fade-up d3">
       <a id="nvHeroDl" href="https://github.com/Mehdi138iimm/NovaPlayer/releases/latest"
-         class="btn-primary wipe" aria-label="دانلود Nova Player نسخه 1.12.0 برای ویندوز" data-en-aria="Download Nova Player 1.12.0 for Windows">
+         class="btn-primary wipe" aria-label="دانلود Nova Player نسخه 1.13.0 برای ویندوز" data-en-aria="Download Nova Player 1.13.0 for Windows">
         <span class="wipe-base"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download for Windows">دانلود برای ویندوز</span></span>
         <span class="wipe-over over" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download for Windows">دانلود برای ویندوز</span></span>
       </a>
@@ -373,7 +425,7 @@
       </a>
     </div>
     <div class="hero-meta fade-up d4">
-      <span class="hero-meta-item"><span class="hero-meta-val" id="nvHeroVer">v1.12.0</span></span>
+      <span class="hero-meta-item"><span class="hero-meta-val" id="nvHeroVer">v1.13.0</span></span>
       <span class="hero-meta-sep">·</span>
       <span class="hero-meta-item">Windows · macOS · Linux</span>
       <span class="hero-meta-sep">·</span>
@@ -382,14 +434,14 @@
   </div>
 </section>
 
-<!-- ══ PLAYER PREVIEW (v1.12 · three-column layout) ══ -->
+<!-- ══ PLAYER PREVIEW (v1.13 · three-column layout + NOVA buddy + Support us) ══ -->
 <div class="player-preview-wrap section" aria-hidden="true">
   <div class="player-preview pv12 warp-grid reveal" role="img" aria-label="پیش‌نمایش رابط کاربری Nova Player" data-en-aria="Nova Player interface preview">
     <div class="preview-bar">
       <div class="preview-dot"></div>
       <div class="preview-dot"></div>
       <div class="preview-dot"></div>
-      <span class="preview-title">NOVA PLAYER · v1.12</span>
+      <span class="preview-title">NOVA PLAYER · v1.13</span>
     </div>
     <div class="pv-app">
       <div class="pv-head">
@@ -412,7 +464,6 @@
           <div class="pv-nav-btn"><svg viewBox="0 0 24 24"><path d="M3 6h12M3 11h12M3 16h8"/><circle cx="17" cy="17" r="3"/><path d="M20 17V5h2"/></svg><span>PLAYLISTS</span><i>02</i></div>
           <div class="pv-nav-btn"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg><span>FAVORITES</span><i>03</i></div>
           <div class="pv-nav-btn"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg><span>TRENDING</span><i>04</i></div>
-          <div class="pv-nav-btn"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg><span>SEARCH</span><i>05</i></div>
           <div class="pv-nav-sep"></div>
           <div class="pv-upload">
             <span class="pv-upload-ico">⬆</span>
@@ -420,9 +471,10 @@
             <small>MP3 · FLAC · OPUS</small>
             <span class="pv-upload-btns"><span data-en="📁 File">📁 فایل</span><span data-en="📂 Folder">📂 پوشه</span></span>
           </div>
-          <div class="pv-timer">
-            <span class="pv-timer-ico"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg></span>
-            <span class="pv-timer-txt"><b data-en="Sleep timer">تایمر خواب</b><small data-en="Off">خاموش</small></span>
+          <div class="pv-buddy" title="NOVA buddy"><svg viewBox="0 0 120 150" aria-hidden="true" focusable="false"><ellipse class="nm-shadow" cx="60" cy="143" rx="30" ry="5"/><g class="nm-all"> <g class="nm-legs"><rect class="nm-leg-l" x="40" y="116" width="15" height="26" rx="7"/><rect class="nm-leg-r" x="65" y="116" width="15" height="26" rx="7"/></g> <path class="nm-body" d="M38 76 C30 92 27 112 30 122 Q60 132 90 122 C93 112 90 92 82 76 Z"/> <path class="nm-zip" d="M60 88 V124"/> <rect class="nm-tag" x="72" y="112" width="7" height="6" rx="1.5"/> <g class="nm-arm nm-arm-l"><path d="M38 86 C26 90 17 102 18 113 C19 120 27 120 31 112 C33 106 36 100 40 96 Z"/></g> <g class="nm-arm nm-arm-r"><path d="M82 86 C94 90 103 102 102 113 C101 120 93 120 89 112 C87 106 84 100 80 96 Z"/></g> <g class="nm-head">  <g class="nm-ear nm-ear-l"><path class="nm-cream" d="M42 40 C30 22 30 6 38 3 C47 1 52 20 52 36 Z"/><path class="nm-inner" d="M43 34 C36 22 36 11 40 9 C45 8 48 21 48 31 Z"/><circle class="nm-dot" cx="42" cy="17" r="1.4"/><circle class="nm-dot" cx="44" cy="24" r="1.4"/></g>  <g class="nm-ear nm-ear-r"><path class="nm-cream" d="M78 40 C90 22 92 6 84 3 C75 1 68 20 68 36 Z"/><path class="nm-inner" d="M77 34 C84 22 86 11 82 9 C77 8 72 21 72 31 Z"/><circle class="nm-dot" cx="80" cy="17" r="1.4"/><circle class="nm-dot" cx="78" cy="24" r="1.4"/></g>  <path class="nm-cream" d="M60 30 C84 30 94 48 94 66 C94 80 84 88 60 88 C36 88 26 80 26 66 C26 48 36 30 60 30 Z"/>  <path class="nm-seam" d="M60 31 V40"/>  <path class="nm-face" d="M60 44 C78 44 84 56 84 66 C84 76 76 80 60 80 C44 80 36 76 36 66 C36 56 42 44 60 44 Z"/>  <g class="nm-eyes"><circle class="nm-eye" cx="49" cy="63" r="8"/><circle class="nm-eye" cx="71" cy="63" r="8"/><g class="nm-look"><circle class="nm-pupil" cx="49" cy="63" r="4"/><circle class="nm-pupil" cx="71" cy="63" r="4"/><circle class="nm-glint" cx="51.5" cy="60.5" r="1.4"/><circle class="nm-glint" cx="73.5" cy="60.5" r="1.4"/></g></g> </g> <g class="nm-scarf"><path class="nm-scarf-band" d="M30 78 Q60 90 90 78 L92 86 Q60 100 28 86 Z"/><path class="nm-scarf-tri" d="M38 84 Q60 94 82 84 L62 112 Q60 114 58 112 Z"/><path class="nm-scarf-tail" d="M86 82 L100 92 L94 96 L84 88 Z"/><text class="nm-nv" x="60" y="99" text-anchor="middle">NV</text></g></g><g class="nm-notes"><path class="nm-note nm-note-a" d="M104 40 v-12 l7 -2 v12" /><circle class="nm-note-h nm-note-a" cx="102.5" cy="40" r="2.6"/><circle class="nm-note-h nm-note-a" cx="109.5" cy="38" r="2.6"/><path class="nm-note nm-note-b" d="M14 34 v-11"/><circle class="nm-note-h nm-note-b" cx="12.3" cy="34" r="2.6"/></g></svg></div>
+          <div class="pv-support">
+            <span class="pv-support-ico"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg></span>
+            <span class="pv-support-txt"><b data-en="Support us">حمایت از ما</b><small>donofa.com/novaplayerapp</small></span>
           </div>
         </div>
 
@@ -497,7 +549,6 @@
           <span class="pv-now-fav"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg></span>
         </div>
         <div class="pv-dock">
-          <span><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg></span>
           <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
           <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span>
           <span><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg></span>
@@ -538,12 +589,12 @@
       <article class="card">
       <div class="feature-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
       <h3 class="feature-title" data-en="A library that thinks">کتابخانه هوشمند</h3>
-      <p class="feature-desc" data-en="Instant search, five sort modes, and a cover shelf that groups albums so you can flip through them.">جستجوی لحظه‌ای، پنج حالت مرتب‌سازی و قفسهٔ کاورها که آلبوم‌ها را کنار هم می‌چیند تا ورقشان بزنی.</p>
+      <p class="feature-desc" data-en="Sort modes, a cover shelf that groups albums so you can flip through them, and a list that stays smooth even with thousands of songs.">حالت‌های مرتب‌سازی، قفسهٔ کاورها که آلبوم‌ها را کنار هم می‌چیند تا ورقشان بزنی، و لیستی که حتی با هزاران آهنگ روان می‌ماند.</p>
       </article>
       <article class="card">
       <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
       <h3 class="feature-title" data-en="Playlists, reimagined">پلی‌لیست‌های نسل جدید</h3>
-      <p class="feature-desc" data-en="Mosaic covers, your own color and icon, drag to reorder, and quick-build from favorites or a folder. M3U export and import included.">کاور موزاییکی، رنگ و آیکون دلخواه، جابه‌جایی با کشیدن و ساخت سریع از علاقه‌مندی‌ها یا یک پوشه. خروجی و ورودی M3U هم دارد.</p>
+      <p class="feature-desc" data-en="Mosaic covers, your own color and icon, drag to reorder, 10 sort modes inside every playlist, and quick-build from favorites or a folder. M3U export and import included.">کاور موزاییکی، رنگ و آیکون دلخواه، جابه‌جایی با کشیدن، ۱۰ حالت مرتب‌سازی داخل هر پلی‌لیست و ساخت سریع از علاقه‌مندی‌ها یا یک پوشه. خروجی و ورودی M3U هم دارد.</p>
       </article>
       </div>
     </div>
@@ -558,7 +609,7 @@
       <article class="card">
       <div class="feature-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></div>
       <h3 class="feature-title" data-en="Themes, cinema &amp; Listening Room">تم، سینما و Listening Room</h3>
-      <p class="feature-desc" data-en="Dark or light, tinted by the album art. Tools live on the side rail: cinema C, lyrics L, equalizer E, sleep timer S and mini player D, all remappable in Settings.">تیره یا روشن با رنگ کاور آهنگ. ابزارها روی نوار کناری: سینمایی C، متن L، اکولایزر E، تایمر خواب S و مینی‌پلیر D؛ همه قابل تغییر در تنظیمات.</p>
+      <p class="feature-desc" data-en="Dark or light, tinted by the album art. Cinema mode with full-screen lyrics side by side, and a little NOVA buddy that dances to your music. Every button has a remappable shortcut in Settings.">تیره یا روشن با رنگ کاور آهنگ. حالت سینمایی با متن تمام‌صفحه در کنارش، و کرکتر کوچولوی نوا که با آهنگ می‌رقصد. هر دکمه یک میانبر قابل تغییر در تنظیمات دارد.</p>
       </article>
       <article class="card">
       <div class="feature-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
@@ -603,7 +654,7 @@
       <article class="card">
       <div class="feature-icon"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
       <h3 class="feature-title" data-en="Private, offline, up to date">خصوصی، آفلاین، به‌روز</h3>
-      <p class="feature-desc" data-en="No account, no ads; everything stays on your PC. Online parts show your connection state, and every stable or beta release is announced inside the app.">بدون حساب و تبلیغ؛ همه‌چیز روی سیستم خودت. بخش‌های آنلاین وضعیت اینترنت را نشان می‌دهند و خبر هر نسخهٔ پایدار یا بتا داخل خود برنامه می‌رسد.</p>
+      <p class="feature-desc" data-en="No account, no ads; everything stays on your PC. Online parts show your connection state, every stable or beta release is announced inside the app, and a lighter engine keeps RAM and CPU low.">بدون حساب و تبلیغ؛ همه‌چیز روی سیستم خودت. بخش‌های آنلاین وضعیت اینترنت را نشان می‌دهند، خبر هر نسخهٔ پایدار یا بتا داخل خود برنامه می‌رسد و موتور سبک‌تر، رم و CPU کمتری می‌خورد.</p>
       </article>
       </div>
     </div>
@@ -619,6 +670,21 @@
   <h2 class="section-title reveal" id="whatsnewTitle" data-en="What changed lately">اخیراً چه چیزهایی عوض شد</h2>
   <p class="section-sub reveal d1" data-en="The latest updates at a glance. Full notes for every release live on GitHub.">خلاصهٔ آخرین آپدیت‌ها؛ یادداشت کامل هر نسخه در GitHub است.</p>
   <ol class="wn-list" id="nvWhatsNew" aria-live="polite">
+    <!-- nova-sync:site -->
+    <li class="wn-item reveal d1">
+      <div class="wn-head"><span class="wn-ver">v1.13.0</span><span class="wn-tag" data-en="New">جدید</span></div>
+      <ul class="wn-points">
+        <li data-en="Full-screen lyrics and a two-column cinema layout">تمام‌صفحهٔ متن آهنگ و چیدمان دوستونهٔ سینمایی</li>
+        <li data-en="A cleaner cinema mode and a full-height listening room">سینمایی خلوت‌تر و اتاق شنیدن تمام‌قد</li>
+        <li data-en="A &quot;What's new&quot; window after each update">پنجرهٔ «چه چیزهایی جدید است؟» بعد از آپدیت</li>
+        <li data-en="A &quot;Support us&quot; section with a reminder every 2 hours">بخش «حمایت از ما» و یادآوری هر ۲ ساعت</li>
+        <li data-en="The NOVA buddy: dances to your music and follows your mouse">کرکتر نوا که با آهنگ می‌رقصد و موس را نگاه می‌کند</li>
+        <li data-en="Lighter on RAM/CPU and faster track start">سبک‌تر، کم‌مصرف‌تر و شروع سریع‌تر آهنگ‌ها</li>
+        <li data-en="10 sort modes inside every playlist and a shortcut for every button">مرتب‌سازی ۱۰حالته داخل هر پلی‌لیست و میانبر برای همهٔ دکمه‌ها</li>
+        <li data-en="Fixed stretched playlist cards and a few hidden bugs">رفع کش آمدن کارت پلی‌لیست‌ها و چند مشکل پنهان</li>
+      </ul>
+    </li>
+    <!-- /nova-sync:site -->
     <li class="wn-item reveal d1">
       <div class="wn-head"><span class="wn-ver">v1.12.0</span><span class="wn-tag" data-en="New">جدید</span></div>
       <ul class="wn-points">
@@ -674,13 +740,13 @@
       <div class="dl-title">NOVA Player</div>
       <div class="dl-sub" data-en="Official builds for Windows 10/11, macOS (Apple Silicon and Intel) and Linux. The button picks the right file for your system.">نسخهٔ رسمی برای ویندوز ۱۰ و ۱۱، مک (Apple Silicon و Intel) و لینوکس. دکمه خودش فایل مناسب سیستم تو را برمی‌دارد.</div>
       <div class="dl-chips">
-        <span class="dl-chip hi" id="nvChipVer">v1.12.0</span>
+        <span class="dl-chip hi" id="nvChipVer">v1.13.0</span>
         <span class="dl-chip" id="nvChipOs">Windows x64</span>
         <span class="dl-chip" id="nvChipSize" hidden></span>
         <span class="dl-chip nv-date" id="nvChipDate" hidden></span>
         <span class="dl-chip" data-en="Free">رایگان</span>
       </div>
-      <code class="dl-filename" id="nvFile">NOVA.Player_1.12.0_x64-setup.exe</code>
+      <code class="dl-filename" id="nvFile">NOVA.Player_1.13.0_x64-setup.exe</code>
       <a id="nvDlBtn" href="https://github.com/Mehdi138iimm/NovaPlayer/releases/latest"
          class="btn-download wipe"
          aria-label="دانلود آخرین نسخه NOVA Player برای ویندوز ۶۴ بیتی" data-en-aria="Download the latest NOVA Player for Windows x64">
@@ -737,7 +803,14 @@
       <span class="social-highlight-card__beam" aria-hidden="true"></span>
       <span class="social-highlight-card__icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.259-1.91.177-.184 3.247-2.977 3.307-3.23.005-.03.01-.14-.052-.198-.062-.058-.155-.038-.222-.023-.096.022-1.622 1.03-4.58 3.022-.433.297-.824.442-1.174.435-.386-.008-1.13-.218-1.682-.397-.68-.22-1.22-.336-1.174-.71.023-.194.29-.393.802-.596 3.132-1.364 5.218-2.264 6.26-2.699 2.979-1.24 3.597-1.456 4-1.462z"/></svg></span>
     </a>
-    <a class="social-highlight-card" style="--brand: oklch(68% .19 355); --brand-lt: oklch(52% .22 358)" href="https://www.instagram.com/kasrakevin9" target="_blank" rel="noopener" aria-label="اینستاگرام" title="اینستاگرام" data-en-aria="Instagram" data-en-title="Instagram">
+    <a class="social-highlight-card" style="--brand: oklch(76% .14 38); --brand-lt: oklch(62% .18 34)" href="https://donofa.com/novaplayerapp" target="_blank" rel="noopener" aria-label="Support NOVA on Donofa" data-en-aria="Support NOVA on Donofa">
+      <span class="social-highlight-card__glow" aria-hidden="true"></span>
+      <span class="social-highlight-card__beam" aria-hidden="true"></span>
+      <span class="social-highlight-card__icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg></span>
+      <h3 class="social-highlight-card__title" data-en="Support NOVA">حمایت از NOVA</h3>
+      <p class="social-highlight-card__desc" data-en="Help us grow. Free, ad-free, and always will be.">کمک کن بزرگ‌تر بشم. رایگان، بدون تبلیغ، تا‌همیشه.</p>
+    </a>
+        <a class="social-highlight-card" style="--brand: oklch(68% .19 355); --brand-lt: oklch(52% .22 358)" href="https://www.instagram.com/kasrakevin9" target="_blank" rel="noopener" aria-label="اینستاگرام" title="اینستاگرام" data-en-aria="Instagram" data-en-title="Instagram">
       <span class="social-highlight-card__glow" aria-hidden="true"></span>
       <span class="social-highlight-card__beam" aria-hidden="true"></span>
       <span class="social-highlight-card__icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.9.423.423.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.902 1.382-.421.423-.827.679-1.383.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.902-.421-.421-.69-.827-.9-1.383-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.422.81-.692 1.379-.9.42-.170 1.051-.365 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.441 1.441 0 0 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/></svg></span>
@@ -1486,6 +1559,11 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
   }
 }());
 </script>
+<script id="nv-buddy-look">(()=>{const b=document.querySelector('.pv-buddy');if(!b)return;let x=0,y=0,q=false;
+const f=()=>{q=false;const r=b.querySelector('svg')?.getBoundingClientRect();if(!r||!r.width||r.bottom<0||r.top>innerHeight)return;
+const dx=x-(r.left+r.width/2),dy=y-(r.top+r.height*.42),d=Math.hypot(dx,dy)||1,k=Math.min(1,d/260)*3.4;
+b.style.setProperty('--lx',(dx/d*k).toFixed(1));b.style.setProperty('--ly',(dy/d*k).toFixed(1));};
+addEventListener('pointermove',e=>{x=e.clientX;y=e.clientY;if(!q){q=true;requestAnimationFrame(f);}},{passive:true});})();</script>
 </body>
 <script>
 (function () {
