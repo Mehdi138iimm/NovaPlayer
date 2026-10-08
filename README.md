@@ -312,7 +312,7 @@ NOVA از فایل‌های <code>.lrc</code> استفاده می‌کنه. آه
 
 <a href="https://t.me/NovaPlayerApp"><img src="https://img.shields.io/badge/Telegram-@NovaPlayerApp-26A5E4?style=for-the-badge&logo=telegram&logoColor=white&labelColor=09090f" alt="Telegram"></a>
 <a href="https://www.youtube.com/@Sir_Mr_yellow138"><img src="https://img.shields.io/badge/YouTube-Sir__Mr__yellow138-FF0000?style=for-the-badge&logo=youtube&logoColor=white&labelColor=09090f" alt="YouTube"></a>
-<a href="https://www.instagram.com/kasrakevin9"><img src="https://img.shields.io/badge/Instagram-kasrakevin9-E4405F?style=for-the-badge&logo=instagram&logoColor=white&labelColor=09090f" alt="Instagram"></a>
+<a href="https://www.instagram.com/novaplayerapp"><img src="https://img.shields.io/badge/Instagram-kasrakevin9-E4405F?style=for-the-badge&logo=instagram&logoColor=white&labelColor=09090f" alt="Instagram"></a>
 
 <br><br>
 
