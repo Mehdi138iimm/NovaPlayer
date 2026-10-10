@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
+<script id="nova-v113-whatsnew-snap">try{window.__novaHadData=Object.keys(localStorage).some(k=>/^nova/i.test(k)&&k!=='nova-whatsnew-seen'&&k!=='nova-whatsnew-off')}catch(e){window.__novaHadData=false}</script>
+
 <!-- NOVA motion compatibility fix: the in-app Motion control now overrides the OS preference;
      reduced motion remains available from the header button. Added WAAPI fallback for older webviews. -->
 
@@ -21,6 +23,71 @@
   const set=v=>{v=!!v;if(v===bg)return;bg=v;document.dispatchEvent(new Event('visibilitychange'));};
   document.addEventListener('visibilitychange',mark);
   try{window.__TAURI__?.event?.listen?.('nova-window-visibility',({payload})=>set(payload));}catch(e){}
+})();
+</script>
+<script id="nova-v113-thumbs">
+/* v1.13.0 perf: list rows used to carry the full embedded cover (often 0.5–3 MB as a data: URL) in their
+   inline style, re-parsed and re-decoded at full size on every re-render. Rows now get a small square
+   thumbnail (same crop as background-size:cover), made once in the background and cached on disk.
+   The big disc keeps the full-resolution cover. */
+(()=>{
+  const SIZE=168,MIN=16000,map=new Map(),queue=[],queued=new Set();
+  let db=null,ready=false,busy=false,swapT=0;
+  const sig=c=>{const n=c.length;let h=2166136261;const step=Math.max(1,(n/131)|0);for(let i=32;i<n;i+=step){h^=c.charCodeAt(i);h=Math.imul(h,16777619);}return n.toString(36)+'.'+(h>>>0).toString(36)+'.'+c.slice(-20);};
+  const big=c=>typeof c==='string'&&c.length>=MIN&&c.startsWith('data:image');
+  const idle=fn=>window.requestIdleCallback?requestIdleCallback(fn,{timeout:1500}):setTimeout(fn,40);
+  const url=c=>{if(!big(c))return c;const k=sig(c),u=map.get(k);if(u)return u;want(c,k);return c;};
+  const want=(c,k)=>{if(queued.has(k))return;queued.add(k);queue.push([c,k]);pump();};
+  const canvasOf=(w,h)=>{if(typeof OffscreenCanvas==='function')return new OffscreenCanvas(w,h);const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+  const toBlob=cv=>cv.convertToBlob?cv.convertToBlob({type:'image/webp',quality:.9}):new Promise(r=>cv.toBlob(r,'image/webp',.9));
+  const make=async c=>{
+    const comma=c.indexOf(',');if(comma<0||!/;base64$/i.test(c.slice(0,comma)))return null;
+    const mime=c.slice(5,comma).split(';')[0]||'image/jpeg';
+    const bin=atob(c.slice(comma+1)),bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    const bmp=await createImageBitmap(new Blob([bytes],{type:mime}));
+    try{
+      const w=bmp.width,h=bmp.height,s=Math.min(w,h);if(!s)return null;
+      const sx=(w-s)/2,sy=(h-s)/2;let src=bmp,ss=s,ox=sx,oy=sy;
+      /* two-step downscale keeps the small thumb crisp (no shimmering) */
+      if(s>SIZE*3){const mid=canvasOf(SIZE*2,SIZE*2),m=mid.getContext('2d');m.imageSmoothingQuality='high';m.drawImage(bmp,sx,sy,s,s,0,0,SIZE*2,SIZE*2);src=mid;ss=SIZE*2;ox=oy=0;}
+      const out=canvasOf(SIZE,SIZE),x=out.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(src,ox,oy,ss,ss,0,0,SIZE,SIZE);
+      return await toBlob(out);
+    }finally{try{bmp.close();}catch(e){}}
+  };
+  const save=(k,b)=>{try{db&&db.transaction('t','readwrite').objectStore('t').put(b,k);}catch(e){}};
+  const pump=()=>{
+    if(busy||!ready||!queue.length)return;busy=true;
+    const step=async()=>{
+      const t0=performance.now();
+      while(queue.length&&performance.now()-t0<12){
+        const [c,k]=queue.shift();if(map.has(k))continue;
+        try{const b=await make(c);if(b&&b.size){map.set(k,URL.createObjectURL(b));save(k,b);swapSoon();}}catch(e){}
+      }
+      if(queue.length&&!document.hidden)idle(step);else if(queue.length)setTimeout(()=>idle(step),1500);else busy=false;
+    };
+    idle(step);
+  };
+  /* rows rendered before their thumb existed swap to it in place (identical look, far lighter) */
+  const swap=()=>{swapT=0;
+    const els=document.querySelectorAll('[data-cv]');if(!els.length)return;
+    let byId=null;try{byId=new Map((window.NovaLibrary?.playlist||[]).map(s=>[String(s.id),s]));}catch(e){return;}
+    els.forEach(el=>{const s=byId.get(el.dataset.cv);if(!s||!big(s.cover))return;const u=map.get(sig(s.cover));
+      if(u&&el.dataset.cvu!==u){el.style.backgroundImage='url("'+u+'")';el.dataset.cvu=u;}});
+  };
+  const swapSoon=()=>{if(!swapT)swapT=setTimeout(swap,180);};
+  try{
+    const r=indexedDB.open('nova-thumbs',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('t');
+    r.onsuccess=()=>{db=r.result;
+      try{const st=db.transaction('t','readonly').objectStore('t'),cur=st.openCursor();
+        cur.onsuccess=()=>{const x=cur.result;if(x){if(x.value instanceof Blob&&!map.has(x.key))map.set(x.key,URL.createObjectURL(x.value));x.continue();}else{ready=true;swapSoon();pump();}};
+        cur.onerror=()=>{ready=true;pump();};
+      }catch(e){ready=true;pump();}
+    };
+    r.onerror=()=>{ready=true;pump();};
+  }catch(e){ready=true;}
+  window.NovaThumb={url,swap:swapSoon,get size(){return map.size;}};
 })();
 </script>
 <script id="nova-net">
@@ -1358,6 +1425,14 @@ html.nova-bg *,html.nova-bg *::before,html.nova-bg *::after{animation-play-state
 .plx-x:hover{color:var(--ember);background:color-mix(in oklab,var(--ember) 12%,transparent)}
 @media(hover:none){.plx-x{opacity:.7}}
 .plx-note{font-size:11px;color:var(--muted);text-align:center;padding:4px}
+.plx-tools{display:flex;gap:6px;align-items:center}
+.plx-tools .plx-search{flex:1;min-width:0}
+.plx-sort{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 12px;border-radius:10px;border:1px solid var(--glass-border);background:transparent;color:var(--text);font:600 12px var(--sans);cursor:pointer;white-space:nowrap;flex-shrink:0;margin-inline-start:auto}
+.plx-sort:hover,.plx-sort[aria-expanded="true"]{background:var(--glass-hover);border-color:var(--neon)}
+.plx-sort b{color:var(--neon);font-weight:700}
+.plx-sort svg{width:15px;height:15px}
+.plx-rows.sorted .plx-grip{visibility:hidden}
+.plx-pop-sep{height:1px;background:var(--glass-border);margin:5px 4px}
 /* one-step song picker */
 .plx-picker{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;gap:10px;padding:14px;background:var(--surface);border-radius:inherit;animation:plxUp .3s var(--ease-out,ease)}
 @keyframes plxUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -1457,6 +1532,96 @@ html.nova-offline .net-strip{display:block}
   .library-card,.pl-panel,.trend-panel{flex:1 1 auto;min-height:0}
   .track-list,.pl-list,.trend-list{flex:1 1 0!important;max-height:none!important;min-height:380px}
 }
+</style>
+<style id="nova-v112-tweaks">
+/* removed: nav SEARCH item, library search pill, sleep-timer card (sleep timer stays in the bottom bar) */
+body.nv12 #nvNavSearch,body.nv12 #searchWrap,body.nv12 .nv-timer{display:none!important}
+/* listening room always fills the full column height */
+body.nv12 .player-card{align-self:stretch!important;height:auto!important;max-height:none!important}
+body.nv12 .player-card .artwork-wrapper{flex:1 1 auto;min-height:230px}
+/* lyrics open: the card stays full height, disc + lyrics share the space */
+body.nv12 .player-card:has(.lyrics-panel:not([hidden])){overflow-y:auto}
+body.nv12 .player-card:has(.lyrics-panel:not([hidden])) .artwork-wrapper{flex:1 1 0!important;height:auto!important;min-height:170px!important}
+body.nv12 .lyrics-panel:not([hidden]){flex:1.4 1 0!important;min-height:240px;display:flex;flex-direction:column}
+body.nv12 .lyrics-panel:not([hidden])>.lyrics-head,body.nv12 .lyrics-panel:not([hidden])>.lyrics-footer{flex:none}
+body.nv12 .lyrics-panel:not([hidden])>.lyrics-window,body.nv12 .lyrics-panel:not([hidden])>.lyrics-sheet{flex:1 1 0;min-height:0!important;height:auto!important;max-height:none!important;overflow-y:auto}
+body.nv12.nova-cinema .player-card:has(.lyrics-panel:not([hidden])){overflow-y:auto}
+</style>
+<style id="nova-v112-cinema-tweaks">
+/* dock: search button removed (Ctrl+K and the top search bar still open search) */
+body.nv12 #searchPageBtn{display:none!important}
+/* cinema: no search bar, no bottom bar; only "exit cinema" + volume stay, in a small pill at the top center */
+body.nv12.nova-cinema .nv-search{visibility:hidden;pointer-events:none}
+body.nv12.nova-cinema .shell{bottom:14px}
+body.nv12.nova-cinema .nv-bar{left:50%;right:auto;bottom:auto;top:calc(var(--nv-top) + 6px);transform:translateX(-50%);
+  height:46px;width:max-content;display:flex;gap:10px;padding:0 8px 0 6px;border-radius:16px}
+body.nv12.nova-cinema .nv-now,body.nv12.nova-cinema .nv-bar-mid,
+body.nv12.nova-cinema .nv-bar .nova-side-dock>*:not(#cinemaBtn):not(.nova-side-label){display:none!important}
+body.nv12.nova-cinema .nv-bar-right{gap:8px}
+body.nv12.nova-cinema .nv-bar .nova-side-dock .experience-btn{width:34px;height:34px;min-height:34px}
+body.nv12.nova-cinema .nv-bar .volume-row{width:150px}
+body.nv12.nova-cinema .nv-bar .nova-side-label{bottom:auto;top:calc(100% + 12px);transform-origin:50% 0}
+body.nv12.nova-cinema .toast{bottom:30px!important}
+body.nv12.nova-cinema .vt-stack{bottom:26px!important}
+</style>
+<style id="nova-v112-lyrics-full">
+/* lyrics full mode: the lyrics take over the whole listening room; a slim player strip stays at the bottom */
+.lrc-full-btn .ico-exit{display:none}
+body.nv-lyr-full .lrc-full-btn .ico-enter{display:none}
+body.nv-lyr-full .lrc-full-btn .ico-exit{display:block}
+body.nv-lyr-full .lrc-full-btn{color:var(--neon);border-color:var(--neon)}
+body.nv-lyr-full .player-card{display:flex!important;flex-direction:column;overflow:hidden!important}
+body.nv-lyr-full:not(.nova-cinema) .player-card>*:not(.lyrics-panel):not(.progress-area):not(.controls-row){display:none!important}
+body.nv-lyr-full.nova-cinema .player-card>*:not(.lyrics-panel):not(.progress-area):not(.controls-row):not(.artwork-wrapper):not(.track-meta){display:none!important}
+body.nv-lyr-full .player-card>.lyrics-panel{order:-1;flex:1 1 0!important;min-height:0!important;display:flex!important;flex-direction:column;border-top:0!important;margin:0!important;padding-top:0!important}
+body.nv-lyr-full .lyrics-panel>.lyrics-window,body.nv-lyr-full .lyrics-panel>.lyrics-sheet{flex:1 1 0;min-height:0!important;max-height:none!important;height:auto!important;overflow-y:auto}
+body.nv-lyr-full .lyrics-panel .lyric-line{font-size:24px!important;line-height:1.75!important}
+body.nv-lyr-full .lyrics-panel[data-size="s"] .lyric-line{font-size:19px!important}
+body.nv-lyr-full .lyrics-panel[data-size="l"] .lyric-line{font-size:30px!important}
+body.nv-lyr-full .lyrics-panel[data-size="xl"] .lyric-line{font-size:36px!important}
+body.nv-lyr-full .player-card>.progress-area{flex:none;margin-top:4px}
+body.nv-lyr-full .player-card>.controls-row{flex:none;gap:10px}
+body.nv-lyr-full:not(.nova-cinema) .player-card .ctrl{width:38px;height:38px}
+body.nv-lyr-full:not(.nova-cinema) .player-card .ctrl-play{width:50px;height:50px}
+</style>
+<style id="nova-v113-cinema-lyrics">
+/* cinema + full lyrics: player on the left, lyrics on the right */
+body.nv-lyr-full.nova-cinema .player-card{display:grid!important;max-width:none!important;width:100%;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto auto auto minmax(0,1fr);
+  column-gap:clamp(24px,4vw,64px);row-gap:14px;align-items:center;padding:8px 24px 18px!important;overflow:hidden!important}
+body.nv-lyr-full.nova-cinema .player-card>*{grid-column:2;min-width:0}
+html[dir="ltr"] body.nv-lyr-full.nova-cinema .player-card>*{grid-column:1}
+html[dir="ltr"] body.nv-lyr-full.nova-cinema .player-card>.lyrics-panel{grid-column:2!important}
+body.nv-lyr-full.nova-cinema .player-card>.artwork-wrapper{grid-row:2;flex:none!important;width:100%;height:min(44vh,360px)!important;min-height:200px!important;
+  aspect-ratio:auto!important;background:transparent!important;box-shadow:none!important;border:0!important}
+body.nv-lyr-full.nova-cinema .player-card>.track-meta{grid-row:3;flex-direction:column;align-items:center}
+body.nv-lyr-full.nova-cinema .player-card>.progress-area{grid-row:4;width:min(100%,520px);justify-self:center;margin:0!important}
+body.nv-lyr-full.nova-cinema .player-card>.controls-row{grid-row:5;justify-self:center}
+body.nv-lyr-full.nova-cinema .player-card>.lyrics-panel{grid-column:1!important;grid-row:1/-1;align-self:stretch;order:0;height:100%;max-width:none!important;width:100%}
+</style>
+<style id="nova-v113-whatsnew">
+.nwn-back{position:fixed;inset:0;z-index:99990;display:grid;place-items:center;padding:24px;background:oklch(8% .01 120 / .62);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;transition:opacity .25s ease}
+.nwn-back.on{opacity:1}
+.nwn{width:min(460px,100%);max-height:min(620px,calc(100vh - 48px));display:flex;flex-direction:column;border-radius:24px;
+  background:var(--surface);border:1px solid var(--glass-border);color:var(--text);box-shadow:0 30px 80px oklch(5% .01 120 / .55);
+  transform:translateY(10px) scale(.98);transition:transform .3s cubic-bezier(.2,.8,.2,1);overflow:hidden;font-family:var(--sans)}
+.nwn-back.on .nwn{transform:none}
+.nwn-head{padding:22px 22px 10px;display:flex;align-items:center;gap:14px}
+.nwn-badge{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:var(--neon);color:var(--on-accent);font-size:22px;flex:none}
+.nwn-head h2{margin:0;font-size:18px;font-weight:800;line-height:1.4}
+.nwn-head small{display:block;font:600 10.5px var(--mono);letter-spacing:.1em;color:var(--neon);direction:ltr;text-align:start}
+.nwn-list{list-style:none;margin:0;padding:6px 22px 4px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.nwn-list li{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:16px;background:var(--frost);border:1px solid var(--glass-border)}
+.nwn-list .i{font-size:18px;line-height:1.5;flex:none}
+.nwn-list b{display:block;font-size:13.5px;font-weight:700;line-height:1.6}
+.nwn-list span{display:block;font-size:12px;line-height:1.7;color:var(--muted)}
+.nwn-foot{display:flex;gap:8px;padding:16px 22px 20px;align-items:center}
+.nwn-foot button{font:600 12.5px var(--sans);border-radius:13px;padding:10px 16px;cursor:pointer;border:1px solid var(--glass-border);background:transparent;color:var(--muted)}
+.nwn-foot button:hover{color:var(--text);border-color:var(--text)}
+.nwn-foot .nwn-ok{margin-inline-start:auto;background:var(--neon);color:var(--on-accent);border-color:transparent}
+.nwn-foot .nwn-ok:hover{filter:brightness(1.08);color:var(--on-accent)}
+:root[data-motion="reduce"] .nwn-back,:root[data-motion="reduce"] .nwn{transition:none}
 </style>
 </head>
 <body class="nova-custom-titlebar">
@@ -1762,7 +1927,7 @@ html.nova-offline .net-strip{display:block}
       <div class="help-hero">
         <div class="help-hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
         <div>
-          <div class="help-hero-title">راهنمای NOVA <span class="help-ver-chip">v1.11.0</span></div>
+          <div class="help-hero-title">راهنمای NOVA <span class="help-ver-chip">v1.14.0</span></div>
           <div class="help-hero-sub">پلیر آفلاین ویندوز: سریع، خصوصی، بدون تبلیغ. هر چیزی که برای شروع لازم داری همین‌جاست.</div>
         </div>
       </div>
@@ -1773,9 +1938,34 @@ html.nova-offline .net-strip{display:block}
         <div class="help-step"><div class="help-step-num">قدم ۳</div><div class="help-step-title">شخصی‌سازی کن</div><div class="help-step-desc">پلی‌لیست بساز، لایک کن، و در تنظیمات میانبرهای خودت را انتخاب کن.</div></div>
       </div>
 
+      <!-- nova-sync:help -->
+      <div class="help-section">
+        <div class="help-sec-title">✨ تازه‌های 1.14.0</div>
+        <div class="help-item"><span class="help-key">تازه</span><span class="help-desc">هماهنگ‌سازی شمارهٔ نسخه در برنامه، نصب‌کننده و سایت</span></div>
+        <div class="help-item"><span class="help-key">تازه</span><span class="help-desc">به‌روزرسانی نشان نسخه و فایل دانلود سایت</span></div>
+        <div class="help-item"><span class="help-key">تازه</span><span class="help-desc">افکت صدای زیبا برای کلیک، باز و بسته‌شدن منوها، تب‌ها و تغییر حالت‌ها؛ کاملاً آفلاین و بدون فایل خارجی</span></div>
+        <div class="help-item"><span class="help-key">تازه</span><span class="help-desc">کرکتر نوا را با رنگ، گوش، اکسسوری، اسم، نوشتهٔ شال، اندازه و انرژی رقص شخصی‌سازی کن؛ تنظیمات همان لحظه ذخیره می‌شوند</span></div>
+      </div>
+      <!-- /nova-sync:help -->
+      <div class="help-section">
+        <div class="help-sec-title">⇅ مرتب‌سازی پلی‌لیست (1.13.0)</div>
+        <div class="help-item"><span class="help-key">۱۰ حالت</span><span class="help-desc">داخل هر پلی‌لیست دکمهٔ «مرتب‌سازی»: دستی، A→Z، Z→A، جدیدترین، قدیمی‌ترین، آخرین اضافه‌شده، حجم بزرگ/کوچک، پوشه و نوع فایل. برای هر پلی‌لیست جدا ذخیره می‌شود و پخش هم به همان ترتیب است.</span></div>
+        <div class="help-item"><span class="help-key">ترتیب دستی</span><span class="help-desc">«همین ترتیب رو ترتیب دستی کن»، «برعکس کردن» و «درهم ریختن»؛ یا آهنگ‌ها را با ⠿ بکش.</span></div>
+      </div>
+      <div class="help-section">
+        <div class="help-sec-title">💚 حمایت از ما (1.13.0)</div>
+        <div class="help-item"><span class="help-key">حمایت</span><span class="help-desc">NOVA رایگان و بدون تبلیغ است. کارت «حمایت از ما» پایین منوی کناری یا تنظیمات ← حمایت از ما، صفحهٔ donofa.com/novaplayerapp را در مرورگر باز می‌کند.</span></div>
+        <div class="help-item"><span class="help-key">یادآوری</span><span class="help-desc">هر ۲ ساعت یک کارت کوچک پیشنهاد حمایت می‌دهد و هیچ‌وقت وسط پنجره‌ها یا حالت سینمایی نمی‌آید.</span></div>
+      </div>
+      <div class="help-section">
+        <div class="help-sec-title">✨ تازه‌های 1.12.0</div>
+        <div class="help-item"><span class="help-key">ظاهر جدید</span><span class="help-desc">سه ستون: بخش‌ها سمت چپ، اتاق شنیدن وسط و کتابخانه سمت راست؛ همهٔ امکانات و تم‌ها مثل قبل.</span></div>
+        <div class="help-item"><span class="help-key">نوار پایین</span><span class="help-desc">آهنگ در حال پخش، ابزارهای سریع، ابزارهای اتاق شنیدن و صدا همه در یک نوار پایین صفحه.</span></div>
+        <div class="help-item"><span class="help-key">جستجو</span><span class="help-desc">صفحهٔ جستجو و دانلود آهنگ از هر جا با <span class="help-kbd">Ctrl</span>+<span class="help-kbd">K</span> باز می‌شود.</span></div>
+      </div>
       <div class="help-section">
         <div class="help-sec-title">🔎 جستجو و دانلود (1.11.0)</div>
-        <div class="help-item"><span class="help-key">صفحهٔ SEARCH</span><span class="help-desc">دکمهٔ 🔎 در نوار ابزار (یا <span class="help-kbd">Ctrl</span>+<span class="help-kbd">K</span> از هر جا) یک صفحهٔ جدا برای پیدا کردن و دانلود آهنگ باز می‌کند. <span class="help-kbd">Esc</span> برمی‌گرداند.</span></div>
+        <div class="help-item"><span class="help-key">صفحهٔ SEARCH</span><span class="help-desc">کلید <span class="help-kbd">Ctrl</span>+<span class="help-kbd">K</span> از هر جا یک صفحهٔ جدا برای پیدا کردن و دانلود آهنگ باز می‌کند. <span class="help-kbd">Esc</span> برمی‌گرداند.</span></div>
         <div class="help-item"><span class="help-key">جستجوی عمیق</span><span class="help-desc">کافیه یه تکه از اسم آهنگ یا خواننده رو بنویسی (حتی با غلط تایپی، فارسی یا فینگلیش). گوگل جستجو رو کامل می‌کنه، iTunes و Deezer آهنگ دقیق رو شناسایی می‌کنن و Audius و Internet Archive با همهٔ این عبارت‌ها گشته می‌شن.</span></div>
         <div class="help-item"><span class="help-key">فقط آهنگ</span><span class="help-desc">پادکست، کتاب صوتی، سخنرانی، برنامهٔ رادیویی و فایل‌های خیلی کوتاه یا خیلی بلند (زیر ۴۵ ثانیه یا بالای ۱۵ دقیقه) نشان داده نمی‌شوند.</span></div>
         <div class="help-item"><span class="help-key">🎯 همین آهنگ</span><span class="help-desc">نتیجه‌ای که با آهنگ شناسایی‌شده (اسم، خواننده و مدت) می‌خونه بالای لیست میاد. کارت‌های «آهنگی که دنبالشی؟» پیش‌شنوی ۳۰ ثانیه‌ای دارن و دکمهٔ «نسخهٔ کامل» و گوگل.</span></div>
@@ -1784,7 +1974,7 @@ html.nova-offline .net-strip{display:block}
       <div class="help-section">
         <div class="help-sec-title">✨ تازه‌های 1.10.0</div>
         <div class="help-item"><span class="help-key">پلی‌لیست‌ها</span><span class="help-desc">تب PLAYLISTS از نو ساخته شده: کاورهای موزاییکی، صفحهٔ هر پلی‌لیست با «پخش» و «تصادفی»، افزودن آهنگ در یک قدم با تیک زدن، جابه‌جایی با کشیدن ⠿، و «ساخت سریع» از علاقه‌مندی‌ها، تازه‌ها یا یک پوشه. دکمهٔ + کنار هر آهنگ کتابخانه هم آن را مستقیم به پلی‌لیست می‌برد.</span></div>
-        <div class="help-item"><span class="help-key">تایمر خواب</span><span class="help-desc">دکمهٔ «تایمر خواب» در نوار ابزار: ۱۵ تا ۱۲۰ دقیقه، زمان دلخواه یا «آخر همین آهنگ». صدا آخر کار آروم کم می‌شود.</span></div>
+        <div class="help-item"><span class="help-key">تایمر خواب</span><span class="help-desc">کلید <span class="help-kbd">S</span> (یا میانبر دلخواهت): ۱۵ تا ۱۲۰ دقیقه، زمان دلخواه یا «آخر همین آهنگ». صدا آخر کار آروم کم می‌شود.</span></div>
                 <div class="help-item"><span class="help-key">M3U و پشتیبان</span><span class="help-desc">پلی‌لیست‌ها را M3U/M3U8 بگیر یا وارد کن (منوی ⋯ هر پلی‌لیست و دکمهٔ ورود در تب). در تنظیمات، «پشتیبان‌گیری و انتقال» همه‌چیز را در یک فایل JSON نگه می‌دارد.</span></div>
         <div class="help-item"><span class="help-key">باز کردن فایل</span><span class="help-desc">روی هر فایل صوتی در ویندوز دوبار کلیک کن (یا «Open with ← NOVA»): همان پنجرهٔ باز NOVA پخشش می‌کند و نسخهٔ دوم باز نمی‌شود.</span></div>
         <div class="help-item"><span class="help-key">بدون اینترنت</span><span class="help-desc">وقتی آفلاینی، نشان «آفلاین» بالای صفحه می‌آید و بخش‌های آنلاین (متن آهنگ، ترجمه، ترندها، آپدیت) به‌جای خطای گنگ، واضح می‌گویند اینترنت لازم است. با وصل شدن، خودشان دوباره امتحان می‌کنند.</span></div>
@@ -1827,8 +2017,19 @@ html.nova-offline .net-strip{display:block}
         <div class="help-item"><span class="help-key"><span class="help-kbd">L</span></span><span class="help-desc">باز و بسته‌کردن پنل متن آهنگ</span></div>
         <div class="help-item"><span class="help-key"><span class="help-kbd">F</span></span><span class="help-desc">افزودن به علاقه‌مندی‌ها</span></div>
         <div class="help-item"><span class="help-key"><span class="help-kbd">D</span></span><span class="help-desc">باز و بسته‌کردن مینی‌پلیر دسکتاپ</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">Shift</span> <span class="help-kbd">←</span> <span class="help-kbd">→</span></span><span class="help-desc">۱۰ ثانیه عقب / جلو</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">M</span> <span class="help-kbd">X</span> <span class="help-kbd">R</span></span><span class="help-desc">بی‌صدا · تصادفی · تکرار</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">1</span> … <span class="help-kbd">4</span></span><span class="help-desc">کتابخانه · پلی‌لیست‌ها · علاقه‌مندی‌ها · ترندها</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">P</span> <span class="help-kbd">O</span> <span class="help-kbd">V</span></span><span class="help-desc">افزودن به پلی‌لیست · حلقهٔ واکنش‌گرا · لیست/قفسه</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">[</span> <span class="help-kbd">]</span></span><span class="help-desc">متن آهنگ نیم ثانیه زودتر / دیرتر</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">Ctrl</span> <span class="help-kbd">O</span> / <span class="help-kbd">N</span></span><span class="help-desc">افزودن فایل (با Shift: پوشه) · پلی‌لیست جدید</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">Shift</span> <span class="help-kbd">L</span></span><span class="help-desc">تمام‌صفحهٔ متن آهنگ</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">S</span></span><span class="help-desc">تایمر خواب</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">Ctrl</span> <span class="help-kbd">K</span></span><span class="help-desc">جستجو و دانلود آهنگ</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">Ctrl</span> <span class="help-kbd">,</span></span><span class="help-desc">تنظیمات</span></div>
+        <div class="help-item"><span class="help-key"><span class="help-kbd">F1</span> <span class="help-kbd">F11</span></span><span class="help-desc">راهنما · بزرگ‌نمایی پنجره</span></div>
         <div class="help-item"><span class="help-key"><span class="help-kbd">Esc</span></span><span class="help-desc">بستن پنجره‌ها، خروج از سینما، پاک‌کردن جستجو</span></div>
-        <div class="help-tip"><b>نکته</b><span>هنگام تایپ در جستجو و کادرها، میانبرها خودشان غیرفعال می‌شوند؛ پس حرف‌هایی مثل T دیگر تم را عوض نمی‌کنند. همهٔ میانبرها از تنظیمات (چرخ‌دنده) قابل تغییرند.</span></div>
+        <div class="help-tip"><b>نکته</b><span>هنگام تایپ در جستجو و کادرها، میانبرها خودشان غیرفعال می‌شوند؛ پس حرف‌هایی مثل T دیگر تم را عوض نمی‌کنند. همهٔ میانبرها از تنظیمات (چرخ‌دنده) ← میانبرها قابل تغییرند و برای هر دکمهٔ برنامه می‌شود یکی تعریف کرد.</span></div>
       </div>
 
       <div class="help-section">
@@ -1847,8 +2048,8 @@ html.nova-offline .net-strip{display:block}
 
       <div class="help-section">
         <div class="help-sec-title">📚 کتابخانه و پلی‌لیست</div>
-        <div class="help-item"><span class="help-key">جستجو</span><span class="help-desc">نام آهنگ یا پوشه را تایپ کن؛ لیست همان‌لحظه فیلتر می‌شود.</span></div>
-        <div class="help-item"><span class="help-key">مرتب‌سازی</span><span class="help-desc">A-Z، Z-A، جدیدترین، حجم، یا ترتیب دستی با کشیدن آهنگ‌ها.</span></div>
+        <div class="help-item"><span class="help-key">جستجو</span><span class="help-desc">با <span class="help-kbd">Ctrl</span>+<span class="help-kbd">K</span> آهنگ تازه پیدا و دانلود کن؛ دانلودها مستقیم به کتابخانه می‌روند.</span></div>
+        <div class="help-item"><span class="help-key">مرتب‌سازی</span><span class="help-desc">کتابخانه: A-Z، Z-A، جدیدترین، حجم یا ترتیب دستی. داخل هر پلی‌لیست ۱۰ حالت جدا (بخش «مرتب‌سازی پلی‌لیست»).</span></div>
         <div class="help-item"><span class="help-key">پلی‌لیست</span><span class="help-desc">در تب PLAYLISTS «جدید» را بزن، اسم و آیکون بگذار و آهنگ‌ها را تیک بزن. از منوی ⋯ هر پلی‌لیست: تغییر نام، رنگ و آیکون، خروجی M3U، کپی و حذف.</span></div>
         <div class="help-item"><span class="help-key">ذخیره‌سازی</span><span class="help-desc">همهٔ آهنگ‌ها، پلی‌لیست‌ها و تنظیمات دائمی ذخیره می‌شوند و بعد از بستن برنامه هم می‌مانند.</span></div>
       </div>
@@ -1927,7 +2128,7 @@ html.nova-offline .net-strip{display:block}
         </section>
         <div class="about-divider"></div>
         <div class="about-app-line">
-          <div><div class="about-app-name">NO<span>VA</span> PLAYER</div><div class="about-ver">VERSION 1.11.0 · WINDOWS DESKTOP</div></div>
+          <div><div class="about-app-name">NO<span>VA</span> PLAYER</div><div class="about-ver">VERSION 1.14.0 · WINDOWS DESKTOP</div></div>
           <span class="about-section-note">OPEN SOURCE · OFFLINE FIRST</span>
         </div>
         <div class="about-tech">
@@ -2802,10 +3003,10 @@ const render=()=>{
     const li=document.createElement('div');
     li.className='track-item'+(isPlaying?' playing':'');
     li.dataset.id=String(s.id);
-    const thumbStyle=s.cover?`background-image:url(${s.cover});background-size:cover;background-position:center;`:'';
+    const thumbStyle=s.cover?`background-image:url('${NovaThumb.url(s.cover)}');background-size:cover;background-position:center;`:'';
     li.innerHTML=`
       <span class="track-handle" title="بکش و جابجا کن">⠿</span>
-      <div class="track-thumb" style="${thumbStyle}" data-action="play">${s.cover?'':'<span data-action="play">🎵</span>'}</div>
+      <div class="track-thumb" style="${thumbStyle}" data-cv="${s.id}" data-action="play">${s.cover?'':'<span data-action="play">🎵</span>'}</div>
       <div class="track-info" data-action="play">
         <div class="track-name" data-action="play">${esc(s.name)}</div>
         <div class="track-meta2" data-action="play">${esc(s.folder||'ROOT')} · ${s.ext||'MP3'} · ${fmtSize(s.size)}</div>
@@ -2834,6 +3035,17 @@ const render=()=>{
   list.scrollTop=keepScroll;
   initDnD(list);
   window.NovaMotion?.settleList(motionBefore);
+};
+
+/* v1.13.0 perf: switching tracks only moves the "playing" marker; no full list rebuild */
+const markPlaying=()=>{
+  const list=$('trackList'),rows=list?list.children:null;
+  if(!rows||!sortedList.length||rows.length!==sortedList.length){render();return;}
+  for(let i=0;i<rows.length;i++)if(rows[i].dataset.id!==String(sortedList[i].id)){render();return;}
+  const cur=Number(currentSong()?.id);
+  for(let i=0;i<rows.length;i++){const r=rows[i],on=Number(r.dataset.id)===cur;if(r.classList.contains('playing')===on)continue;
+    r.classList.toggle('playing',on);const n=r.querySelector('.track-num');if(n){n.classList.toggle('pn',on);n.textContent=on?'▶':String(i+1).padStart(2,'0');}}
+  syncFavBtn();
 };
 
 /* ── RENDER PLAYLISTS ── v1.10.0: Playlists 2.0 (see plxRender) */
@@ -2966,7 +3178,7 @@ const loadSong=async i=>{
   else{aw.style.backgroundImage='';aw.style.fontSize='76px';aw.textContent=EMOJIS[Math.floor(Math.random()*EMOJIS.length)];}
   $('addToPlBtn').style.display=playlist.length?'':'none';
   syncDesktop();
-  render();
+  markPlaying();
   experienceSongChanged(s);
   let src=null;
   try{src=await ensureSrc(s);}catch(error){
@@ -3023,6 +3235,8 @@ const nextSong=async()=>{
   const list=visibleList();
   let si=-1;
   if(pendingNextId!=null){si=list.findIndex(x=>Number(x.id)===Number(pendingNextId));pendingNextId=null;}
+  if(si<0&&shuffle&&window.__novaNextPick!=null&&Number(window.__novaNextPick)!==Number(currentSong()?.id))si=list.findIndex(x=>Number(x.id)===Number(window.__novaNextPick));
+  window.__novaNextPick=null;
   if(si<0)si=shuffle?pickShuffleIdx(list):(curVisibleIdx()+1+list.length)%list.length;
   if(await gotoVisible(si)){play();dbSaveCfg();}
 };
@@ -3281,20 +3495,38 @@ const PLX_ICON={
   palette:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="15.5" cy="10" r="1"/></svg>',
   copy:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>',
   trash:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
-  search:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg>'
+  search:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg>',
+  sort:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M17 20V4M13.5 7.5 17 4l3.5 3.5"/></svg>'
 };
 let plxView={screen:'home',id:null},plxFilter='',plxCreating=false,plxDraft={emoji:PLX_EMOJI[0],color:PLX_COLORS[0]},plxPicker=null;
 const songById=id=>playlist.find(s=>Number(s.id)===Number(id))||null;
 const plById=id=>playlists.find(p=>Number(p.id)===Number(id))||null;
 const plSongs=pl=>(pl?.songIds||[]).map(songById).filter(Boolean);
+/* v1.13.0: per-playlist sort. "manual" keeps your own ⠿ order; every other mode is only a view,
+   so switching back to manual always brings your order back untouched. */
+const PLX_SORTS=[['manual','دستی (ترتیب خودت)'],['az','الفبا A → Z'],['za','الفبا Z → A'],['new','جدیدترین'],['old','قدیمی‌ترین'],['added','آخرین اضافه‌شده به پلی‌لیست'],['big','حجم: بزرگ به کوچک'],['small','حجم: کوچک به بزرگ'],['folder','پوشه'],['type','نوع فایل']];
+const PLX_SORT_SHORT={manual:'دستی',az:'A → Z',za:'Z → A',new:'جدیدترین',old:'قدیمی‌ترین',added:'تازه اضافه‌شده',big:'حجم ↓',small:'حجم ↑',folder:'پوشه',type:'نوع فایل'};
+const plxSortOf=pl=>PLX_SORTS.some(([k])=>k===pl?.sort)?pl.sort:'manual';
+const plxByName=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),'fa',{numeric:true,sensitivity:'base'});
+const PLX_SORT_FN={
+  az:plxByName,za:(a,b)=>plxByName(b,a),
+  new:(a,b)=>(Number(b.dateAdded)||0)-(Number(a.dateAdded)||0)||plxByName(a,b),
+  old:(a,b)=>(Number(a.dateAdded)||0)-(Number(b.dateAdded)||0)||plxByName(a,b),
+  big:(a,b)=>(Number(b.size)||0)-(Number(a.size)||0)||plxByName(a,b),
+  small:(a,b)=>(Number(a.size)||0)-(Number(b.size)||0)||plxByName(a,b),
+  folder:(a,b)=>String(a.folder||'').localeCompare(String(b.folder||''),'fa',{numeric:true,sensitivity:'base'})||plxByName(a,b),
+  type:(a,b)=>String(a.ext||'').localeCompare(String(b.ext||''))||plxByName(a,b)
+};
+const plxOrdered=pl=>{const songs=plSongs(pl),k=plxSortOf(pl);if(k==='manual')return songs;if(k==='added')return songs.slice().reverse();return songs.slice().sort(PLX_SORT_FN[k]);};
 const plColor=pl=>/^#[0-9a-f]{6}$/i.test(pl?.color||'')?pl.color:PLX_COLORS[Math.abs(Math.floor(Number(pl?.id)||0))%PLX_COLORS.length];
 const plEmoji=pl=>esc(String(pl?.emoji||'🎵').slice(0,8));
 const cssUrl=u=>String(u||'').replace(/["'()\\\s]/g,m=>encodeURIComponent(m));
 const plxUniqueName=base=>{base=String(base||'پلی‌لیست').trim().slice(0,60)||'پلی‌لیست';if(!playlists.some(p=>p.name===base))return base;let n=2;while(playlists.some(p=>p.name===`${base} ${n}`))n++;return `${base} ${n}`;};
 const plxMosaic=pl=>{
-  const covers=[...new Set(plSongs(pl).map(s=>s.cover).filter(Boolean))].slice(0,4);
+  const seen=new Map();for(const x of plSongs(pl)){if(x.cover&&!seen.has(x.cover)){seen.set(x.cover,x.id);if(seen.size>=4)break;}}
+  const covers=[...seen.keys()];
   const style=`--plx-c:${plColor(pl)}`;
-  if(covers.length>=4)return `<div class="plx-art m4" style="${style}">${covers.map(c=>`<i style="background-image:url('${cssUrl(c)}')"></i>`).join('')}</div>`;
+  if(covers.length>=4)return `<div class="plx-art m4" style="${style}">${covers.map(c=>`<i style="background-image:url('${cssUrl(NovaThumb.url(c))}')" data-cv="${seen.get(c)}"></i>`).join('')}</div>`;
   if(covers.length)return `<div class="plx-art m1" style="${style}"><i style="background-image:url('${cssUrl(covers[0])}')"></i>${pl.emoji?`<b class="plx-emoji-badge">${plEmoji(pl)}</b>`:''}</div>`;
   return `<div class="plx-art m0" style="${style}"><span>${plEmoji(pl)}</span></div>`;
 };
@@ -3339,18 +3571,18 @@ const plxRowsHtml=(pl,songs)=>{
   const q=plxFilter.trim().toLowerCase(),cur=Number(currentSong()?.id),here=Number(plxPlayingId)===Number(pl.id);
   const shown=q?songs.filter(s=>s.name.toLowerCase().includes(q)||String(s.folder||'').toLowerCase().includes(q)):songs;
   if(!shown.length)return '<div class="plx-note">چیزی با این جستجو پیدا نشد</div>';
-  return shown.map((s,i)=>{const on=here&&Number(s.id)===cur;const thumb=s.cover?`background-image:url('${cssUrl(s.cover)}')`:'';
-    return `<div class="plx-row${on?' playing':''}" data-plx="row" data-id="${s.id}" role="button" tabindex="0" aria-current="${on}"><span class="plx-grip" data-grip aria-hidden="true" title="بکش و جابه‌جا کن">⠿</span><span class="plx-num">${on?'▶':String(i+1).padStart(2,'0')}</span><span class="plx-thumb" style="${thumb}">${s.cover?'':'♪'}</span><span class="plx-row-text"><span class="plx-row-name">${esc(s.name)}</span><span class="plx-row-meta">${esc(s.folder||'ROOT')} · ${esc(s.ext||'MP3')}</span></span><button type="button" class="plx-x" data-plx="remove" data-id="${s.id}" title="حذف از پلی‌لیست" aria-label="حذف ${esc(s.name)} از پلی‌لیست">✕</button></div>`;}).join('');
+  return shown.map((s,i)=>{const on=here&&Number(s.id)===cur;const thumb=s.cover?`background-image:url('${cssUrl(NovaThumb.url(s.cover))}')`:'';
+    return `<div class="plx-row${on?' playing':''}" data-plx="row" data-id="${s.id}" role="button" tabindex="0" aria-current="${on}"><span class="plx-grip" data-grip aria-hidden="true" title="بکش و جابه‌جا کن">⠿</span><span class="plx-num">${on?'▶':String(i+1).padStart(2,'0')}</span><span class="plx-thumb" style="${thumb}" data-cv="${s.id}">${s.cover?'':'♪'}</span><span class="plx-row-text"><span class="plx-row-name">${esc(s.name)}</span><span class="plx-row-meta">${esc(s.folder||'ROOT')} · ${esc(s.ext||'MP3')}</span></span><button type="button" class="plx-x" data-plx="remove" data-id="${s.id}" title="حذف از پلی‌لیست" aria-label="حذف ${esc(s.name)} از پلی‌لیست">✕</button></div>`;}).join('');
 };
 const plxDetailHtml=pl=>{
-  const songs=plSongs(pl),here=Number(plxPlayingId)===Number(pl.id),playingHere=here&&plxIsPlaying();
+  const songs=plxOrdered(pl),sortK=plxSortOf(pl),here=Number(plxPlayingId)===Number(pl.id),playingHere=here&&plxIsPlaying();
   const bytes=songs.reduce((a,s)=>a+(Number(s.size)||0),0);
   let h=`<div class="plx-top"><button type="button" class="plx-back" data-plx="back">${PLX_ICON.back}<span>همهٔ پلی‌لیست‌ها</span></button><button type="button" class="plx-icon" data-plx="menu" aria-haspopup="menu" title="گزینه‌ها" aria-label="گزینه‌های پلی‌لیست">${PLX_ICON.more}</button></div>
     <div class="plx-hero" style="--plx-c:${plColor(pl)}">${plxMosaic(pl)}<div class="plx-hero-text"><div class="plx-kicker">PLAYLIST</div><h3 class="plx-title" data-plx="rename" title="برای تغییر نام بزن" tabindex="0">${esc(pl.name)}</h3><div class="plx-sub">${songs.length} آهنگ${bytes?' · '+fmtSize(bytes):''}</div></div></div>
     <div class="plx-actions"><button type="button" class="plx-primary" data-plx="play-all" ${songs.length?'':'disabled'}>${playingHere?PLX_ICON.pause:PLX_ICON.play}<span>${playingHere?'مکث':'پخش'}</span></button><button type="button" class="plx-ghost" data-plx="shuffle-all" ${songs.length>1?'':'disabled'}>${PLX_ICON.shuffle}<span>تصادفی</span></button><button type="button" class="plx-ghost" data-plx="add">${PLX_ICON.plus}<span>افزودن</span></button></div>`;
-  if(songs.length>8)h+=`<label class="plx-search">${PLX_ICON.search}<input id="plxFilter" placeholder="جستجو در این پلی‌لیست…" value="${esc(plxFilter)}" autocomplete="off"></label>`;
+  if(songs.length>1)h+=`<div class="plx-tools">${songs.length>8?`<label class="plx-search">${PLX_ICON.search}<input id="plxFilter" placeholder="جستجو در این پلی‌لیست…" value="${esc(plxFilter)}" autocomplete="off"></label>`:''}<button type="button" class="plx-sort" data-plx="sort" aria-haspopup="menu" aria-expanded="false" title="مرتب‌سازی آهنگ‌های این پلی‌لیست">${PLX_ICON.sort}<span>مرتب‌سازی:</span><b>${PLX_SORT_SHORT[sortK]}</b></button></div>`;
   if(!songs.length)h+=`<div class="plx-empty"><span class="plx-empty-art">${plEmoji(pl)}</span><b>این پلی‌لیست هنوز خالیه</b><span>آهنگ‌ها رو تیک بزن تا اضافه بشن؛ از کتابخونه هم با دکمهٔ + کنار هر آهنگ می‌شه.</span><button type="button" class="plx-primary" data-plx="add">${PLX_ICON.plus} افزودن آهنگ</button></div>`;
-  else h+=`<div class="plx-rows${plxFilter.trim()?' filtered':''}" id="plxRows">${plxRowsHtml(pl,songs)}</div>${songs.length>1&&!plxFilter.trim()?'<div class="plx-note">برای جابه‌جایی، ⠿ رو بکش · Alt + ↑/↓ هم کار می‌کنه</div>':''}`;
+  else h+=`<div class="plx-rows${plxFilter.trim()?' filtered':''}${sortK!=='manual'?' sorted':''}" id="plxRows">${plxRowsHtml(pl,songs)}</div>${songs.length>1&&!plxFilter.trim()?(sortK==='manual'?'<div class="plx-note">برای جابه‌جایی، ⠿ رو بکش · Alt + ↑/↓ هم کار می‌کنه</div>':`<div class="plx-note">مرتب‌شده بر اساس «${PLX_SORT_SHORT[sortK]}» · برای جابه‌جایی با دست، مرتب‌سازی رو «دستی» کن</div>`):''}`;
   if(plxPicker&&Number(plxPicker.plId)===Number(pl.id))h+=plxPickerHtml(pl);
   return h;
 };
@@ -3364,8 +3596,8 @@ const plxPickMatches=()=>{const q=(plxPicker?.q||'').trim().toLowerCase();return
 const plxPaintPicker=()=>{
   const list=$('plxPickList'),pl=plById(plxPicker?.plId);if(!list||!pl)return;
   const has=new Set(pl.songIds.map(Number)),all=plxPickMatches(),LIMIT=300,shown=all.slice(0,LIMIT);
-  list.innerHTML=shown.length?shown.map(s=>{const inPl=has.has(Number(s.id)),on=plxPicker.sel.has(Number(s.id));const thumb=s.cover?`background-image:url('${cssUrl(s.cover)}')`:'';
-    return `<button type="button" class="plx-pick${on?' on':''}" data-pick="${s.id}" ${inPl?'disabled':''} aria-pressed="${on}"><span class="plx-thumb" style="${thumb}">${s.cover?'':'♪'}</span><span class="plx-row-name">${esc(s.name)}</span><span class="plx-check">${inPl?'موجود':'✓'}</span></button>`;}).join('')+(all.length>LIMIT?`<div class="plx-note">${all.length-LIMIT} آهنگ دیگه هم هست؛ برای دیدنشون جستجو کن</div>`:'')
+  list.innerHTML=shown.length?shown.map(s=>{const inPl=has.has(Number(s.id)),on=plxPicker.sel.has(Number(s.id));const thumb=s.cover?`background-image:url('${cssUrl(NovaThumb.url(s.cover))}')`:'';
+    return `<button type="button" class="plx-pick${on?' on':''}" data-pick="${s.id}" ${inPl?'disabled':''} aria-pressed="${on}"><span class="plx-thumb" style="${thumb}" data-cv="${s.id}">${s.cover?'':'♪'}</span><span class="plx-row-name">${esc(s.name)}</span><span class="plx-check">${inPl?'موجود':'✓'}</span></button>`;}).join('')+(all.length>LIMIT?`<div class="plx-note">${all.length-LIMIT} آهنگ دیگه هم هست؛ برای دیدنشون جستجو کن</div>`:'')
     :`<div class="plx-note">${playlist.length?'چیزی پیدا نشد':'کتابخونه خالیه؛ اول چندتا آهنگ اضافه کن'}</div>`;
   const n=plxPicker.sel.size,btn=document.querySelector('[data-plx="pick-apply"]');
   if(btn){btn.disabled=!n;btn.textContent=n?`افزودن ${n} آهنگ`:'افزودن';}
@@ -3395,7 +3627,7 @@ const plxPaintState=()=>{
 };
 ['play','pause','emptied','loadstart'].forEach(ev=>audio.addEventListener(ev,plxPaintState));
 const plxSave=async()=>{try{await dbSavePls();}catch{toast('ذخیرهٔ پلی‌لیست انجام نشد',true);}};
-const plxSyncQueue=pl=>{if(pl&&Number(pl.id)===Number(plxPlayingId))queueIds=plSongs(pl).map(s=>Number(s.id));};
+const plxSyncQueue=pl=>{if(pl&&Number(pl.id)===Number(plxPlayingId))queueIds=plxOrdered(pl).map(s=>Number(s.id));};
 const plxOpen=id=>{plxView={screen:'detail',id:Number(id)};plxFilter='';plxPicker=null;plxCreating=false;plxRender();$('plx')?.querySelector('.plx-back')?.focus({preventScroll:true});};
 const plxHome=()=>{plxView={screen:'home',id:null};plxPicker=null;plxFilter='';plxRender();};
 const plxCreate=async(name,songIds=[],look={})=>{
@@ -3403,7 +3635,7 @@ const plxCreate=async(name,songIds=[],look={})=>{
   playlists.push(pl);await plxSave();return pl;
 };
 const plxPlay=async(pl,{shuffled=false,startId=null}={})=>{
-  const songs=plSongs(pl);if(!songs.length){toast('این پلی‌لیست خالیه',true);return;}
+  const songs=plxOrdered(pl);if(!songs.length){toast('این پلی‌لیست خالیه',true);return;}
   if(Number(plxPlayingId)===Number(pl.id)&&startId==null&&!shuffled&&currentSong()&&songs.some(s=>Number(s.id)===Number(currentSong().id))){playPauseToggle();return;}
   queueIds=songs.map(s=>Number(s.id));plxPlayingId=Number(pl.id);
   let first=startId!=null?songById(startId):songs[0];
@@ -3474,7 +3706,7 @@ const plxMenu=(anchor,pl)=>{
     const k=b.dataset.pop;
     if(k==='rename'){plxClosePop();plxStartRename();}
     else if(k==='export'){plxClosePop();plxExport(pl);}
-    else if(k==='dup'){plxClosePop();const copy=await plxCreate(pl.name+' (کپی)',pl.songIds,{emoji:pl.emoji,color:pl.color});toast(`✅ «${copy.name}» ساخته شد`);plxOpen(copy.id);}
+    else if(k==='dup'){plxClosePop();const copy=await plxCreate(pl.name+' (کپی)',pl.songIds,{emoji:pl.emoji,color:pl.color});if(pl.sort&&pl.sort!=='manual'){copy.sort=pl.sort;await plxSave();}toast(`✅ «${copy.name}» ساخته شد`);plxOpen(copy.id);}
     else if(k==='delete'){
       if(b.dataset.armed!=='1'){b.dataset.armed='1';b.querySelector('.plx-pop-name').textContent='مطمئنی؟ دوباره بزن';return;}
       plxClosePop();plxDelete(pl);
@@ -3489,6 +3721,26 @@ const plxMenu=(anchor,pl)=>{
     }
   });
 };
+/* v1.13.0 · sort menu for one playlist */
+const plxSortMenu=(anchor,pl)=>{
+  const cur=plxSortOf(pl),n=plSongs(pl).length;
+  const html=`<div class="plx-pop-title">مرتب‌سازی آهنگ‌ها</div>`+PLX_SORTS.map(([k,label])=>`<button type="button" class="plx-pop-item${k===cur?' on':''}" role="menuitemradio" aria-checked="${k===cur}" data-pop="sort" data-k="${k}"><span class="plx-pop-name">${label}</span><span class="plx-pop-check">${k===cur?'✓':''}</span></button>`).join('')
+    +`<div class="plx-pop-sep" role="separator"></div>`
+    +(cur!=='manual'?`<button type="button" class="plx-pop-item" data-pop="fix"><span class="plx-pop-name">همین ترتیب رو ترتیب دستی کن</span></button>`:'')
+    +`<button type="button" class="plx-pop-item" data-pop="reverse" ${n>1?'':'disabled'}><span class="plx-pop-name">برعکس کردن ترتیب دستی</span></button>`
+    +`<button type="button" class="plx-pop-item" data-pop="mix" ${n>1?'':'disabled'}><span class="plx-pop-name">درهم ریختن ترتیب دستی</span></button>`;
+  anchor.setAttribute('aria-expanded','true');
+  const el=plxOpenPop(anchor,html,async b=>{
+    const k=b.dataset.pop;
+    if(k==='sort'){pl.sort=b.dataset.k==='manual'?undefined:b.dataset.k;if(!pl.sort)delete pl.sort;}
+    else if(k==='fix'){pl.songIds=plxOrdered(pl).map(s=>Number(s.id));delete pl.sort;}
+    else if(k==='reverse'){pl.songIds=pl.songIds.slice().reverse();delete pl.sort;}
+    else if(k==='mix'){const a=pl.songIds.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}pl.songIds=a;delete pl.sort;}
+    plxClosePop();plxSyncQueue(pl);await plxSave();plxRender();
+    toast(k==='sort'?`مرتب‌سازی: ${PLX_SORT_SHORT[plxSortOf(pl)]}`:k==='fix'?'✅ ترتیب دستی ذخیره شد':k==='reverse'?'✅ ترتیب برعکس شد':'✅ ترتیب درهم شد');
+  });
+  const obs=new MutationObserver(()=>{if(!el.isConnected){anchor.setAttribute('aria-expanded','false');obs.disconnect();}});obs.observe(document.body,{childList:true});
+};
 /* ── pointer reorder (HTML5 drag & drop is swallowed by the native file drop) ── */
 const plxCommitOrder=async(rowsEl,pl)=>{
   const ids=[...rowsEl.querySelectorAll('.plx-row')].map(r=>Number(r.dataset.id));
@@ -3499,7 +3751,7 @@ const plxCommitOrder=async(rowsEl,pl)=>{
 };
 const plxInitReorder=(rowsEl,pl)=>{
   rowsEl.addEventListener('pointerdown',e=>{
-    const grip=e.target.closest('[data-grip]');if(!grip||plxFilter.trim()||e.button!==0)return;
+    const grip=e.target.closest('[data-grip]');if(!grip||plxFilter.trim()||plxSortOf(pl)!=='manual'||e.button!==0)return;
     const row=grip.closest('.plx-row');if(!row)return;e.preventDefault();
     row.classList.add('lift');rowsEl.classList.add('sorting');let lastY=e.clientY,scrollT=0;
     const place=y=>{for(const r of rowsEl.querySelectorAll('.plx-row')){if(r===row)continue;const b=r.getBoundingClientRect();if(y>b.top&&y<b.bottom){if(y>b.top+b.height/2){if(r.nextElementSibling!==row)r.after(row);}else if(r.previousElementSibling!==row)r.before(row);break;}}};
@@ -3510,7 +3762,7 @@ const plxInitReorder=(rowsEl,pl)=>{
     window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);
   });
   rowsEl.addEventListener('keydown',async e=>{
-    if(!e.altKey||!['ArrowUp','ArrowDown'].includes(e.key)||plxFilter.trim())return;
+    if(!e.altKey||!['ArrowUp','ArrowDown'].includes(e.key)||plxFilter.trim()||plxSortOf(pl)!=='manual')return;
     const row=e.target.closest('.plx-row');if(!row)return;e.preventDefault();e.stopPropagation();
     const sib=e.key==='ArrowUp'?row.previousElementSibling:row.nextElementSibling;if(!sib)return;
     if(e.key==='ArrowUp')sib.before(row);else sib.after(row);row.focus();await plxCommitOrder(rowsEl,pl);
@@ -3543,7 +3795,7 @@ const parseM3U=(text,filePath)=>{
   return {name,entries};
 };
 const plxExport=async pl=>{
-  const songs=plSongs(pl),withPath=songs.filter(s=>s.referencePath||s.storagePath);
+  const songs=plxOrdered(pl),withPath=songs.filter(s=>s.referencePath||s.storagePath);
   if(!withPath.length){toast('آهنگ‌های این پلی‌لیست فایل روی دیسک ندارن؛ خروجی M3U توی نسخهٔ ویندوز کار می‌کنه',true);return;}
   const lines=['#EXTM3U','#PLAYLIST:'+pl.name.replace(/[\r\n]+/g,' ')];
   for(const s of withPath){lines.push('#EXTINF:-1,'+s.name.replace(/[\r\n]+/g,' '));lines.push(plainPath(s.referencePath||s.storagePath));}
@@ -3598,6 +3850,7 @@ plxRoot.addEventListener('click',async e=>{
     case 'play':e.stopPropagation();if(pl)plxPlay(pl);break;
     case 'back':plxHome();break;
     case 'menu':if(pl)plxMenu(t,pl);break;
+    case 'sort':if(pl)plxSortMenu(t,pl);break;
     case 'rename':plxStartRename();break;
     case 'play-all':if(pl)plxPlay(pl);break;
     case 'shuffle-all':if(pl)plxPlay(pl,{shuffled:true});break;
@@ -3617,7 +3870,7 @@ plxRoot.addEventListener('keydown',e=>{
 },true);
 plxRoot.addEventListener('input',e=>{
   if(e.target.id==='plxPickQ'&&plxPicker){plxPicker.q=e.target.value;plxPaintPicker();}
-  else if(e.target.id==='plxFilter'){plxFilter=e.target.value;const pl=plById(plxView.id),rows=$('plxRows');if(pl&&rows){rows.innerHTML=plxRowsHtml(pl,plSongs(pl));rows.classList.toggle('filtered',!!plxFilter.trim());}}
+  else if(e.target.id==='plxFilter'){plxFilter=e.target.value;const pl=plById(plxView.id),rows=$('plxRows');if(pl&&rows){rows.innerHTML=plxRowsHtml(pl,plxOrdered(pl));rows.classList.toggle('filtered',!!plxFilter.trim());}}
 });
 plxRoot.addEventListener('submit',async e=>{
   const form=e.target.closest('[data-plx-form="create"]');if(!form)return;e.preventDefault();
@@ -3674,9 +3927,9 @@ document.addEventListener('keydown',e=>{
   if(!window.NovaCustomShortcutsActive&&e.code==='Space'){e.preventDefault();initViz();playPauseToggle();}
   else if(!window.NovaCustomShortcutsActive&&e.code==='ArrowRight'){e.preventDefault();nextSong();}
   else if(!window.NovaCustomShortcutsActive&&e.code==='ArrowLeft'){e.preventDefault();prevSong();}
-  else if(e.code==='KeyF'){const song=currentSong();if(song){e.preventDefault();toggleFav(song.id);}}
-  else if(e.code==='ArrowUp'){e.preventDefault();applyVol(audio.volume+0.05);dbSaveCfg();}
-  else if(e.code==='ArrowDown'){e.preventDefault();applyVol(audio.volume-0.05);dbSaveCfg();}
+  else if(!window.NovaCustomShortcutsActive&&e.code==='KeyF'){const song=currentSong();if(song){e.preventDefault();toggleFav(song.id);}}
+  else if(!window.NovaCustomShortcutsActive&&e.code==='ArrowUp'){e.preventDefault();applyVol(audio.volume+0.05);dbSaveCfg();}
+  else if(!window.NovaCustomShortcutsActive&&e.code==='ArrowDown'){e.preventDefault();applyVol(audio.volume-0.05);dbSaveCfg();}
 });
 
 /* Desktop mini player: Document Picture-in-Picture.
@@ -4695,7 +4948,7 @@ const buildBackup=async()=>{
   const songs=recs.map(r=>{const o={};for(const [k,v] of Object.entries(r)){if(k==='data'||k==='cover'||k==='coverV'||k==='referencePath'||k==='storagePath')continue;o[k]=v;}
     o.path=plainPath(r.referencePath||r.storagePath||'');o.storage=r.referencePath?'reference':r.storagePath?'copy':'browser';return o;});
   const ls={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&/^nova/.test(k)&&!LS_SKIP.test(k))ls[k]=localStorage.getItem(k);}}catch{}
-  return {kind:BACKUP_KIND,format:1,app:'NOVA Player',appVersion:'1.11.0',created:new Date().toISOString(),
+  return {kind:BACKUP_KIND,format:1,app:'NOVA Player',appVersion:'1.14.0',created:new Date().toISOString(),
     songs,playlists:playlists.map(p=>({...p,songIds:[...p.songIds]})),favorites:[...favIds],manualOrder:[...manualOrder],
     settings:{repeat,shuffle,volume:audio.volume,sort:sortMode,theme:document.documentElement.dataset.theme||'dark'},localStorage:ls};
 };
@@ -4829,7 +5082,31 @@ init().catch(error=>{
 /* v1.7.0: while a trending preview plays, report it to the OS media overlay too. */
 window.NovaCore={currentSong:()=>{const t=window.NovaTrendEngine;return t?.active?t.currentSong()||currentSong():currentSong();},play,pause,stop,prevSong,nextSong,playPauseToggle,get activePl(){return plxPlayingId?playlists.find(p=>Number(p.id)===Number(plxPlayingId))||null:null;}};
 /* v1.11.0: the SEARCH page imports downloads through the exact same pipeline as a dropped file. */
-window.NovaLibrary={queueFiles,playSongById,dbSetCover,applyCurrentCover,currentSong:()=>currentSong(),render:()=>render(),get playlist(){return playlist;}};
+window.NovaLibrary={queueFiles,playSongById,dbSetCover,applyCurrentCover,currentSong:()=>currentSong(),render:()=>render(),get playlist(){return playlist;},get playlists(){return playlists;}};
+/* v1.13.0 speed (fixed): the next track is read into memory in the background while the current one plays,
+   so "next" and auto-advance start almost instantly. Lives inside the core so it can see the queue
+   (as a separate script it could not reach it and silently did nothing). Only current + next stay in RAM. */
+(()=>{
+  const idle=fn=>window.requestIdleCallback?requestIdleCallback(fn,{timeout:4000}):setTimeout(fn,200);
+  let t=0;
+  const run=()=>{
+    try{
+      if(window.NovaTrendEngine?.active||repeat==='one'||!playlist.length)return;
+      const list=visibleList();if(list.length<2)return;
+      const cur=Number(currentSong()?.id);let target=null;
+      if(pendingNextId!=null)target=list.find(x=>Number(x.id)===Number(pendingNextId));
+      else if(shuffle){
+        if(window.__novaNextPick==null||window.__novaNextPick===cur||!list.some(x=>Number(x.id)===window.__novaNextPick))window.__novaNextPick=Number(list[pickShuffleIdx(list)].id);
+        target=list.find(x=>Number(x.id)===window.__novaNextPick);
+      }else{const i=curVisibleIdx();if(i<0)return;target=list[(i+1)%list.length];}
+      if(!target||Number(target.id)===cur||target.src||target.srcPromise)return;
+      if(Number(target.size)>90*1024*1024)return; /* huge files: read on demand only */
+      ensureSrc(target).catch(()=>{});
+    }catch(e){}
+  };
+  audio.addEventListener('playing',()=>{clearTimeout(t);t=setTimeout(()=>idle(run),2200);});
+  window.__novaPreloadNext=run;
+})();
 })();
 </script>
 <script id="nova-polish-script">
@@ -5858,7 +6135,7 @@ html[data-motion="reduce"] .sp{transition:none}
         SORT=$('srchSort'),DUR=$('srchDur'),SRCSEG=$('srchSrc'),SCROLL=$('spScroll'),DID=$('srchDid');
   if(!PAGE||!INPUT||!LIST)return;
   const bridge=()=>window.__TAURI__?.core?.invoke;
-  const notify=o=>(window.NovaVelocityToast||(x=>typeof toast==='function'&&toast(x.title,x.variant==='error')))(o);
+  const notify=o=>(window.NovaVelocityToast||(x=>window.NovaToast?.(x.title,x.variant==='error')))(o);
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const enc=encodeURIComponent;
   const APP='NOVA-Player';
@@ -7002,10 +7279,11 @@ html[data-motion="reduce"] .sp{transition:none}
     <div class="nset-body">
       <nav class="nset-nav" role="tablist" aria-orientation="vertical" aria-label="بخش‌های تنظیمات">
         <button type="button" class="nset-tab" role="tab" id="nsetTab-gen" aria-controls="nsetPane-gen" aria-selected="true" tabindex="0" data-pane="gen"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></span><span class="nset-tab-l">عمومی</span><span class="nset-n" aria-hidden="true">01</span></button><button type="button" class="nset-tab" role="tab" id="nsetTab-look" aria-controls="nsetPane-look" aria-selected="false" tabindex="-1" data-pane="look"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-.6-.4-1-1-1h-4a2 2 0 0 1-2-2V5c0-.6-.4-1-1-1Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="8" cy="15.5" r="1"/></svg></span><span class="nset-tab-l">ظاهر</span><span class="nset-n" aria-hidden="true">02</span></button><button type="button" class="nset-tab" role="tab" id="nsetTab-play" aria-controls="nsetPane-play" aria-selected="false" tabindex="-1" data-pane="play"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 21v-6M5 11V3M12 21v-9M12 8V3M19 21v-4M19 13V3M2 15h6M9 8h6M16 17h6"/></svg></span><span class="nset-tab-l">پخش</span><span class="nset-n" aria-hidden="true">03</span></button><button type="button" class="nset-tab" role="tab" id="nsetTab-keys" aria-controls="nsetPane-keys" aria-selected="false" tabindex="-1" data-pane="keys"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg></span><span class="nset-tab-l">میانبرها</span><span class="nset-n" aria-hidden="true">04</span></button><button type="button" class="nset-tab" role="tab" id="nsetTab-lib" aria-controls="nsetPane-lib" aria-selected="false" tabindex="-1" data-pane="lib"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v14M9 19V8h4v11M13 19l2.6-12.4 3.9.8L17 19.9"/><path d="M3 20h18"/></svg></span><span class="nset-tab-l">کتابخانه و پشتیبان</span><span class="nset-n" aria-hidden="true">05</span></button><button type="button" class="nset-tab" role="tab" id="nsetTab-upd" aria-controls="nsetPane-upd" aria-selected="false" tabindex="-1" data-pane="upd"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg></span><span class="nset-tab-l">به‌روزرسانی</span><span class="nset-n" aria-hidden="true">06</span></button>
-        <div class="nset-ver" aria-hidden="true"><b>NOVA</b><span id="nsetVer">v1.10.0</span></div>
+        <button type="button" class="nset-tab" role="tab" id="nsetTab-sup" aria-controls="nsetPane-sup" aria-selected="false" tabindex="-1" data-pane="sup"><span class="nset-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg></span><span class="nset-tab-l">حمایت از ما</span><span class="nset-n" aria-hidden="true">07</span></button>
+        <div class="nset-ver" aria-hidden="true"><b>NOVA</b><span id="nsetVer">v1.14.0</span></div>
       </nav>
       <div class="nset-panes">
-<section class="nset-pane" role="tabpanel" id="nsetPane-gen" aria-labelledby="nsetTab-gen"><header class="nset-head"><span class="nset-kicker">GENERAL</span><h3>عمومی</h3><p>رفتار پایهٔ برنامه روی همین دستگاه.</p></header><div class="nset-row "><div class="nset-txt"><h4><span data-i18n-key="lang-h">زبان رابط کاربری</span></h4><p>فارسی یا انگلیسی؛ بلافاصله اعمال می‌شود.</p></div><div class="nset-ctl"><div class="lang-switch" role="group" aria-label="Language"><button type="button" class="lang-opt" data-lang="fa" aria-pressed="true">فارسی</button><button type="button" class="lang-opt" data-lang="en" aria-pressed="false">English</button></div></div></div><div class="nset-row "><div class="nset-txt"><h4>بستن پنجره</h4><p>با دکمهٔ ×، NOVA به Tray می‌رود و موسیقی قطع نمی‌شود.</p></div><div class="nset-ctl"><label class="settings-checkbox nset-switch"><input type="checkbox" id="trayOnClose" checked aria-label="بستن پنجره یعنی رفتن به Tray"></label></div></div><div class="nset-row "><div class="nset-txt"><h4>راهنمای شروع</h4><p>آموزش مرحله‌به‌مرحلهٔ اولین اجرا را دوباره ببین.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" id="resetTutorialBtn">دوباره نشان بده</button></div></div><p class="nset-foot">Portable هم تنظیماتش را در پوشهٔ کاربر ویندوز نگه می‌دارد؛ با حذف برنامه از بین نمی‌روند.</p></section><section class="nset-pane" role="tabpanel" id="nsetPane-look" aria-labelledby="nsetTab-look" hidden><header class="nset-head"><span class="nset-kicker">APPEARANCE</span><h3>ظاهر</h3><p>تم، حرکت و ابزارهای Listening Room.</p></header><div class="nset-row "><div class="nset-txt"><h4>تم</h4><p>رنگ‌ها از کاور آهنگ فعلی گرفته می‌شوند؛ در هر دو تم.</p></div><div class="nset-ctl"><div class="nset-seg" role="group" id="nsetTheme"><button type="button" data-v="dark" aria-pressed="false">تیره</button><button type="button" data-v="light" aria-pressed="false">روشن</button></div></div></div><div class="nset-row "><div class="nset-txt"><h4>کاهش حرکت</h4><p>چرخش دیسک، انیمیشن‌ها و حلقهٔ صدا آرام می‌شوند.</p></div><div class="nset-ctl"><label class="settings-checkbox nset-switch"><input type="checkbox" id="nsetMotion" aria-label="کاهش حرکت"></label></div></div><div class="nset-row "><div class="nset-txt"><h4>حالت سینمایی</h4><p>دیسک بزرگ، نور کاور و متن آهنگ؛ با Esc برمی‌گردی.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" data-nset-click="cinemaBtn">ورود</button></div></div></section><section class="nset-pane" role="tabpanel" id="nsetPane-play" aria-labelledby="nsetTab-play" hidden><header class="nset-head"><span class="nset-kicker">PLAYBACK</span><h3>پخش</h3><p>صدا، اکولایزر و پایان شب.</p></header><div class="nset-row "><div class="nset-txt"><h4>اکولایزر</h4><p>۱۰ باند، ۲۱ پریست و پریست‌های خودت.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" data-nset-click="eqBtn">باز کردن</button></div></div><div class="nset-row "><div class="nset-txt"><h4>تایمر خواب</h4><p>۱۵ تا ۱۲۰ دقیقه یا «آخر همین آهنگ»، با کم شدن آرام صدا.</p></div><div class="nset-ctl"><span class="nset-live" id="nsetSleepState"></span><button type="button" class="settings-btn" data-nset-click="sleepBtn">تنظیم</button></div></div><div class="nset-row "><div class="nset-txt"><h4>مینی‌پلیر دسکتاپ</h4><p>پنجرهٔ وینیل کوچک، همیشه روی برنامه‌های دیگر.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" data-nset-click="desktopMiniBtn">باز کردن</button></div></div><div class="nset-row "><div class="nset-txt"><h4>پیدا کردن خودکار متن</h4><p>وقتی آهنگ متن ندارد، از LRCLIB و lyrics.ovh پیدا می‌شود.</p></div><div class="nset-ctl"><label class="settings-checkbox nset-switch"><input type="checkbox" id="nsetAutoLrc" aria-label="پیدا کردن خودکار متن"></label></div></div></section><section class="nset-pane" role="tabpanel" id="nsetPane-keys" aria-labelledby="nsetTab-keys" hidden><header class="nset-head"><span class="nset-kicker">SHORTCUTS</span><h3>میانبرها</h3><p>روی کلید هر فرمان بزن و کلید تازه را فشار بده. موقع تایپ، میانبرها خودشان کنار می‌روند.</p></header><div class="shortcut-list" id="shortcutList"></div><div class="nset-keys-foot"><div class="settings-status" id="shortcutStatus" aria-live="polite"></div><button type="button" class="settings-btn" id="shortcutReset">بازنشانی میانبرها</button></div><p class="nset-foot">ثابت‌ها: F علاقه‌مندی، ↑ و ↓ بلندی صدا، Esc خروج از حالت سینمایی.</p></section><section class="nset-pane" role="tabpanel" id="nsetPane-lib" aria-labelledby="nsetTab-lib" hidden><header class="nset-head"><span class="nset-kicker">LIBRARY</span><h3>کتابخانه و پشتیبان</h3><p>آهنگ‌ها از مسیر اصلی خودشان پخش می‌شوند و هیچ کپی اضافه‌ای ساخته نمی‌شود.</p></header><div class="nset-stat"><b id="nsetLibCount">0</b><span>آهنگ در کتابخانه</span><b id="nsetPlCount">0</b><span>پلی‌لیست</span></div><div id="novaBackupCard" class="nset-block"><div class="nset-row nset-stack"><div class="nset-txt"><h4>پشتیبان کامل</h4><p>پلی‌لیست‌ها، علاقه‌مندی‌ها، متن‌ها و ترجمه‌ها، اکولایزر و تنظیمات؛ همه در یک فایل JSON.</p></div><div class="nset-ctl"><div class="nu-actions"><button type="button" class="settings-btn primary" id="backupExportBtn">ساخت فایل پشتیبان</button><button type="button" class="settings-btn" id="backupImportBtn">بازیابی از فایل</button></div></div></div></div><p class="nset-foot">خود فایل‌های صوتی داخل پشتیبان نیستند. اگر جای فایلی عوض شده باشد، موقع بازیابی فقط پوشه‌اش را نشان بده. پلی‌لیست‌ها را هم می‌شود از صفحهٔ هر پلی‌لیست به M3U خروجی گرفت.</p></section><section class="nset-pane" role="tabpanel" id="nsetPane-upd" aria-labelledby="nsetTab-upd" hidden><header class="nset-head"><span class="nset-kicker">UPDATES</span><h3>به‌روزرسانی</h3><p>NOVA خودش Releases گیت‌هاب را می‌خواند؛ نسخه‌های پایدار و بتا.</p></header><div id="novaUpdateCard" class="nset-block"><p id="updateStatus" class="nset-upd-status">NOVA هنگام اجرا نسخه‌های جدید GitHub را بررسی می‌کند.</p><div class="nu-meta" id="novaUpdateMeta"></div><div class="nu-actions"><button type="button" class="settings-btn" id="checkUpdateBtn">بررسی نسخهٔ جدید</button><button type="button" class="settings-btn primary" id="novaUpdateDl" hidden>دانلود نسخهٔ جدید</button></div><label class="settings-checkbox"><input type="checkbox" id="novaAutoUpd" checked> <span id="novaAutoUpdLbl">بررسی خودکار (هنگام اجرا و هر ۲ ساعت)</span></label><div class="nu-links"><a href="https://mehdi138iimm.github.io/NovaPlayer/#download" data-nu-open id="novaSiteLink">سایت NOVA</a><span aria-hidden="true">·</span><a href="https://github.com/Mehdi138iimm/NovaPlayer/releases" data-nu-open id="novaRelLink">همهٔ نسخه‌ها در GitHub</a></div></div></section>      </div>
+<section class="nset-pane" role="tabpanel" id="nsetPane-gen" aria-labelledby="nsetTab-gen"><header class="nset-head"><span class="nset-kicker">GENERAL</span><h3>عمومی</h3><p>رفتار پایهٔ برنامه روی همین دستگاه.</p></header><div class="nset-row "><div class="nset-txt"><h4><span data-i18n-key="lang-h">زبان رابط کاربری</span></h4><p>فارسی یا انگلیسی؛ بلافاصله اعمال می‌شود.</p></div><div class="nset-ctl"><div class="lang-switch" role="group" aria-label="Language"><button type="button" class="lang-opt" data-lang="fa" aria-pressed="true">فارسی</button><button type="button" class="lang-opt" data-lang="en" aria-pressed="false">English</button></div></div></div><div class="nset-row "><div class="nset-txt"><h4>بستن پنجره</h4><p>با دکمهٔ ×، NOVA به Tray می‌رود و موسیقی قطع نمی‌شود.</p></div><div class="nset-ctl"><label class="settings-checkbox nset-switch"><input type="checkbox" id="trayOnClose" checked aria-label="بستن پنجره یعنی رفتن به Tray"></label></div></div><div class="nset-row "><div class="nset-txt"><h4>راهنمای شروع</h4><p>آموزش مرحله‌به‌مرحلهٔ اولین اجرا را دوباره ببین.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" id="resetTutorialBtn">دوباره نشان بده</button></div></div><p class="nset-foot">Portable هم تنظیماتش را در پوشهٔ کاربر ویندوز نگه می‌دارد؛ با حذف برنامه از بین نمی‌روند.</p></section><section class="nset-pane" role="tabpanel" id="nsetPane-look" aria-labelledby="nsetTab-look" hidden><header class="nset-head"><span class="nset-kicker">APPEARANCE</span><h3>ظاهر</h3><p>تم، حرکت و ابزارهای Listening Room.</p></header><div class="nset-row "><div class="nset-txt"><h4>تم</h4><p>رنگ‌ها از کاور آهنگ فعلی گرفته می‌شوند؛ در هر دو تم.</p></div><div class="nset-ctl"><div class="nset-seg" role="group" id="nsetTheme"><button type="button" data-v="dark" aria-pressed="false">تیره</button><button type="button" data-v="light" aria-pressed="false">روشن</button></div></div></div><div class="nset-row "><div class="nset-txt"><h4>کاهش حرکت</h4><p>چرخش دیسک، انیمیشن‌ها و حلقهٔ صدا آرام می‌شوند.</p></div><div class="nset-ctl"><label class="settings-checkbox nset-switch"><input type="checkbox" id="nsetMotion" aria-label="کاهش حرکت"></label></div></div><div class="nset-row "><div class="nset-txt"><h4>کرکتر نوا</h4><p>یک دوست کوچولو گوشهٔ برنامه که وقتی آهنگ پخش می‌شود می‌رقصد؛ با کلیک می‌پرد.</p></div><div class="nset-ctl"><label class="settings-checkbox nset-switch"><input type="checkbox" id="nsetMascot" checked aria-label="کرکتر نوا"></label></div></div><div class="nset-row nset-stack nm-cust-row" id="nmCustRow"><div class="nset-txt"><h4>شخصی‌سازی کرکتر</h4><p>رنگ، گوش، اکسسوری، نوشتهٔ شال، اندازه و انرژی رقص؛ همان لحظه ذخیره می‌شود.</p></div><div class="nset-ctl"><div class="nmc" id="nmCust"><div class="nmc-stage"><div class="nmc-slot" id="nmcSlot"></div><b class="nmc-name" id="nmcName">نوا</b><button type="button" class="nmc-play" id="nmcPlay" aria-pressed="false">▶ رقص</button></div><div class="nmc-ctl"><div class="nmc-f"><span>ظاهر آماده</span><div class="nmc-presets" id="nmcPresets"></div></div><div class="nmc-f"><span>رنگ‌ها</span><div class="nmc-colors" id="nmcColors"></div></div><div class="nmc-f"><span>گوش</span><div class="nset-seg" role="group" data-nmk="ears"><button type="button" data-v="bunny">خرگوش</button><button type="button" data-v="cat">گربه</button><button type="button" data-v="bear">خرس</button><button type="button" data-v="none">بدون گوش</button></div></div><div class="nmc-f"><span>اکسسوری</span><div class="nset-seg" role="group" data-nmk="acc"><button type="button" data-v="none">هیچ</button><button type="button" data-v="phones">هدفون</button><button type="button" data-v="glasses">عینک</button><button type="button" data-v="crown">تاج</button><button type="button" data-v="bow">پاپیون</button></div></div><div class="nmc-f"><span>شال</span><div class="nset-seg" role="group" data-nmk="scarf"><button type="button" data-v="on">دارد</button><button type="button" data-v="off">ندارد</button></div></div><div class="nmc-texts"><label class="nmc-f"><span>اسم کرکتر</span><input class="nmc-in" id="nmcNameIn" maxlength="16" placeholder="نوا"></label><label class="nmc-f"><span>نوشتهٔ شال</span><input class="nmc-in mono" id="nmcTag" maxlength="3" placeholder="NV" dir="ltr"></label></div><div class="nmc-f"><span>اندازه</span><div class="nset-seg" role="group" data-nmk="size"><button type="button" data-v="s">کوچک</button><button type="button" data-v="m">متوسط</button><button type="button" data-v="l">بزرگ</button></div></div><div class="nmc-f"><span>رقص</span><div class="nset-seg" role="group" data-nmk="dance"><button type="button" data-v="off">نمی‌رقصد</button><button type="button" data-v="calm">آرام</button><button type="button" data-v="normal">عادی</button><button type="button" data-v="wild">پرانرژی</button></div></div><div class="nmc-foot"><button type="button" class="settings-btn" id="nmcRandom">🎲 تصادفی</button><button type="button" class="settings-btn" id="nmcReset">برگرداندن پیش‌فرض</button></div></div></div></div></div><div class="nset-row "><div class="nset-txt"><h4>حالت سینمایی</h4><p>دیسک بزرگ، نور کاور و متن آهنگ؛ با Esc برمی‌گردی.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" data-nset-click="cinemaBtn">ورود</button></div></div></section><section class="nset-pane" role="tabpanel" id="nsetPane-play" aria-labelledby="nsetTab-play" hidden><header class="nset-head"><span class="nset-kicker">PLAYBACK</span><h3>پخش</h3><p>صدا، اکولایزر و پایان شب.</p></header><div class="nset-row "><div class="nset-txt"><h4>اکولایزر</h4><p>۱۰ باند، ۲۱ پریست و پریست‌های خودت.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" data-nset-click="eqBtn">باز کردن</button></div></div><div class="nset-row "><div class="nset-txt"><h4>تایمر خواب</h4><p>۱۵ تا ۱۲۰ دقیقه یا «آخر همین آهنگ»، با کم شدن آرام صدا.</p></div><div class="nset-ctl"><span class="nset-live" id="nsetSleepState"></span><button type="button" class="settings-btn" data-nset-click="sleepBtn">تنظیم</button></div></div><div class="nset-row "><div class="nset-txt"><h4>مینی‌پلیر دسکتاپ</h4><p>پنجرهٔ وینیل کوچک، همیشه روی برنامه‌های دیگر.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" data-nset-click="desktopMiniBtn">باز کردن</button></div></div><div class="nset-row "><div class="nset-txt"><h4>پیدا کردن خودکار متن</h4><p>وقتی آهنگ متن ندارد، از LRCLIB و lyrics.ovh پیدا می‌شود.</p></div><div class="nset-ctl"><label class="settings-checkbox nset-switch"><input type="checkbox" id="nsetAutoLrc" aria-label="پیدا کردن خودکار متن"></label></div></div></section><section class="nset-pane" role="tabpanel" id="nsetPane-keys" aria-labelledby="nsetTab-keys" hidden><header class="nset-head"><span class="nset-kicker">SHORTCUTS</span><h3>میانبرها</h3><p>روی کلید هر فرمان بزن و کلید تازه را فشار بده. موقع تایپ، میانبرها خودشان کنار می‌روند.</p></header><label class="shortcut-filter"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg><input id="shortcutFilter" type="search" placeholder="جستجو در میانبرها… مثلاً «متن» یا «صدا»" autocomplete="off" aria-label="جستجو در میانبرها"></label><div class="shortcut-list" id="shortcutList"></div><div class="nset-keys-foot"><div class="settings-status" id="shortcutStatus" aria-live="polite"></div><button type="button" class="settings-btn" id="shortcutReset">بازنشانی میانبرها</button></div><p class="nset-foot">ترکیب با Ctrl، Alt و Shift هم قبول است. موقع ثبت: Esc لغو، Backspace حذف میانبر. ثابت‌ها: Ctrl+K جستجو، Esc بستن و خروج، Alt+↑/↓ جابه‌جایی آهنگ در پلی‌لیست.</p></section><section class="nset-pane" role="tabpanel" id="nsetPane-lib" aria-labelledby="nsetTab-lib" hidden><header class="nset-head"><span class="nset-kicker">LIBRARY</span><h3>کتابخانه و پشتیبان</h3><p>آهنگ‌ها از مسیر اصلی خودشان پخش می‌شوند و هیچ کپی اضافه‌ای ساخته نمی‌شود.</p></header><div class="nset-stat"><b id="nsetLibCount">0</b><span>آهنگ در کتابخانه</span><b id="nsetPlCount">0</b><span>پلی‌لیست</span></div><div id="novaBackupCard" class="nset-block"><div class="nset-row nset-stack"><div class="nset-txt"><h4>پشتیبان کامل</h4><p>پلی‌لیست‌ها، علاقه‌مندی‌ها، متن‌ها و ترجمه‌ها، اکولایزر و تنظیمات؛ همه در یک فایل JSON.</p></div><div class="nset-ctl"><div class="nu-actions"><button type="button" class="settings-btn primary" id="backupExportBtn">ساخت فایل پشتیبان</button><button type="button" class="settings-btn" id="backupImportBtn">بازیابی از فایل</button></div></div></div></div><p class="nset-foot">خود فایل‌های صوتی داخل پشتیبان نیستند. اگر جای فایلی عوض شده باشد، موقع بازیابی فقط پوشه‌اش را نشان بده. پلی‌لیست‌ها را هم می‌شود از صفحهٔ هر پلی‌لیست به M3U خروجی گرفت.</p></section><section class="nset-pane" role="tabpanel" id="nsetPane-upd" aria-labelledby="nsetTab-upd" hidden><header class="nset-head"><span class="nset-kicker">UPDATES</span><h3>به‌روزرسانی</h3><p>NOVA خودش Releases گیت‌هاب را می‌خواند؛ نسخه‌های پایدار و بتا.</p></header><div id="novaUpdateCard" class="nset-block"><p id="updateStatus" class="nset-upd-status">NOVA هنگام اجرا نسخه‌های جدید GitHub را بررسی می‌کند.</p><div class="nu-meta" id="novaUpdateMeta"></div><div class="nu-actions"><button type="button" class="settings-btn" id="checkUpdateBtn">بررسی نسخهٔ جدید</button><button type="button" class="settings-btn primary" id="novaUpdateDl" hidden>دانلود نسخهٔ جدید</button></div><label class="settings-checkbox"><input type="checkbox" id="novaAutoUpd" checked> <span id="novaAutoUpdLbl">بررسی خودکار (هنگام اجرا و هر ۲ ساعت)</span></label><div class="nu-links"><a href="https://mehdi138iimm.github.io/NovaPlayer/#download" data-nu-open id="novaSiteLink">سایت NOVA</a><span aria-hidden="true">·</span><a href="https://github.com/Mehdi138iimm/NovaPlayer/releases" data-nu-open id="novaRelLink">همهٔ نسخه‌ها در GitHub</a></div></div></section><section class="nset-pane" role="tabpanel" id="nsetPane-sup" aria-labelledby="nsetTab-sup" hidden><header class="nset-head"><span class="nset-kicker">SUPPORT</span><h3>حمایت از ما</h3><p>NOVA رایگان، بدون تبلیغ و بدون ثبت‌نام است. حمایت شما خرج وقت توسعه، نسخه‌های تازه و امکانات بیشتر می‌شود.</p></header><div class="nset-support-card"><div class="nsp-heart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg></div><p><b>حمایت از NOVA</b>هر مبلغی، حتی کوچک، دلگرمی بزرگی است 💚<span class="nset-support-link">donofa.com/novaplayerapp</span></p><button type="button" class="settings-btn primary" id="nsetSupportGo">باز کردن صفحهٔ حمایت</button></div><div class="nset-row "><div class="nset-txt"><h4>پیش‌نمایش یادآوری</h4><p>حمایت مالی از طریق دونوفا؛ لینک در مرورگر پیش‌فرض باز می‌شود.</p></div><div class="nset-ctl"><button type="button" class="settings-btn" id="nsetSupportPreview">پیش‌نمایش یادآوری</button></div></div></section>      </div>
     </div>
     <div class="settings-actions"><span class="nset-hint">تغییرها همان لحظه ذخیره می‌شوند؛ میانبرها با «ذخیره».</span><button type="button" class="settings-btn primary" id="settingsDone">ذخیره و بستن</button></div>
   </section>
@@ -7016,13 +7294,93 @@ html[data-motion="reduce"] .sp{transition:none}
   const $=id=>document.getElementById(id);
   window.NovaCustomShortcutsActive=true;
   const invoke=window.__TAURI__?.core?.invoke;
-  const defaults={play:'Space',next:'ArrowRight',prev:'ArrowLeft',theme:'KeyT',cinema:'KeyC',eq:'KeyE',lyrics:'KeyL',mini:'KeyD',sleep:'KeyS'};
-  const labels={play:'پخش / مکث',next:'آهنگ بعدی',prev:'آهنگ قبلی',theme:'تغییر تم',cinema:'حالت سینمایی',eq:'اکولایزر',lyrics:'متن آهنگ',mini:'مینی‌پلیر دسکتاپ',sleep:'تایمر خواب'};
-  let shortcuts={...defaults};let draft={...defaults};let recording=null;
-  const read=()=>{try{const x=JSON.parse(localStorage.getItem('nova-shortcuts')||'{}');shortcuts={...defaults,...x};}catch{shortcuts={...defaults};}draft={...shortcuts};};
+  /* v1.13.0 · full shortcut map: every control in the app that does something can get a key.
+     Bindings may use Ctrl / Alt / Shift (saved like "Ctrl+Shift+KeyO"); old single-key saves keep working.
+     [id, group, label, default key ('' = not assigned yet)] */
+  const SC=[
+    ['play','پخش','پخش / مکث','Space'],['next','پخش','آهنگ بعدی','ArrowRight'],['prev','پخش','آهنگ قبلی','ArrowLeft'],
+    ['fwd','پخش','۱۰ ثانیه جلو','Shift+ArrowRight'],['back','پخش','۱۰ ثانیه عقب','Shift+ArrowLeft'],['restart','پخش','پخش از اول آهنگ',''],
+    ['volUp','پخش','صدا بلندتر','ArrowUp'],['volDown','پخش','صدا آرام‌تر','ArrowDown'],['mute','پخش','بی‌صدا / باصدا','KeyM'],
+    ['shuffle','پخش','تصادفی','KeyX'],['repeat','پخش','تکرار','KeyR'],['fav','پخش','علاقه‌مندی (لایک)','KeyF'],
+    ['addPl','پخش','افزودن آهنگ فعلی به پلی‌لیست','KeyP'],['sleep','پخش','تایمر خواب','KeyS'],
+    ['theme','نما','تغییر تم','KeyT'],['cinema','نما','حالت سینمایی','KeyC'],['lyrics','نما','متن آهنگ','KeyL'],
+    ['lyricsFull','نما','تمام‌صفحهٔ متن آهنگ','Shift+KeyL'],['orbit','نما','حلقهٔ واکنش‌گرا','KeyO'],['eq','نما','اکولایزر','KeyE'],
+    ['mini','نما','مینی‌پلیر دسکتاپ','KeyD'],['motion','نما','کاهش حرکت',''],['viewToggle','نما','لیست آهنگ‌ها / قفسهٔ کاورها','KeyV'],
+    ['tabLib','بخش‌ها','کتابخانه','Digit1'],['tabPl','بخش‌ها','پلی‌لیست‌ها','Digit2'],['tabFav','بخش‌ها','علاقه‌مندی‌ها','Digit3'],['tabTrend','بخش‌ها','ترندها','Digit4'],
+    ['trendRefresh','بخش‌ها','به‌روزرسانی ترندها',''],['shelfPrev','بخش‌ها','قفسه: کاورهای قبلی',''],['shelfNext','بخش‌ها','قفسه: کاورهای بعدی',''],
+    ['addFiles','کتابخانه و پلی‌لیست','افزودن فایل آهنگ','Ctrl+KeyO'],['addFolder','کتابخانه و پلی‌لیست','افزودن پوشه','Ctrl+Shift+KeyO'],
+    ['newPl','کتابخانه و پلی‌لیست','پلی‌لیست جدید','Ctrl+KeyN'],['clearAll','کتابخانه و پلی‌لیست','پاک‌کردن همهٔ کتابخانه',''],
+    ['lrcEarlier','متن آهنگ','متن نیم ثانیه زودتر','BracketLeft'],['lrcLater','متن آهنگ','متن نیم ثانیه دیرتر','BracketRight'],
+    ['lrcSize','متن آهنگ','اندازهٔ متن',''],['lrcCopy','متن آهنگ','کپی متن',''],['lrcSheet','متن آهنگ','جستجو و تنظیمات متن',''],
+    ['lrcManual','متن آهنگ','جستجو و انتخاب متن',''],['lrcOnline','متن آهنگ','جستجوی آنلاین متن',''],['lrcAuto','متن آهنگ','پیدا کردن خودکار متن',''],
+    ['lrcFollow','متن آهنگ','دنبال‌کردن متن',''],['lrcClear','متن آهنگ','حذف متن این آهنگ',''],
+    ['search','برنامه','جستجو و دانلود آهنگ',''],['support','برنامه','حمایت از ما',''],['settings','برنامه','تنظیمات','Ctrl+Comma'],['help','برنامه','راهنما','F1'],['about','برنامه','درباره سازنده',''],
+    ['minimize','برنامه','کمینه کردن پنجره',''],['maximize','برنامه','بزرگ‌نمایی پنجره','F11'],['closeWin','برنامه','بستن پنجره','']
+  ];
+  const defaults={},labels={},groups={};SC.forEach(([id,g,l,k])=>{defaults[id]=k;labels[id]=l;groups[id]=g;});
+  const RESERVED={Escape:'Esc (بستن / خروج)',Tab:'Tab (جابه‌جایی بین دکمه‌ها)',Enter:'Enter','Shift+Tab':'Shift+Tab','Ctrl+KeyK':'Ctrl+K (جستجو)','Alt+ArrowUp':'Alt+↑ (جابه‌جایی در پلی‌لیست)','Alt+ArrowDown':'Alt+↓ (جابه‌جایی در پلی‌لیست)','Alt+F4':'Alt+F4'};
+  const MODS=['Control','Shift','Alt','Meta','AltGraph','OS','CapsLock'];
+  const combo=e=>{const k=e.code||e.key;if(!k)return '';return (e.ctrlKey||e.metaKey?'Ctrl+':'')+(e.altKey?'Alt+':'')+(e.shiftKey?'Shift+':'')+k;};
+  let shortcuts={...defaults};let draft={...defaults};let recording=null;let scFilter='';
+  const read=()=>{try{const x=JSON.parse(localStorage.getItem('nova-shortcuts')||'{}');shortcuts={...defaults};Object.keys(x||{}).forEach(k=>{if(k in defaults&&typeof x[k]==='string')shortcuts[k]=x[k];});
+    /* a new default must never steal a key the user already gave to another command */
+    const mine=new Set(Object.keys(x||{}).filter(k=>k in defaults).map(k=>x[k]).filter(Boolean));Object.keys(defaults).forEach(k=>{if(!(k in (x||{}))&&mine.has(shortcuts[k]))shortcuts[k]='';});}catch{shortcuts={...defaults};}draft={...shortcuts};};
   const write=()=>{shortcuts={...draft};try{localStorage.setItem('nova-shortcuts',JSON.stringify(shortcuts));}catch{};};
-  const pretty=k=>({Space:'Space',ArrowRight:'→',ArrowLeft:'←',ArrowUp:'↑',ArrowDown:'↓',Escape:'Esc',Enter:'Enter',Tab:'Tab'}[k]||k.replace(/^Key/,'').replace(/^Digit/,'#'));
-  const render=()=>{const box=$('shortcutList');if(!box)return;box.innerHTML='';Object.keys(labels).forEach(action=>{const row=document.createElement('div');row.className='shortcut-row';const name=document.createElement('span');name.className='shortcut-name';name.textContent=labels[action];const btn=document.createElement('button');btn.type='button';btn.className='shortcut-key';btn.textContent=recording===action?'کلیدی را بزن':pretty(draft[action]);btn.addEventListener('click',()=>{recording=recording===action?null:action;render();});row.append(name,btn);box.appendChild(row);});};
+  const KEYNAME={Space:'Space',ArrowRight:'→',ArrowLeft:'←',ArrowUp:'↑',ArrowDown:'↓',Escape:'Esc',Enter:'Enter',Tab:'Tab',Backspace:'Backspace',Delete:'Del',Insert:'Ins',PageUp:'PgUp',PageDown:'PgDn',
+    BracketLeft:'[',BracketRight:']',Comma:',',Period:'.',Slash:'/',Backslash:'\\',Semicolon:';',Quote:"'",Backquote:'`',Minus:'-',Equal:'=',NumpadAdd:'Num +',NumpadSubtract:'Num -',NumpadMultiply:'Num *',NumpadDivide:'Num /',NumpadEnter:'Num Enter',NumpadDecimal:'Num .',
+    MediaPlayPause:'⏯ Media',MediaTrackNext:'⏭ Media',MediaTrackPrevious:'⏮ Media',MediaStop:'⏹ Media',AudioVolumeUp:'🔊 Vol+',AudioVolumeDown:'🔉 Vol-',AudioVolumeMute:'🔇 Mute'};
+  const pretty=k=>{if(!k)return 'تعریف نشده';return String(k).split('+').map(p=>p==='Ctrl'||p==='Alt'||p==='Shift'?p:(KEYNAME[p]||p.replace(/^Key/,'').replace(/^Digit/,'').replace(/^Numpad(\d)$/,'Num $1'))).join(' + ');};
+  const render=()=>{const box=$('shortcutList');if(!box)return;box.innerHTML='';
+    const q=scFilter.trim().toLowerCase();let lastG=null,shown=0;
+    SC.forEach(([action])=>{
+      if(q&&!(labels[action].toLowerCase().includes(q)||groups[action].toLowerCase().includes(q)||pretty(draft[action]).toLowerCase().includes(q)))return;
+      if(groups[action]!==lastG){lastG=groups[action];const h=document.createElement('div');h.className='shortcut-group';h.textContent=lastG;box.appendChild(h);}
+      shown++;
+      const row=document.createElement('div');row.className='shortcut-row';
+      const name=document.createElement('span');name.className='shortcut-name';name.textContent=labels[action];
+      const keys=document.createElement('span');keys.className='shortcut-keys';
+      const btn=document.createElement('button');btn.type='button';btn.className='shortcut-key'+(draft[action]?'':' empty')+(recording===action?' recording':'');btn.textContent=recording===action?'کلیدی را بزن…':pretty(draft[action]);
+      btn.setAttribute('aria-label',labels[action]+': '+pretty(draft[action]));
+      btn.addEventListener('click',()=>{recording=recording===action?null:action;render();if(recording)$('shortcutStatus').textContent='کلید یا ترکیب (مثل Ctrl + Shift + O) را بزن · Esc لغو · Backspace حذف';});
+      keys.appendChild(btn);
+      if(draft[action]&&recording!==action){const x=document.createElement('button');x.type='button';x.className='shortcut-clear';x.textContent='×';x.title='حذف این میانبر';x.setAttribute('aria-label','حذف میانبر '+labels[action]);
+        x.addEventListener('click',()=>{draft[action]='';recording=null;render();$('shortcutStatus').textContent='میانبر «'+labels[action]+'» برداشته شد؛ برای ثبت، ذخیره و بستن را بزن.';});keys.appendChild(x);}
+      row.append(name,keys);box.appendChild(row);
+    });
+    if(!shown){const e=document.createElement('div');e.className='shortcut-none';e.textContent='چیزی پیدا نشد';box.appendChild(e);}
+    if(recording)box.querySelector('.shortcut-key.recording')?.focus();
+  };
+  /* what each shortcut does: always the same path as clicking the real control */
+  const clickId=id=>()=>{const b=$(id);if(b&&!b.disabled)b.click();};
+  const media=()=>document.getElementById('audio');
+  const seekBy=d=>{const a=media();if(!a||!a.src||!Number.isFinite(a.duration))return;a.currentTime=Math.max(0,Math.min(a.duration-0.25,a.currentTime+d));};
+  const volBy=d=>{const a=media();if(!a)return;const v=Math.max(0,Math.min(1,a.volume+d));if(typeof applyVol==='function')applyVol(v);else a.volume=v;if(typeof dbSaveCfg==='function')dbSaveCfg();};
+  const openPlTab=()=>{$('tabPl')?.click();};
+  const ACT={
+    play:clickId('playBtn'),next:clickId('nextBtn'),prev:clickId('prevBtn'),
+    fwd:()=>seekBy(10),back:()=>seekBy(-10),restart:()=>{const a=media();if(a&&a.src)a.currentTime=0;},
+    volUp:()=>volBy(.05),volDown:()=>volBy(-.05),mute:clickId('volIco'),
+    shuffle:clickId('shuffleBtn'),repeat:clickId('repeatBtn'),fav:()=>{const b=$('favBtn');if(b&&!b.disabled)b.click();},
+    addPl:()=>{const b=$('addToPlBtn');if(b)b.click();},sleep:clickId('sleepBtn'),
+    theme:clickId('themeBtn'),cinema:clickId('cinemaBtn'),lyrics:clickId('lyricsBtn'),
+    lyricsFull:()=>{const p=$('lyricsPanel');if(p&&p.hidden)$('lyricsBtn')?.click();setTimeout(()=>$('lrcFullBtn')?.click(),p&&p.hidden?120:0);},
+    orbit:clickId('orbitBtn'),eq:clickId('eqBtn'),mini:clickId('desktopMiniBtn'),motion:clickId('novaMotionBtn'),
+    viewToggle:()=>{const shelf=$('shelfViewBtn');(shelf?.getAttribute('aria-pressed')==='true'?$('listViewBtn'):shelf)?.click();},
+    tabLib:clickId('tabLib'),tabPl:clickId('tabPl'),tabFav:clickId('tabFav'),tabTrend:clickId('tabTrend'),
+    trendRefresh:()=>{$('tabTrend')?.click();setTimeout(()=>$('trendRefresh')?.click(),60);},shelfPrev:clickId('shelfPrev'),shelfNext:clickId('shelfNext'),
+    addFiles:()=>{const l=$('filePickLabel');if(l)l.click();else $('fileIn')?.click();},addFolder:()=>{const l=$('folderPickLabel');if(l)l.click();else $('folderIn')?.click();},
+    newPl:()=>{openPlTab();setTimeout(()=>{const root=$('plx');if(!root)return;root.querySelector('[data-plx="back"]')?.click();setTimeout(()=>root.querySelector('[data-plx="new"]')?.click(),30);},60);},
+    clearAll:clickId('clearBtn'),
+    lrcEarlier:clickId('lrcEarlier'),lrcLater:clickId('lrcLater'),lrcSize:clickId('lrcSizeBtn'),lrcCopy:clickId('lrcCopyBtn'),lrcSheet:clickId('lrcSheetBtn'),
+    lrcManual:clickId('lrcManualBtn'),lrcOnline:clickId('lrcOnlineBtn'),lrcAuto:clickId('lrcAutoBtn'),lrcFollow:clickId('lrcFollowBtn'),lrcClear:clickId('lrcClearBtn'),
+    search:clickId('searchPageBtn'),support:()=>window.NovaSupport?.open(),settings:clickId('settingsBtn'),help:clickId('helpBtn'),about:clickId('aboutBtn'),
+    minimize:clickId('novaMinimize'),maximize:clickId('novaMaximize'),closeWin:clickId('novaClose')
+  };
+  const REPEATABLE=new Set(['volUp','volDown','fwd','back','lrcEarlier','lrcLater','shelfPrev','shelfNext']);
+  const PLAYBACK=new Set(['play','next','prev','fwd','back','restart','volUp','volDown','mute']);
+  const EN_SC={"پخش / مکث": "Play / pause", "آهنگ بعدی": "Next track", "آهنگ قبلی": "Previous track", "۱۰ ثانیه جلو": "Forward 10 s", "۱۰ ثانیه عقب": "Back 10 s", "پخش از اول آهنگ": "Restart track", "صدا بلندتر": "Volume up", "صدا آرام‌تر": "Volume down", "بی‌صدا / باصدا": "Mute / unmute", "تصادفی": "Shuffle", "تکرار": "Repeat", "علاقه‌مندی (لایک)": "Favorite (like)", "افزودن آهنگ فعلی به پلی‌لیست": "Add current track to a playlist", "تغییر تم": "Change theme", "حالت سینمایی": "Cinema mode", "متن آهنگ": "Lyrics", "تمام‌صفحهٔ متن آهنگ": "Full-screen lyrics", "حلقهٔ واکنش‌گرا": "Reactive ring", "اکولایزر": "Equalizer", "کاهش حرکت": "Reduce motion", "لیست آهنگ‌ها / قفسهٔ کاورها": "Track list / cover shelf", "بخش‌ها": "Sections", "کتابخانه": "Library", "پلی‌لیست‌ها": "Playlists", "علاقه‌مندی‌ها": "Favorites", "ترندها": "Trending", "به‌روزرسانی ترندها": "Refresh trending", "قفسه: کاورهای قبلی": "Shelf: previous covers", "قفسه: کاورهای بعدی": "Shelf: next covers", "کتابخانه و پلی‌لیست": "Library & playlists", "افزودن فایل آهنگ": "Add music files", "افزودن پوشه": "Add a folder", "پلی‌لیست جدید": "New playlist", "پاک‌کردن همهٔ کتابخانه": "Clear the whole library", "متن نیم ثانیه زودتر": "Lyrics 0.5 s earlier", "متن نیم ثانیه دیرتر": "Lyrics 0.5 s later", "اندازهٔ متن": "Text size", "کپی متن": "Copy lyrics", "جستجو و تنظیمات متن": "Lyrics search & settings", "جستجو و انتخاب متن": "Search & pick lyrics", "جستجوی آنلاین متن": "Search lyrics online", "پیدا کردن خودکار متن": "Auto-find lyrics", "دنبال‌کردن متن": "Follow lyrics", "حذف متن این آهنگ": "Remove this track's lyrics", "برنامه": "App", "جستجو و دانلود آهنگ": "Search & download music", "تنظیمات": "Settings", "راهنما": "Help", "درباره سازنده": "About the maker", "کمینه کردن پنجره": "Minimize window", "بزرگ‌نمایی پنجره": "Maximize window", "بستن پنجره": "Close window", "تعریف نشده": "Not set", "کلیدی را بزن…": "Press a key…", "چیزی پیدا نشد": "Nothing found", "جستجو در میانبرها… مثلاً «متن» یا «صدا»": "Search shortcuts… e.g. “lyrics” or “volume”", "مرتب‌سازی:": "Sort:", "مرتب‌سازی آهنگ‌ها": "Sort tracks", "دستی (ترتیب خودت)": "Manual (your order)", "الفبا A → Z": "Name A → Z", "الفبا Z → A": "Name Z → A", "جدیدترین": "Newest", "قدیمی‌ترین": "Oldest", "آخرین اضافه‌شده به پلی‌لیست": "Recently added to playlist", "حجم: بزرگ به کوچک": "Size: largest first", "حجم: کوچک به بزرگ": "Size: smallest first", "پوشه": "Folder", "نوع فایل": "File type", "همین ترتیب رو ترتیب دستی کن": "Make this the manual order", "برعکس کردن ترتیب دستی": "Reverse manual order", "درهم ریختن ترتیب دستی": "Shuffle manual order", "دستی": "Manual", "تازه اضافه‌شده": "Recently added", "حجم ↓": "Size ↓", "حجم ↑": "Size ↑"};
+  if(window.NovaI18nAdd)window.NovaI18nAdd(EN_SC);else document.addEventListener('DOMContentLoaded',()=>window.NovaI18nAdd?.(EN_SC));
+  window.NovaShortcuts={list:()=>SC.map(([id,g,l])=>({id,group:g,label:l,key:shortcuts[id]||''})),pretty};
   const storageKey='nova-storage-directory';
   const showStorage=path=>{const label=$('storagePathLabel');if(label)label.textContent=path?'محل ذخیره: '+path:'مسیر پیش‌فرض: هنوز انتخاب نشده';};
   const loadStorage=async()=>{let path=null;try{path=localStorage.getItem(storageKey)||await invoke?.('get_storage_directory');if(path)await invoke?.('set_storage_directory',{path});}catch{}showStorage(path);};
@@ -7042,20 +7400,34 @@ html[data-motion="reduce"] .sp{transition:none}
   document.addEventListener('keydown',e=>{
     if(!recording)return;
     e.preventDefault();e.stopImmediatePropagation();
-    if(['Control','Shift','Alt','Meta'].includes(e.key))return;
-    const key=e.code||e.key;if(Object.entries(draft).some(([a,k])=>a!==recording&&k===key)){$('shortcutStatus').textContent='این میانبر قبلاً استفاده شده؛ یک کلید دیگر انتخاب کن.';return;}
-    draft[recording]=key;$('shortcutStatus').textContent='ثبت شد: '+pretty(key);recording=null;render();
+    if(MODS.includes(e.key))return;
+    const action=recording;
+    if(e.key==='Escape'&&!e.ctrlKey&&!e.altKey&&!e.shiftKey){recording=null;render();$('shortcutStatus').textContent='لغو شد.';return;}
+    if((e.code==='Backspace'||e.code==='Delete')&&!e.ctrlKey&&!e.altKey&&!e.shiftKey){draft[action]='';recording=null;render();$('shortcutStatus').textContent='میانبر «'+labels[action]+'» برداشته شد.';return;}
+    const key=combo(e);if(!key)return;
+    if(RESERVED[key]){$('shortcutStatus').textContent=RESERVED[key]+' رزرو شده؛ یک کلید دیگر بزن.';return;}
+    const other=Object.keys(draft).find(a=>a!==action&&draft[a]===key);
+    if(other)draft[other]='';
+    draft[action]=key;recording=null;render();
+    $('shortcutStatus').textContent='ثبت شد: '+pretty(key)+(other?' · از «'+labels[other]+'» برداشته شد':'')+' · برای ثبت نهایی، ذخیره و بستن را بزن.';
   },true);
   document.addEventListener('keydown',e=>{
     if($('settingsModalBg')?.classList.contains('open')||recording)return;
     /* v1.7.0 fix: never fire shortcuts while the user is typing (search box, playlist
        name, LRC shift...). This used to swallow letters like T and flip the theme. */
-    if(e.target.closest('input,textarea,select,[contenteditable="true"]'))return;
-    const key=e.code||e.key;const action=Object.keys(shortcuts).find(a=>shortcuts[a]===key);if(!action)return;
+    if(e.isComposing||MODS.includes(e.key))return;
+    if(e.target.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+    if($('tutorialBg')?.classList.contains('open'))return;
+    const key=combo(e);if(!key)return;const action=Object.keys(shortcuts).find(a=>shortcuts[a]&&shortcuts[a]===key);if(!action||!ACT[action])return;
+    /* plain arrows stay with the widget that owns them (cover shelf, settings tabs, sliders, menus) */
+    if(/^(Arrow|Home$|End$)/.test(key)&&e.target.closest?.('#shelfRail,[role="tablist"],[role="slider"],[role="menu"],.eq-track,.plx-pop'))return;
+    /* while the search page covers the player, only playback keys go through */
+    if(document.getElementById('app')?.hasAttribute('inert')&&!PLAYBACK.has(action))return;
     e.preventDefault();e.stopImmediatePropagation();
-    const targets={play:'playBtn',next:'nextBtn',prev:'prevBtn',theme:'themeBtn',cinema:'cinemaBtn',eq:'eqBtn',lyrics:'lyricsBtn',mini:'desktopMiniBtn',sleep:'sleepBtn'};
-    $(targets[action])?.click();
+    if(e.repeat&&!REPEATABLE.has(action))return;
+    try{ACT[action]();}catch(err){console.warn('shortcut',action,err);}
   },true);
+  $('shortcutFilter')?.addEventListener('input',e=>{scFilter=e.target.value;render();});
   read();const trayEnabled=localStorage.getItem('nova-tray-on-close')!=='false';$('trayOnClose').checked=trayEnabled;applyTray(trayEnabled);
   $('resetTutorialBtn')?.addEventListener('click',()=>{
     localStorage.removeItem(TUTORIAL_SHOWN);tutorialIdx=0;showTutorial();
@@ -7107,6 +7479,18 @@ html[data-motion="reduce"] .sp{transition:none}
 .nset-keys-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
 .nset-keys-foot .settings-status{margin:0!important}
 #nsetPane-keys .shortcut-list{margin-top:14px!important;border-top:1px solid var(--glass-border)}
+/* v1.13.0 · full shortcut map */
+.shortcut-filter{display:flex;align-items:center;gap:8px;margin-top:12px;padding:0 10px;min-height:38px;border-radius:10px;border:1px solid var(--glass-border);background:var(--surface);color:var(--muted)}
+.shortcut-filter:focus-within{border-color:var(--neon)}
+.shortcut-filter svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;flex-shrink:0}
+.shortcut-filter input{flex:1;min-width:0;border:0;background:transparent;color:var(--text);font:13px var(--sans);outline:0;min-height:36px}
+.shortcut-group{font:700 10px var(--mono);letter-spacing:.14em;color:var(--neon);padding:14px 2px 6px;text-transform:uppercase}
+.shortcut-group+.shortcut-row{border-top:0!important}
+.shortcut-keys{display:inline-flex;align-items:center;gap:4px;justify-content:flex-end}
+.shortcut-key.empty{color:var(--muted)!important;border-style:dashed!important;font-family:var(--sans)!important;font-size:11.5px!important}
+.shortcut-clear{width:26px;height:26px;border-radius:8px;border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;opacity:.55}
+.shortcut-clear:hover,.shortcut-clear:focus-visible{opacity:1;color:var(--ember,#ff6130);background:var(--glass-hover)}
+.shortcut-none{padding:16px;text-align:center;color:var(--muted);font-size:12px}
 .nset-stat{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:16px 0 4px;padding:14px 16px;border-radius:14px;background:var(--frost);border:1px solid var(--glass-border);font-size:12.5px;color:var(--muted)}
 .nset-stat b{font:700 18px var(--mono);color:var(--text);font-variant-numeric:tabular-nums}
 .nset-stat span+b{margin-inline-start:14px}
@@ -7157,7 +7541,7 @@ html[data-motion="reduce"] .sp{transition:none}
     const a=$('nsetAutoLrc'),lb=$('lrcAutoBtn');if(a&&lb)a.checked=lb.getAttribute('aria-checked')!=='false';
     const sb=$('sleepBtn'),ss=$('nsetSleepState');if(ss)ss.textContent=sb?.classList.contains('on')?($('sleepLabel')?.textContent||'').trim():'';
     const c=$('nsetLibCount');if(c)c.textContent=($('statTotal')?.textContent||'0').trim();
-    const pc=$('nsetPlCount');if(pc){let n=0;try{n=typeof playlists!=='undefined'&&Array.isArray(playlists)?playlists.length:0;}catch{}pc.textContent=String(n);}
+    const pc=$('nsetPlCount');if(pc){let n=0;try{const P=window.NovaLibrary?.playlists;n=Array.isArray(P)?P.length:0;}catch{}pc.textContent=String(n);}
   };
   let last='gen';try{last=localStorage.getItem('nova-settings-pane')||'gen';}catch{}
   if(!$('nsetPane-'+last))last='gen';
@@ -7235,7 +7619,7 @@ html[data-motion="reduce"] .sp{transition:none}
   const REPO='Mehdi138iimm/NovaPlayer';
   const RELEASES='https://github.com/'+REPO+'/releases';
   const SITE='https://mehdi138iimm.github.io/NovaPlayer/#download';
-  const FALLBACK_VER='1.11.0';
+  const FALLBACK_VER='1.14.0';
   const EVERY=2*3600*1000;
   const T=window.__TAURI__, invoke=T?.core?.invoke;
   const $=id=>document.getElementById(id);
@@ -7265,7 +7649,7 @@ html[data-motion="reduce"] .sp{transition:none}
     if(!best)return{current:cur,latest:null,newer:false,prerelease:false,url:RELEASES,downloadUrl:null,notes:null,source:'api'};
     const assets=best.assets||[],pick=re=>assets.find(a=>re.test(a.name||''))?.browser_download_url||null;
     return{current:cur,latest:best.tag_name,newer:cmp(best.tag_name,cur)>0,prerelease:!!best.prerelease,url:best.html_url||RELEASES,
-      downloadUrl:pick(/setup\.exe$/i)||pick(/\.exe$/i)||pick(/\.msi$/i),notes:best.body||null,publishedAt:best.published_at||null,source:'api'};
+      downloadUrl:(/Mac/i.test(navigator.userAgent)?pick(/\.dmg$/i):/Linux/i.test(navigator.userAgent)?(pick(/\.AppImage$/i)||pick(/\.deb$/i)):null)||pick(/setup\.exe$/i)||pick(/\.exe$/i)||pick(/\.msi$/i),notes:best.body||null,publishedAt:best.published_at||null,source:'api'};
   }
 
   let last=null,lastErr=null,busy=false,retry=0,retryT=0,shownTag=store.get('nova-update-toasted','');
@@ -7317,7 +7701,7 @@ html[data-motion="reduce"] .sp{transition:none}
 
   const notify=(title,description='',variant='default',duration=5000)=>{
     if(window.NovaVelocityToast)window.NovaVelocityToast({title,description,variant,duration});
-    else if(typeof toast==='function')toast(description?`${title}: ${description}`:title,variant==='error');
+    else window.NovaToast?.(description?`${title}: ${description}`:title,variant==='error');
   };
 
   async function check(manual=false){
@@ -8061,6 +8445,839 @@ window.NovaI18nAdd&&window.NovaI18nAdd({
 "نسخه‌های کامل قابل دانلود":"Full versions you can download","نتایج دیگر":"More results","نسخهٔ کامل":"Full version","برداشتن فیلترها":"Clear filters",
 "🔎 جستجو و دانلود (1.11.0)":"🔎 Search & download (1.11.0)"
 });
+</script>
+<!-- ===== v1.12.0 · NEW LAYOUT (shape only: themes, colors, features and logic untouched) ===== -->
+<style id="nova-v112-layout">
+/* Three columns like a desktop music app: navigation · listening room · library,
+   a header with one big search pill and a full-width now-playing bar at the bottom.
+   Everything uses the existing theme variables, so every theme / cover palette keeps working. */
+body.nv12{--nv-nav:236px;--nv-side:336px;--nv-top:46px;--nv-bar:76px;--nv-gap:14px;overflow:hidden}
+body.nv12 .shell{position:fixed;top:var(--nv-top);left:0;right:0;bottom:calc(var(--nv-bar) + 24px);
+  max-width:none;margin:0;min-height:0;padding:0 var(--nv-gap)!important;gap:var(--nv-gap);direction:ltr;
+  display:grid;grid-template-columns:var(--nv-nav) minmax(0,1fr) var(--nv-side);grid-template-rows:58px minmax(0,1fr);
+  grid-template-areas:"head head head" "nav main side";align-content:stretch}
+html[dir="rtl"] body.nv12 .shell>*{direction:rtl}
+html[dir="rtl"] body.nv12 .shell>.header{direction:ltr}
+body.nv12 #visualizer{display:none}
+
+/* header */
+body.nv12 .header{grid-area:head;grid-column:1/-1;display:grid;grid-template-columns:var(--nv-nav) minmax(0,1fr) var(--nv-nav);
+  align-items:center;gap:var(--nv-gap);padding:0 4px!important;border:0!important;background:transparent!important;min-height:0}
+body.nv12 .header .logo-mark{min-width:0}
+body.nv12 .header .logo-icon{width:40px;height:40px;border-radius:13px}
+body.nv12 .header .logo-text{font-size:20px;line-height:1.1}
+body.nv12 .header .logo-sub{line-height:1.4}
+.nv-search{display:none}
+body.nv12 .nv-search{display:flex;align-items:center;gap:10px;justify-self:center;width:min(100%,560px);height:46px;padding:0 8px 0 16px;
+  border-radius:16px;border:1px solid var(--glass-border);background:var(--surface);color:var(--muted);cursor:pointer;
+  font:500 13px var(--sans);text-align:start;transition:border-color .2s var(--ease-out),color .2s var(--ease-out)}
+body.nv12 .nv-search:hover,body.nv12 .nv-search:focus-visible{border-color:var(--neon);color:var(--text)}
+.nv-search svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;flex:none}
+.nv-search-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html[dir="rtl"] .nv-search-txt{direction:rtl;text-align:right}
+.nv-search kbd{flex:none;font:600 10px var(--mono);letter-spacing:.06em;color:var(--muted);padding:6px 9px;border-radius:10px;
+  background:var(--frost);border:1px solid var(--glass-border);direction:ltr}
+
+/* left: navigation */
+.nv-nav{display:none}
+body.nv12 .nv-nav{grid-area:nav;display:flex;flex-direction:column;gap:6px;min-height:0;padding:14px 12px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+body.nv12 .nv-nav::-webkit-scrollbar{display:none}
+.nv-nav-list{display:flex;flex-direction:column;gap:4px}
+body.nv12 .nv-nav .tab-btn{position:relative;display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;
+  width:100%;flex:none;min-height:44px;padding:5px 10px 5px 8px;border-radius:14px;border:1px solid transparent;background:transparent;
+  box-shadow:none;color:var(--muted);font:600 11.5px/1.4 var(--mono);letter-spacing:.12em;text-align:start;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  direction:inherit;transition:background-color .2s var(--ease-out),color .2s var(--ease-out),border-color .2s var(--ease-out)}
+body.nv12 .nv-nav .tab-btn::before{content:'';grid-column:1;grid-row:1;justify-self:center;width:19px;height:19px;background:currentColor;
+  -webkit-mask:var(--nv-ico) center/contain no-repeat;mask:var(--nv-ico) center/contain no-repeat}
+body.nv12 .nv-nav .tab-btn::after{content:attr(data-nv-n);grid-column:3;grid-row:1;font:600 10px var(--mono);letter-spacing:.08em;opacity:.45;direction:ltr}
+body.nv12 .nv-nav .tab-btn:hover{color:var(--text);background:var(--frost)}
+body.nv12 .nv-nav .tab-btn.on{color:var(--text);background:var(--raised);border-color:var(--glass-border)}
+body.nv12 .nv-nav .tab-btn.on::before{background:var(--neon)}
+body.nv12 .nv-nav .tab-btn.on::after{color:var(--neon);opacity:1}
+body.nv12 .nv-nav #tabFav.on{color:var(--ember)}
+body.nv12 .nv-nav #tabLib{--nv-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l12-2v13'/%3E%3Ccircle cx='6' cy='18' r='3'/%3E%3Ccircle cx='18' cy='16' r='3'/%3E%3C/svg%3E")}
+body.nv12 .nv-nav #tabPl{--nv-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h12M3 11h12M3 16h8'/%3E%3Ccircle cx='17' cy='17' r='3'/%3E%3Cpath d='M20 17V5h2'/%3E%3C/svg%3E")}
+body.nv12 .nv-nav #tabFav{--nv-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z'/%3E%3C/svg%3E")}
+body.nv12 .nv-nav #tabTrend{--nv-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 17l6-6 4 4 8-8'/%3E%3Cpath d='M15 7h6v6'/%3E%3C/svg%3E")}
+body.nv12 .nv-nav #nvNavSearch{--nv-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4.3-4.3'/%3E%3C/svg%3E")}
+.nv-nav-sep{height:1px;background:var(--glass-border);margin:8px 6px}
+body.nv12 .nv-nav .upload-zone{flex:none;padding:16px 12px 14px;border-radius:16px;margin:0}
+body.nv12 .nv-nav .upload-icon{font-size:20px;margin-bottom:4px}
+body.nv12 .nv-nav .upload-title{font-size:12.5px}
+body.nv12 .nv-nav .upload-hint{font-size:9px;line-height:1.6;letter-spacing:0}
+body.nv12 .nv-nav .upload-btns{margin-top:8px;gap:4px;flex-wrap:nowrap}
+body.nv12 .nv-nav .upload-btn{flex:1 1 0;min-width:0;justify-content:center;padding:6px 8px}
+.nv-timer{display:none}
+body.nv12 .nv-timer{display:flex;align-items:center;gap:10px;margin-top:auto;flex:none;width:100%;min-height:56px;padding:8px 10px;border-radius:16px;
+  border:1px solid var(--glass-border);background:var(--frost);color:var(--text);text-align:start;cursor:pointer;
+  transition:border-color .2s var(--ease-out),background-color .2s var(--ease-out)}
+body.nv12 .nv-timer:hover{border-color:var(--neon)}
+.nv-timer-ico{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;flex:none;background:var(--raised);color:var(--muted)}
+.nv-timer-ico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nv-timer-txt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.5}
+.nv-timer-txt b{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nv-timer-txt small{font:10.5px var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nv-timer.on{border-color:color-mix(in oklab,var(--neon) 45%,transparent);background:var(--neon-dim)}
+.nv-timer.on .nv-timer-ico{background:var(--neon);color:var(--on-accent)}
+.nv-timer.on small{color:var(--neon)}
+
+/* center: listening room */
+body.nv12 .player-card{grid-area:main;min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--glass-border) transparent;
+  display:flex;flex-direction:column;gap:12px;padding:16px 22px 18px}
+body.nv12 .player-card>*{flex:none}
+body.nv12 .experience-tools{min-height:20px}
+body.nv12 .artwork-wrapper,body.nv12[data-x] .artwork-wrapper{flex:1 1 auto;min-height:230px;aspect-ratio:auto!important;border-radius:18px}
+body.nv12 .artwork-inner,body.nv12 .artwork-inner.spin{width:auto;height:74%;max-width:66%;max-height:420px}
+body.nv12 .artwork-wrapper::before{width:auto;height:calc(74% + 26px);max-width:calc(66% + 26px);max-height:446px}
+body.nv12 .track-meta{display:flex;flex-direction:column;align-items:center;gap:2px}
+body.nv12 .track-title{font-size:clamp(19px,1.9vw,26px);font-weight:800;letter-spacing:-.01em;line-height:1.4;max-width:100%;margin:0}
+body.nv12 .track-sub{letter-spacing:.06em}
+body.nv12 .fav-btn{margin-top:6px}
+body.nv12 .progress-area{width:min(100%,560px);margin-inline:auto}
+body.nv12 .controls-row{gap:14px}
+body.nv12 .ctrl{width:44px;height:44px;border-radius:50%}
+body.nv12 .ctrl-play{width:62px;height:62px;border-radius:50%}
+body.nv12 .lyrics-panel{flex:none}
+body.nv12 .lyrics-panel:not([hidden])~*{flex:none}
+body.nv12 .player-card:has(.lyrics-panel:not([hidden])) .artwork-wrapper{flex:0 0 auto;height:180px;min-height:180px}
+
+/* right: library / playlists / favorites / trending */
+body.nv12 .sidebar{grid-area:side;min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+body.nv12 .sidebar>.tab-bar{display:none}
+body.nv12 .library-card,body.nv12 .pl-panel,body.nv12 .trend-panel{flex:1 1 auto;min-height:0}
+body.nv12 .library-card{padding:16px 14px;gap:10px}
+body.nv12 .track-list,body.nv12 .pl-list,body.nv12 .trend-list{flex:1 1 0!important;min-height:0!important;max-height:none!important;overflow-y:auto}
+body.nv12 .pl-panel .plx{min-height:0;height:100%}
+body.nv12 .plx-grid,body.nv12 .plx-rows{max-height:none;flex:1 1 0}
+/* v1.13.0 fix: the playlist grid filled the panel height, so its rows (and the cards) stretched tall */
+.plx-grid,body.nv12 .plx-grid{align-content:start;align-items:start;grid-auto-rows:max-content}
+.plx-card,.plx-row,.plx-head,.plx-hero,.plx-actions,.plx-top,.plx-starters,.plx-tools,.plx-note{flex-shrink:0}
+body.nv12 .lib-title{font:800 15px var(--sans);letter-spacing:.02em;color:var(--text)}
+body.nv12 .lib-count{border-radius:999px;padding:4px 11px}
+body.nv12 .track-item{min-height:60px;padding:8px 10px;border-radius:14px;gap:12px}
+body.nv12 .track-thumb{width:42px;height:42px;border-radius:11px}
+body.nv12 .track-item.playing .track-thumb{border-radius:50%}
+body.nv12 .track-name{font-size:13px;font-weight:700}
+body.nv12 .track-meta2{font-size:10.5px}
+body.nv12 .stats-bar{flex:none}
+body.nv12 .track-info{flex:1 1 auto;min-width:0}
+body.nv12 .track-item .track-handle{width:12px;flex:none}
+body.nv12 .track-item .track-num{flex:none;min-width:22px}
+@media (hover:hover){
+  body.nv12 .track-item .track-addpl,body.nv12 .track-item .track-fav:not([aria-pressed="true"]),body.nv12 .track-item .track-del{width:0;padding:0;margin:0;opacity:0;overflow:hidden;flex:none;transition:opacity .15s}
+  body.nv12 .track-item:hover .track-addpl,body.nv12 .track-item:focus-within .track-addpl,
+  body.nv12 .track-item:hover .track-fav,body.nv12 .track-item:focus-within .track-fav,
+  body.nv12 .track-item:hover .track-del,body.nv12 .track-item:focus-within .track-del{width:28px;opacity:.85}
+}
+
+/* bottom: now-playing bar */
+.nv-bar{display:none}
+body.nv12 .nv-bar{position:fixed;z-index:3890;left:var(--nv-gap);right:var(--nv-gap);bottom:12px;height:var(--nv-bar);direction:ltr;
+  display:grid;grid-template-columns:minmax(0,1fr) auto minmax(max-content,1fr);align-items:center;gap:14px;padding:0 14px;
+  border-radius:22px;background:var(--surface);border:1px solid var(--glass-border);
+  box-shadow:0 2px 0 oklch(100% 0 0 / .04) inset,0 18px 44px oklch(10% .012 120 / .45)}
+:root[data-theme="light"] body.nv12 .nv-bar{box-shadow:0 1px 0 oklch(100% 0 0 / .7) inset,0 14px 34px oklch(20% .012 120 / .12)}
+html.sp-open body.nv12 .nv-bar{visibility:hidden}
+.nv-now{display:flex;align-items:center;gap:12px;min-width:0}
+.nv-now-art{width:50px;height:50px;border-radius:13px;flex:none;background:var(--raised) center/cover no-repeat;display:grid;place-items:center;color:var(--muted);
+  font-size:20px;border:1px solid var(--glass-border);cursor:pointer}
+.nv-now-txt{min-width:0;display:flex;flex-direction:column;line-height:1.5}
+.nv-now-title{font-size:13.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext}
+.nv-now-sub{font:10.5px var(--mono);letter-spacing:.06em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nv-now-fav{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer}
+.nv-now-fav svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2}
+.nv-now-fav:hover:not(:disabled){color:var(--ember);background:var(--frost)}
+.nv-now-fav[aria-pressed="true"]{color:var(--ember)}
+.nv-now-fav[aria-pressed="true"] svg{fill:currentColor}
+.nv-bar-mid{display:flex;justify-content:center;min-width:0}
+.nv-bar-right{display:flex;align-items:center;justify-content:flex-end;gap:12px;min-width:0}
+/* the quick-action dock sits in the middle of the bar */
+body.nv12 .nv-bar .nova-dock-wrap{position:static;transform:none;left:auto;bottom:auto}
+body.nv12 .nv-bar .nova-dock{padding:5px 10px;gap:8px;border-radius:18px;background:var(--frost);box-shadow:none}
+body.nv12 .nv-bar .nova-dock::after{display:none}
+body.nv12 .nv-bar .nova-dock .icon-btn{width:40px;height:40px;border-radius:13px}
+body.nv12 .nv-bar .nova-dock .icon-btn svg{width:18px;height:18px}
+/* the listening-room tools sit on the right, in a row */
+body.nv12 .nv-bar .nova-side-dock,body.nv12 .nv-bar .nova-side-dock.ready{position:relative;left:auto;top:auto;transform:none;flex-direction:row;gap:2px;padding:0;
+  border:0;border-radius:0;background:transparent;box-shadow:none}
+body.nv12 .nv-bar .nova-side-dock::after{display:none}
+body.nv12 .nv-bar .nova-side-dock .experience-btn{width:38px;height:38px;min-height:38px;border-radius:12px}
+body.nv12 .nv-bar .nova-side-dock .experience-btn svg{width:18px;height:18px}
+body.nv12 .nv-bar .nova-side-dock .experience-btn:hover,body.nv12 .nv-bar .nova-side-dock .experience-btn:focus-visible{transform:translateY(-2px)}
+body.nv12 .nv-bar .nova-side-sep{width:1px;height:22px;margin:0 4px}
+body.nv12 .nv-bar .nova-side-label{left:var(--nx,0px);top:auto;bottom:calc(100% + 16px);transform-origin:50% 100%;
+  transform:translate3d(-50%,6px,0) scale(.94)}
+body.nv12 .nv-bar .nova-side-label.on{transform:translate3d(-50%,0,0) scale(1)}
+body.nv12 .nv-bar .volume-row{flex:none;width:176px;margin:0;gap:8px}
+body.nv12 .toast{bottom:calc(var(--nv-bar) + 30px)!important}
+body.nv12 .vt-stack{bottom:calc(var(--nv-bar) + 26px)!important}
+
+/* cinema mode keeps only the listening room */
+body.nv12.nova-cinema .shell{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "main";max-width:none}
+body.nv12.nova-cinema .header{grid-template-columns:auto minmax(0,1fr) auto}
+body.nv12.nova-cinema .nv-nav,body.nv12.nova-cinema .sidebar{display:none}
+body.nv12.nova-cinema .player-card{max-width:none;padding:8px 24px 18px}
+
+/* medium windows (default 1180px) */
+@media (max-width:1279px){body.nv12{--nv-nav:212px;--nv-side:300px}
+  body.nv12 .nv-bar .volume-row{width:140px}
+  body.nv12 .nv-bar .vol-pct{display:none}}
+/* small windows: icon-only navigation */
+@media (max-width:1099px){body.nv12{--nv-nav:72px;--nv-side:280px}
+  body.nv12 .header{grid-template-columns:auto minmax(0,1fr) 40px}
+  body.nv12 .header .logo-sub{display:none}
+  body.nv12 .nv-nav{padding:12px 8px;align-items:stretch}
+  body.nv12 .nv-nav .tab-btn{grid-template-columns:1fr;font-size:0;padding:6px;justify-items:center}
+  body.nv12 .nv-nav .tab-btn::after{display:none}
+  body.nv12 .nv-nav .upload-zone{padding:10px 4px}
+  body.nv12 .nv-nav .upload-title,body.nv12 .nv-nav .upload-hint{display:none}
+  body.nv12 .nv-nav .upload-btns{flex-direction:column;align-items:center}
+  body.nv12 .nv-nav .upload-btn{font-size:0;padding:6px}
+  body.nv12 .nv-nav .upload-btn span span{font-size:16px}
+  body.nv12 .nv-timer{justify-content:center;padding:8px 0}
+  body.nv12 .nv-timer-txt{display:none}
+  body.nv12 .nv-now-txt{display:none}
+  body.nv12 .nv-bar .nova-dock{gap:4px;padding:4px 6px}
+  body.nv12 .nv-bar .nova-dock .icon-btn{width:36px;height:36px}
+  body.nv12 .nv-bar .nova-side-dock .experience-btn{width:34px;height:34px;min-height:34px}
+  body.nv12 .nv-bar .volume-row{width:110px}}
+@media (max-height:700px){body.nv12 .artwork-wrapper{min-height:170px}body.nv12 .controls-row{gap:10px}}
+:root[data-motion="reduce"] body.nv12 .nv-search,:root[data-motion="reduce"] body.nv12 .nv-timer{transition:none}
+</style>
+<script id="nova-v112-layout-script">
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var shell=document.querySelector('.shell'),header=document.querySelector('.header'),player=document.querySelector('.player-card'),
+      sidebar=document.querySelector('.sidebar'),tabBar=document.querySelector('.tab-bar');
+  if(!shell||!header||!player||!sidebar||!tabBar)return;
+  var SVG={search:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg>',
+    moon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg>',
+    heart:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg>'};
+  function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+
+  /* new pieces (proxies only: every click goes to the original control) */
+  var search=el('button','nv-search',SVG.search+'<span class="nv-search-txt">چی دوست داری گوش بدی؟</span><kbd>Ctrl K</kbd>');
+  search.type='button';search.id='nvSearch';search.setAttribute('aria-label','جستجو و دانلود آهنگ (Ctrl+K)');
+  search.addEventListener('click',function(){var b=$('searchPageBtn');if(b)b.click();});
+
+  var nav=el('nav','card nv-nav');nav.id='nvNav';nav.setAttribute('aria-label','بخش‌ها');
+  var list=el('div','nv-nav-list');nav.appendChild(list);
+  var navSearch=el('button','tab-btn nv-nav-btn','SEARCH');navSearch.type='button';navSearch.id='nvNavSearch';navSearch.title='جستجو و دانلود آهنگ (Ctrl+K)';
+  navSearch.addEventListener('click',function(){var b=$('searchPageBtn');if(b)b.click();});
+  var sepA=el('div','nv-nav-sep');sepA.setAttribute('aria-hidden','true');
+  var timer=el('button','nv-timer','<span class="nv-timer-ico">'+SVG.moon+'</span><span class="nv-timer-txt"><b>تایمر خواب</b><small id="nvTimerSub">خاموش</small></span>');
+  timer.type='button';timer.id='nvTimer';timer.setAttribute('aria-label','تایمر خواب');
+  timer.addEventListener('click',function(){var b=$('sleepBtn');if(b)b.click();});
+
+  var bar=el('div','nv-bar');bar.id='nvBar';bar.setAttribute('role','region');bar.setAttribute('aria-label','در حال پخش');
+  var now=el('div','nv-now','<div class="nv-now-art" id="nvNowArt" aria-hidden="true">♪</div><div class="nv-now-txt"><div class="nv-now-title" id="nvNowTitle" dir="auto"></div><div class="nv-now-sub" id="nvNowSub"></div></div>');
+  var fav=el('button','nv-now-fav',SVG.heart);fav.type='button';fav.id='nvNowFav';fav.setAttribute('aria-label','افزودن به علاقه‌مندی‌ها (F)');
+  fav.addEventListener('click',function(){var b=$('favBtn');if(b&&!b.disabled)b.click();});
+  now.appendChild(fav);
+  var mid=el('div','nv-bar-mid'),right=el('div','nv-bar-right');
+  bar.appendChild(now);bar.appendChild(mid);bar.appendChild(right);
+  now.querySelector('.nv-now-art').addEventListener('click',function(){player.scrollTo({top:0,behavior:'smooth'});});
+
+  /* remember where every moved node lives, so narrow windows get the classic layout back */
+  var moved=[];
+  function move(node,parent,before){if(!node)return;
+    if(!node.__nvHome)node.__nvHome={p:node.parentNode,n:node.nextSibling};
+    if(moved.indexOf(node)<0)moved.push(node);
+    parent.insertBefore(node,before||null);}
+  function restore(){for(var i=moved.length-1;i>=0;i--){var n=moved[i],h=n.__nvHome;if(!h||!h.p)continue;
+    h.p.insertBefore(n,h.n&&h.n.parentNode===h.p?h.n:null);}moved=[];}
+
+  var tabs=['tabLib','tabPl','tabFav','tabTrend'].map($).filter(Boolean);
+  tabs.concat([navSearch]).forEach(function(t,i){t.setAttribute('data-nv-n','0'+(i+1));});
+
+  var on=false,mq=window.matchMedia('(min-width:900px)');
+  function enter(){
+    if(on)return;on=true;
+    header.insertBefore(search,header.querySelector('.header-actions'));
+    shell.insertBefore(nav,player);
+    tabs.forEach(function(t){move(t,list);});list.appendChild(navSearch);
+    nav.appendChild(sepA);move($('dropZone'),nav);nav.appendChild(timer);
+    document.body.appendChild(bar);
+    move($('novaDockWrap'),mid);
+    move($('novaSideDock'),right);
+    move(document.querySelector('.volume-row'),right);
+    document.body.classList.add('nv12');
+    sync();
+  }
+  function leave(){
+    if(!on)return;on=false;
+    document.body.classList.remove('nv12');
+    restore();
+    [search,nav,bar].forEach(function(n){if(n.parentNode)n.parentNode.removeChild(n);});
+  }
+  function apply(){mq.matches?enter():leave();}
+
+  /* mirror the player into the bar */
+  var lastArt='';
+  /* v1.13.0 perf: compare a tiny key, and show the small cached thumb instead of copying the full cover */
+  var lastKey='';
+  function syncArt(){var a=$('artwork');if(!a)return;var box=$('nvNowArt');if(!box)return;
+    var song=null;try{song=(!window.NovaTrendEngine||!window.NovaTrendEngine.active)&&typeof currentSong==='function'?currentSong():null;}catch(e){}
+    var key=song?('s'+song.id+':'+(song.cover?song.cover.length:0)+':'+(window.NovaThumb?NovaThumb.size:0)):'';
+    if(key&&key===lastKey)return;
+    var bg;
+    if(song&&song.cover){bg='url("'+(window.NovaThumb?NovaThumb.url(song.cover):song.cover)+'")';}
+    else{bg=a.style.backgroundImage||'';}
+    lastKey=key;
+    if(bg===lastArt)return;lastArt=bg;
+    if(bg&&bg!=='none'){box.style.backgroundImage=bg;box.textContent='';}else{box.style.backgroundImage='';box.textContent='♪';}}
+  function sync(){
+    var t=$('trackTitle'),s=$('trackSub'),f=$('favBtn');
+    if(t)$('nvNowTitle').textContent=t.textContent;
+    if(s)$('nvNowSub').textContent=s.textContent;
+    if(f){fav.disabled=f.disabled;fav.setAttribute('aria-pressed',f.getAttribute('aria-pressed')||'false');}
+    syncArt();syncTimer();
+  }
+  function syncTimer(){var b=$('sleepBtn');if(!b)return;var active=b.classList.contains('on')||b.getAttribute('aria-pressed')==='true';
+    var c=b.querySelector('.sleep-count');timer.classList.toggle('on',active);
+    var sub=$('nvTimerSub');if(sub)sub.textContent=active?((c&&c.textContent.trim())||'روشن'):'خاموش';}
+  var t=$('trackTitle'),s=$('trackSub'),f=$('favBtn'),sb=$('sleepBtn');
+  var mo=new MutationObserver(function(){sync();setTimeout(syncArt,250);});
+  if(t)mo.observe(t,{childList:true,characterData:true,subtree:true});
+  if(s)mo.observe(s,{childList:true,characterData:true,subtree:true});
+  if(f)new MutationObserver(sync).observe(f,{attributes:true,attributeFilter:['aria-pressed','disabled']});
+  if(sb)new MutationObserver(syncTimer).observe(sb,{attributes:true,childList:true,characterData:true,subtree:true});
+  var au=$('audio');if(au)['loadeddata','play'].forEach(function(e){au.addEventListener(e,function(){setTimeout(syncArt,120);});});
+  setInterval(function(){if(on)syncArt();},2000);
+
+  /* tooltips of the listening-room tools: show above the button while they live in the bar */
+  var rail=$('novaSideDock');
+  if(rail)rail.addEventListener('mouseover',function(e){if(!on)return;var b=e.target.closest&&e.target.closest('.experience-btn');if(!b)return;
+    var r=b.getBoundingClientRect(),d=rail.getBoundingClientRect(),lab=rail.querySelector('.nova-side-label');
+    if(lab)lab.style.setProperty('--nx',(r.left+r.width/2-d.left)+'px');});
+  if(rail)rail.addEventListener('focusin',function(e){if(!on)return;var b=e.target.closest&&e.target.closest('.experience-btn');if(!b)return;
+    var r=b.getBoundingClientRect(),d=rail.getBoundingClientRect(),lab=rail.querySelector('.nova-side-label');
+    if(lab)lab.style.setProperty('--nx',(r.left+r.width/2-d.left)+'px');});
+
+  apply();
+  (mq.addEventListener?mq.addEventListener('change',apply):mq.addListener(apply));
+  window.NovaLayout={version:'1.12.0',get active(){return on;}};
+})();
+</script>
+<script id="nova-i18n-v112">
+/* v1.12.0 strings for the English UI (new layout) */
+window.NovaI18nAdd&&window.NovaI18nAdd({
+"چی دوست داری گوش بدی؟":"What do you want to hear?","جستجو و دانلود آهنگ (Ctrl+K)":"Search & download songs (Ctrl+K)","بخش‌ها":"Sections",
+"تایمر خواب":"Sleep timer","خاموش":"Off","روشن":"On","در حال پخش":"Now playing","افزودن به علاقه‌مندی‌ها (F)":"Add to favorites (F)",
+"✨ تازه‌های 1.12.0":"✨ New in 1.12.0","ظاهر جدید":"New look","نوار پایین":"Bottom bar","جستجوی بالا":"Top search",
+"سه ستون: بخش‌ها سمت چپ، اتاق شنیدن وسط و کتابخانه سمت راست؛ همهٔ امکانات و تم‌ها مثل قبل.":"Three columns: sections on the left, the listening room in the middle and the library on the right; every feature and theme stays the same.",
+"آهنگ در حال پخش، ابزارهای سریع، ابزارهای اتاق شنیدن و صدا همه در یک نوار پایین صفحه.":"Now playing, quick actions, listening-room tools and volume all live in one bar at the bottom.",
+"نوار جستجوی بالای صفحه همان صفحهٔ SEARCH را باز می‌کند (یا":"The search bar at the top opens the SEARCH page (or"
+});
+</script>
+
+<script id="nova-v112-lyrics-full-script">
+(()=>{
+  const panel=document.getElementById('lyricsPanel'), tools=panel&&panel.querySelector('.lyrics-tools');
+  if(!panel||!tools)return;
+  const fa=()=>document.documentElement.lang!=='en'&&document.documentElement.dir==='rtl';
+  const b=document.createElement('button');
+  b.type='button';b.id='lrcFullBtn';b.className='experience-btn lyr-icon lrc-full-btn';
+  b.innerHTML='<svg class="ico-enter" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><svg class="ico-exit" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+  tools.appendChild(b);
+  const label=()=>{const on=document.body.classList.contains('nv-lyr-full');
+    const t=fa()?(on?'خروج از تمام‌صفحهٔ متن (Esc)':'تمام‌صفحهٔ متن آهنگ'):(on?'Exit full lyrics (Esc)':'Full-screen lyrics');
+    b.title=t;b.setAttribute('aria-label',t);b.setAttribute('aria-pressed',on?'true':'false')};
+  const set=on=>{document.body.classList.toggle('nv-lyr-full',!!on);label();
+    const w=panel.querySelector('.lyrics-window .on,.lyrics-window [aria-current]');if(w)w.scrollIntoView({block:'center'})};
+  b.addEventListener('click',()=>set(!document.body.classList.contains('nv-lyr-full')));
+  new MutationObserver(()=>{if(panel.hidden)set(false)}).observe(panel,{attributes:true,attributeFilter:['hidden']});
+  new MutationObserver(label).observe(document.documentElement,{attributes:true,attributeFilter:['lang','dir']});
+  window.addEventListener('keydown',e=>{
+        if(e.key==='Escape'&&document.body.classList.contains('nv-lyr-full')&&!document.querySelector('[role=dialog]:not([hidden])[open],dialog[open]')){
+      e.preventDefault();e.stopImmediatePropagation();set(false);return}
+  },true);
+  label();
+})();
+</script>
+<style id="nova-v113-perf">
+/* v1.13.0 perf: rows outside the visible part of a list skip style, layout and paint entirely */
+.track-list>.track-item{content-visibility:auto;contain-intrinsic-size:auto 64px}
+.plx-row{content-visibility:auto;contain-intrinsic-size:auto 50px}
+.trend-row{content-visibility:auto;contain-intrinsic-size:auto 52px}
+.track-list.dnd-on>.track-item,.plx-row.lift,.sorting .plx-row{content-visibility:visible}
+</style>
+<style id="nova-mascot-style">
+/* NOVA buddy: a tiny mascot that perches on the player bar and dances while music plays.
+   Pure CSS transforms on a ~64px SVG: no per-frame JS, no audio analysis, paused off-screen. */
+.nm{display:none}
+body.nv12 .nm{--nm-cream:#f1ebdf;--nm-body:oklch(25% .012 120);--nm-face:oklch(15% .01 120);
+  display:flex;align-items:flex-end;justify-content:center;position:relative;flex:1 1 0;min-height:0;width:100%;
+  padding:8px 0 4px;margin:0;border:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .25s,transform .25s}
+body.nv12 .nm svg{width:auto;height:100%;max-height:168px;max-width:100%}
+body.nv12 .nm ~ .nv-support{margin-top:4px}
+:root[data-theme="light"] body.nv12 .nm{--nm-cream:#fffaf1;--nm-body:oklch(30% .014 120);--nm-face:oklch(18% .01 120)}
+body.nv12 .nm:focus-visible{outline:2px solid var(--neon);outline-offset:4px;border-radius:14px}
+body.nv12.nm-off .nm,body.nova-cinema .nm,body.nv-lyr-full .nm,html.sp-open body .nm{opacity:0;pointer-events:none;transform:translateY(14px)}
+body.nm-off .nm,body.nova-cinema .nm,body.nv-lyr-full .nm{visibility:hidden;transition:opacity .25s,transform .25s,visibility 0s .25s}
+.nm svg{overflow:visible;display:block}
+.nm svg *{transform-box:fill-box}
+.nm .nm-cream,.nm .nm-legs rect{fill:var(--nm-cream)}
+.nm .nm-body,.nm .nm-arm path{fill:var(--nm-body)}
+.nm .nm-arm path{stroke:var(--nm-face);stroke-width:1.2;stroke-opacity:.55}
+.nm .nm-face{fill:var(--nm-face)}
+.nm .nm-inner,.nm .nm-scarf path{fill:var(--ember,#ff6130)}
+.nm .nm-scarf-tail{filter:brightness(.85)}
+.nm .nm-dot{fill:var(--nm-cream)}
+.nm .nm-eye{fill:var(--neon,#c8ff00)}
+.nm .nm-pupil{fill:var(--nm-face)}
+.nm .nm-glint{fill:#fff;opacity:.85}
+.nm .nm-zip,.nm .nm-seam{fill:none;stroke:oklch(40% .012 120);stroke-width:1.4;stroke-linecap:round;stroke-dasharray:2 3}
+.nm .nm-seam{stroke:oklch(80% .01 80)}
+.nm .nm-tag{fill:var(--nm-cream);opacity:.75}
+.nm .nm-nv{font:800 11px/1 var(--mono,ui-monospace,monospace);fill:var(--nm-face);letter-spacing:.5px}
+.nm .nm-shadow{fill:#000;opacity:.22;transform-origin:center}
+.nm .nm-note,.nm .nm-note-h{fill:var(--neon);stroke:var(--neon);stroke-width:2.2;stroke-linecap:round;opacity:0}
+.nm .nm-note{fill:none}
+.nm .nm-all{transform-origin:50% 100%}
+.nm .nm-head{transform-origin:50% 90%}
+.nm .nm-arm-l{transform-origin:95% 5%}.nm .nm-arm-r{transform-origin:5% 5%}
+.nm .nm-ear-l{transform-origin:70% 100%}.nm .nm-ear-r{transform-origin:30% 100%}
+.nm .nm-eyes{transform-origin:center}
+.nm .nm-look{transform:translate(calc(var(--lx,0)*1px),calc(var(--ly,0)*1px));transition:transform .18s ease-out}
+.nm .nm-scarf-tail{transform-origin:0 0}
+
+/* idle: slow breathing + blinking (cheap, 2 tiny layers) */
+.nm .nm-all{animation:nmBreath 3.6s ease-in-out infinite}
+.nm .nm-eyes{animation:nmBlink 5.2s infinite}
+@keyframes nmBreath{50%{transform:translateY(1.5px) scaleY(.985)}}
+@keyframes nmBlink{0%,92%,100%{transform:none}95%{transform:scaleY(.1)}}
+
+/* playing: a little dance (~120 bpm) */
+body.nova-playing .nm .nm-all{animation:nmBounce .5s ease-in-out infinite alternate}
+body.nova-playing .nm .nm-head{animation:nmTilt 1s ease-in-out infinite alternate}
+body.nova-playing .nm .nm-arm-l{animation:nmWaveL .5s ease-in-out infinite alternate}
+body.nova-playing .nm .nm-arm-r{animation:nmWaveR .5s ease-in-out infinite alternate-reverse}
+body.nova-playing .nm .nm-ear-l{animation:nmEarL 1s ease-in-out infinite alternate}
+body.nova-playing .nm .nm-ear-r{animation:nmEarR 1s ease-in-out infinite alternate-reverse}
+body.nova-playing .nm .nm-leg-l{animation:nmStep .5s ease-in-out infinite alternate}
+body.nova-playing .nm .nm-leg-r{animation:nmStep .5s ease-in-out infinite alternate-reverse}
+body.nova-playing .nm .nm-shadow{animation:nmShadow .5s ease-in-out infinite alternate}
+body.nova-playing .nm .nm-scarf-tail{animation:nmTail .5s ease-in-out infinite alternate}
+body.nova-playing .nm .nm-note-a{animation:nmNote 2.4s ease-out infinite}
+body.nova-playing .nm .nm-note-b{animation:nmNote 2.4s ease-out 1.2s infinite}
+@keyframes nmBounce{from{transform:translateY(0) rotate(-4deg)}to{transform:translateY(-5px) rotate(4deg)}}
+@keyframes nmTilt{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
+@keyframes nmWaveL{from{transform:rotate(-8deg)}to{transform:rotate(60deg)}}
+@keyframes nmWaveR{from{transform:rotate(8deg)}to{transform:rotate(-60deg)}}
+@keyframes nmEarL{from{transform:rotate(-4deg)}to{transform:rotate(-16deg)}}
+@keyframes nmEarR{from{transform:rotate(4deg)}to{transform:rotate(16deg)}}
+@keyframes nmStep{from{transform:translateY(0)}to{transform:translateY(-3px)}}
+@keyframes nmShadow{from{transform:scaleX(1);opacity:.22}to{transform:scaleX(.82);opacity:.14}}
+@keyframes nmTail{from{transform:rotate(0)}to{transform:rotate(14deg)}}
+@keyframes nmNote{0%{opacity:0;transform:translate(0,6px) scale(.7)}20%{opacity:.95}100%{opacity:0;transform:translate(-6px,-22px) scale(1)}}
+
+/* click: a happy hop */
+.nm.nm-hop .nm-all{animation:nmHop .55s cubic-bezier(.3,1.6,.5,1) 1!important}
+@keyframes nmHop{0%{transform:none}35%{transform:translateY(-16px) scale(1.04,.96)}70%{transform:translateY(0) scale(1.06,.92)}100%{transform:none}}
+
+/* reduced motion (system or NOVA setting): stays still and calm */
+:root[data-motion="reduce"] .nm *{animation:none!important}
+@media(prefers-reduced-motion:reduce){:root:not([data-motion="full"]) .nm *{animation:none!important}}
+</style>
+
+
+<style id="nova-mascot-custom">
+/* NOVA buddy customization: colors, ears, accessory, scarf text, size, dance energy */
+.nm .nm-inner,.nm .nm-scarf path{fill:var(--nm-scarf,var(--ember,#ff6130))}
+.nm .nm-eye,.nm .nm-note,.nm .nm-note-h{fill:var(--nm-eye,var(--neon,#c8ff00))}
+.nm .nm-note,.nm .nm-note-h{stroke:var(--nm-eye,var(--neon))}
+.nm .nm-note{fill:none}
+.nm .nm-ears-cat,.nm .nm-ears-bear,.nm .nm-acc{display:none}
+.nm[data-ears="cat"] .nm-ears-cat,.nm[data-ears="bear"] .nm-ears-bear{display:inline}
+.nm[data-ears="cat"] .nm-ears-bunny,.nm[data-ears="bear"] .nm-ears-bunny,.nm[data-ears="none"] .nm-ears-bunny{display:none}
+.nm[data-acc="glasses"] .nm-acc-glasses,.nm[data-acc="phones"] .nm-acc-phones,.nm[data-acc="crown"] .nm-acc-crown,.nm[data-acc="bow"] .nm-acc-bow{display:inline}
+.nm[data-scarf="off"] .nm-scarf{display:none}
+.nm .nm-acc-glasses circle{fill:color-mix(in oklab,#fff 8%,transparent);stroke:var(--nm-acc,#e8e2d4);stroke-width:2.2}
+.nm .nm-acc-glasses path{fill:none;stroke:var(--nm-acc,#e8e2d4);stroke-width:2.2;stroke-linecap:round}
+.nm .nm-ph-band{fill:none;stroke:var(--nm-acc,var(--nm-body));stroke-width:4.5;stroke-linecap:round}
+.nm .nm-ph-cup{fill:var(--nm-scarf,var(--ember,#ff6130));stroke:var(--nm-acc,#e8e2d4);stroke-width:2}
+.nm .nm-acc-crown path{fill:#f6c84c;stroke:#c9962a;stroke-width:1.3;stroke-linejoin:round}
+.nm .nm-acc-crown circle{fill:var(--nm-scarf,var(--ember,#ff6130))}
+.nm .nm-acc-bow path,.nm .nm-acc-bow circle{fill:var(--nm-scarf,var(--ember,#ff6130))}
+.nm .nm-acc-bow circle{filter:brightness(.85)}
+body.nv12 .nm[data-size="s"] svg{max-height:118px}
+body.nv12 .nm[data-size="l"] svg{max-height:214px}
+/* dance energy */
+body.nova-playing .nm[data-dance="off"] .nm-all{animation:nmBreath 3.6s ease-in-out infinite}
+body.nova-playing .nm[data-dance="off"] :is(.nm-head,.nm-arm-l,.nm-arm-r,.nm-ear-l,.nm-ear-r,.nm-leg-l,.nm-leg-r,.nm-shadow,.nm-scarf-tail,.nm-note-a,.nm-note-b){animation:none}
+body.nova-playing .nm[data-dance="calm"] :is(.nm-all,.nm-arm-l,.nm-arm-r,.nm-leg-l,.nm-leg-r,.nm-shadow,.nm-scarf-tail){animation-duration:.95s}
+body.nova-playing .nm[data-dance="calm"] :is(.nm-head,.nm-ear-l,.nm-ear-r){animation-duration:1.9s}
+body.nova-playing .nm[data-dance="wild"] :is(.nm-all,.nm-arm-l,.nm-arm-r,.nm-leg-l,.nm-leg-r,.nm-shadow,.nm-scarf-tail){animation-duration:.3s}
+body.nova-playing .nm[data-dance="wild"] :is(.nm-head,.nm-ear-l,.nm-ear-r){animation-duration:.6s}
+body.nova-playing .nm[data-dance="wild"] .nm-all{animation-name:nmBounceWild}
+@keyframes nmBounceWild{from{transform:translateY(0) rotate(-8deg)}to{transform:translateY(-9px) rotate(8deg)}}
+/* settings: live preview + controls */
+.nm-cust-row{gap:14px!important}
+body.nm-off .nm-cust-row{display:none}
+.nmc{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px;align-items:start;width:100%}
+@media(max-width:620px){.nmc{grid-template-columns:1fr}}
+.nmc-stage{position:sticky;top:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 8px 10px;border-radius:18px;background:var(--frost);border:1px solid var(--glass-border)}
+.nm.nm-prev{display:flex!important;opacity:1!important;visibility:visible!important;transform:none!important;pointer-events:auto!important;
+  align-items:flex-end;justify-content:center;width:100%;height:160px;padding:0;margin:0;border:0;background:none;cursor:pointer;
+  --nm-cream:#f1ebdf;--nm-body:oklch(25% .012 120);--nm-face:oklch(15% .01 120)}
+:root[data-theme="light"] .nm.nm-prev{--nm-cream:#fffaf1;--nm-body:oklch(30% .014 120);--nm-face:oklch(18% .01 120)}
+.nm.nm-prev svg{height:150px;width:auto;max-height:none}
+.nm-prev.nm-dance .nm-all{animation:nmBounce .5s ease-in-out infinite alternate}
+.nm-prev.nm-dance .nm-head{animation:nmTilt 1s ease-in-out infinite alternate}
+.nm-prev.nm-dance .nm-arm-l{animation:nmWaveL .5s ease-in-out infinite alternate}
+.nm-prev.nm-dance .nm-arm-r{animation:nmWaveR .5s ease-in-out infinite alternate-reverse}
+.nm-prev.nm-dance .nm-ear-l{animation:nmEarL 1s ease-in-out infinite alternate}
+.nm-prev.nm-dance .nm-ear-r{animation:nmEarR 1s ease-in-out infinite alternate-reverse}
+.nm-prev.nm-dance .nm-leg-l{animation:nmStep .5s ease-in-out infinite alternate}
+.nm-prev.nm-dance .nm-leg-r{animation:nmStep .5s ease-in-out infinite alternate-reverse}
+.nm-prev.nm-dance .nm-shadow{animation:nmShadow .5s ease-in-out infinite alternate}
+.nm-prev.nm-dance .nm-scarf-tail{animation:nmTail .5s ease-in-out infinite alternate}
+.nm-prev.nm-dance .nm-note-a{animation:nmNote 2.4s ease-out infinite}
+.nm-prev.nm-dance .nm-note-b{animation:nmNote 2.4s ease-out 1.2s infinite}
+.nm-prev.nm-dance[data-dance="off"] :is(.nm-head,.nm-arm-l,.nm-arm-r,.nm-ear-l,.nm-ear-r,.nm-leg-l,.nm-leg-r,.nm-shadow,.nm-scarf-tail,.nm-note-a,.nm-note-b){animation:none}
+.nm-prev.nm-dance[data-dance="off"] .nm-all{animation:nmBreath 3.6s ease-in-out infinite}
+.nm-prev.nm-dance[data-dance="calm"] :is(.nm-all,.nm-arm-l,.nm-arm-r,.nm-leg-l,.nm-leg-r,.nm-shadow,.nm-scarf-tail){animation-duration:.95s}
+.nm-prev.nm-dance[data-dance="calm"] :is(.nm-head,.nm-ear-l,.nm-ear-r){animation-duration:1.9s}
+.nm-prev.nm-dance[data-dance="wild"] :is(.nm-all,.nm-arm-l,.nm-arm-r,.nm-leg-l,.nm-leg-r,.nm-shadow,.nm-scarf-tail){animation-duration:.3s}
+.nm-prev.nm-dance[data-dance="wild"] :is(.nm-head,.nm-ear-l,.nm-ear-r){animation-duration:.6s}
+.nm-prev.nm-dance[data-dance="wild"] .nm-all{animation-name:nmBounceWild}
+.nm-prev.nm-hop .nm-all{animation:nmHop .55s cubic-bezier(.3,1.6,.5,1) 1!important}
+.nmc-name{font:700 13px var(--sans);color:var(--text);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nmc-play{min-height:30px;padding:4px 12px;border-radius:999px;border:1px solid var(--glass-border);background:transparent;color:var(--muted);font:600 11.5px var(--sans);cursor:pointer}
+.nmc-play[aria-pressed="true"]{background:var(--neon);color:var(--on-accent);border-color:transparent}
+.nmc-ctl{display:flex;flex-direction:column;gap:14px;min-width:0}
+.nmc-f{display:flex;flex-direction:column;gap:7px;min-width:0}
+.nmc-f>span{font-size:12px;font-weight:600;color:var(--muted)}
+.nmc-f .nset-seg{flex-wrap:wrap;align-self:flex-start}
+.nmc-f .nset-seg button{padding:6px 12px}
+.nmc-presets{display:flex;flex-wrap:wrap;gap:8px}
+.nmc-preset{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:4px 10px 4px 6px;border-radius:999px;border:1px solid var(--glass-border);background:var(--surface);color:var(--text);font:600 11.5px var(--sans);cursor:pointer}
+.nmc-preset[aria-pressed="true"]{border-color:var(--neon);box-shadow:0 0 0 2px var(--neon-dim)}
+.nmc-sw{display:inline-flex;border-radius:999px;overflow:hidden;border:1px solid var(--glass-border)}
+.nmc-sw i{display:block;width:9px;height:18px}
+.nmc-colors{display:flex;flex-wrap:wrap;gap:10px}
+.nmc-color{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);cursor:pointer}
+.nmc-color input{appearance:none;-webkit-appearance:none;width:30px;height:30px;padding:0;border:1px solid var(--glass-border);border-radius:9px;background:none;cursor:pointer}
+.nmc-color input::-webkit-color-swatch-wrapper{padding:3px}
+.nmc-color input::-webkit-color-swatch{border:0;border-radius:6px}
+.nmc-color input::-moz-color-swatch{border:0;border-radius:6px}
+.nmc-texts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nmc-in{width:100%;min-height:36px;padding:6px 10px;border-radius:10px;border:1px solid var(--glass-border);background:var(--surface);color:var(--text);font:600 13px var(--sans)}
+.nmc-in:focus{outline:none;border-color:var(--neon)}
+.nmc-in.mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;direction:ltr;text-align:center}
+.nmc-foot{display:flex;gap:8px;flex-wrap:wrap}
+.nmc-foot .settings-btn{min-height:34px;padding:6px 12px;font-size:12px}
+:root[data-motion="reduce"] .nm-prev *{animation:none!important}
+</style>
+<style id="nova-v113-support">
+/* "Support us": sidebar card, settings pane and the gentle periodic reminder */
+.nv-support{display:none}
+body.nv12 .nv-support{display:flex;align-items:center;gap:10px;width:100%;margin-top:auto;padding:10px 10px;border-radius:16px;cursor:pointer;text-align:start;
+  font:inherit;color:var(--text);background:transparent;border:1px solid var(--glass-border);transition:border-color .18s,background .18s}
+body.nv12 .nv-support:hover{border-color:var(--ember,var(--neon));background:var(--frost)}
+.nv-support-ico{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;flex:none;background:var(--raised);color:var(--ember,var(--neon))}
+.nv-support-ico svg,.nsp-heart svg{width:18px;height:18px;fill:currentColor;stroke:none}
+.nv-support-txt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.5}
+.nv-support-txt b{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nv-support-txt small{font:10.5px var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:ltr;text-align:start}
+.nsp{position:fixed;z-index:99980;inset-inline-start:22px;bottom:104px;width:min(340px,calc(100vw - 44px));padding:18px 18px 16px;border-radius:22px;
+  background:var(--surface);border:1px solid var(--glass-border);color:var(--text);font-family:var(--sans);box-shadow:0 24px 60px oklch(5% .01 120 / .5);
+  opacity:0;transform:translateY(12px) scale(.98);transition:opacity .25s ease,transform .3s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.nsp.on{opacity:1;transform:none;pointer-events:auto}
+body:not(.nv12) .nsp{bottom:22px}
+.nsp-head{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.nsp-heart{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:none;background:color-mix(in oklab,var(--ember,var(--neon)) 18%,transparent);color:var(--ember,var(--neon))}
+.nsp-heart svg{width:20px;height:20px}
+.nsp h3{margin:0;font-size:15px;font-weight:800;line-height:1.5}
+.nsp small{display:block;font:600 10px var(--mono);letter-spacing:.1em;color:var(--neon);direction:ltr;text-align:start}
+.nsp p{margin:0 0 14px;font-size:12.5px;line-height:1.85;color:var(--muted)}
+.nsp-foot{display:flex;gap:8px;align-items:center}
+.nsp-foot button{font:600 12px var(--sans);border-radius:12px;padding:9px 14px;cursor:pointer;border:1px solid var(--glass-border);background:transparent;color:var(--muted)}
+.nsp-foot button:hover{color:var(--text);border-color:var(--text)}
+.nsp-foot .nsp-go{margin-inline-start:auto;background:var(--neon);color:var(--on-accent);border-color:transparent}
+.nsp-foot .nsp-go:hover{filter:brightness(1.08);color:var(--on-accent)}
+.nsp-x{position:absolute;top:10px;inset-inline-end:10px;width:28px;height:28px;border-radius:9px;border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;cursor:pointer}
+.nsp-x:hover{color:var(--text);background:var(--frost)}
+.nset-support-card{display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;background:var(--frost);border:1px solid var(--glass-border);margin:4px 0 14px}
+.nset-support-card .nsp-heart{width:48px;height:48px}
+.nset-support-card p{margin:0;font-size:12.5px;line-height:1.85;color:var(--muted);flex:1;min-width:0}
+.nset-support-card p b{display:block;color:var(--text);font-size:13.5px}
+.nset-support-link{display:block;margin-top:2px;font:11px var(--mono);color:var(--neon);direction:ltr;text-align:start}
+:root[data-motion="reduce"] .nsp{transition:none}
+</style>
+<script id="nova-v113-support-script">
+/* v1.13.0 · Support us: a sidebar card, a settings pane, a shortcut and a gentle reminder every few hours.
+   The reminder never interrupts a dialog, cinema mode or a hidden window, and can be turned off. */
+(()=>{
+  const URL_='https://donofa.com/novaplayerapp',LAST='nova-support-last',EVERY='nova-support-every',DEFAULT_H=2;
+  const HEART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg>';
+  const $=id=>document.getElementById(id);
+  const get=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}};
+  const set=(k,v)=>{try{localStorage.setItem(k,String(v));}catch(e){}};
+  const en=()=>document.documentElement.lang==='en';
+  const hours=()=>2; /* fixed: one reminder every 2 hours */
+  const open=async()=>{
+    set(LAST,Date.now());hide();
+    try{const o=window.__TAURI__?.opener;if(o?.openUrl){await o.openUrl(URL_);}else window.open(URL_,'_blank','noopener,noreferrer');}
+    catch(e){window.open(URL_,'_blank','noopener,noreferrer');}
+    try{window.NovaToast?.('💚 ممنون که به NOVA فکر می‌کنی!');}catch(e){}
+  };
+  /* reminder card */
+  let card=null;
+  const hide=()=>{if(!card)return;const c=card;card=null;c.classList.remove('on');setTimeout(()=>c.remove(),280);};
+  const show=()=>{
+    if(card)return;const E=en();
+    card=document.createElement('div');card.className='nsp';card.setAttribute('role','dialog');card.setAttribute('aria-labelledby','nspTitle');card.dir=E?'ltr':'rtl';
+    card.innerHTML='<button type="button" class="nsp-x"></button><div class="nsp-head"><div class="nsp-heart">'+HEART+'</div><div><small>SUPPORT NOVA</small><h3 id="nspTitle"></h3></div></div><p></p>'+
+      '<div class="nsp-foot"><button type="button" class="nsp-later"></button><button type="button" class="nsp-go"></button></div>';
+    card.querySelector('h3').textContent=E?'Enjoying NOVA?':'از NOVA لذت می‌بری؟';
+    card.querySelector('p').textContent=E?'NOVA is free and ad-free. If it makes your day a little better, a small donation keeps it growing. Thank you! 💚'
+      :'NOVA رایگان و بدون تبلیغه. اگه حال‌وهوای روزت رو بهتر می‌کنه، با یه حمایت کوچیک کمک کن بهتر و کامل‌تر بشه. ممنونیم! 💚';
+    card.querySelector('.nsp-go').textContent=E?'Support us':'حمایت می‌کنم';
+    card.querySelector('.nsp-later').textContent=E?'Later':'بعداً';
+    const x=card.querySelector('.nsp-x');x.textContent='×';x.setAttribute('aria-label',E?'Close':'بستن');
+    card.querySelector('.nsp-go').onclick=open;
+    card.querySelector('.nsp-later').onclick=()=>{set(LAST,Date.now());hide();};
+    x.onclick=()=>{set(LAST,Date.now());hide();};
+    document.body.appendChild(card);requestAnimationFrame(()=>requestAnimationFrame(()=>card&&card.classList.add('on')));
+  };
+  const busy=()=>document.hidden||document.body.classList.contains('nova-cinema')||document.body.classList.contains('nv-lyr-full')||
+    !!document.querySelector('.modal-bg.open,.nwn-back,#tutorialBg.open,#tutorialBg.show');
+  const started=Date.now();
+  if(!get(LAST,''))set(LAST,Date.now()); /* first launch: wait a full interval before the first reminder */
+  const check=()=>{
+    const h=hours();if(!h||card)return;
+    if(Date.now()-started<4*60*1000)return;            /* let the app settle after launch */
+    if(Date.now()-Number(get(LAST,0))<h*3600*1000)return;
+    if(busy())return;
+    set(LAST,Date.now());show();
+    setTimeout(()=>{if(card){hide();}},45000);          /* it leaves by itself if ignored */
+  };
+  setInterval(check,60*1000);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&card){set(LAST,Date.now());hide();}});
+
+  /* sidebar card (wide layout) */
+  const navCard=document.createElement('button');navCard.type='button';navCard.className='nv-support';navCard.id='novaSupportBtn';
+  navCard.title='حمایت از ما';navCard.setAttribute('aria-label','حمایت از ما');
+  navCard.innerHTML='<span class="nv-support-ico">'+HEART+'</span><span class="nv-support-txt"><b>حمایت از ما</b><small>donofa.com/novaplayerapp</small></span>';
+  navCard.addEventListener('click',open);
+  const mount=()=>{const nav=$('nvNav');if(nav&&navCard.parentNode!==nav)nav.appendChild(navCard);};
+  mount();try{window.matchMedia('(min-width:900px)').addEventListener('change',()=>setTimeout(mount,0));}catch(e){}
+
+  /* settings pane */
+  $('nsetSupportGo')?.addEventListener('click',open);
+  $('nsetSupportPreview')?.addEventListener('click',()=>{$('settingsModalBg')?.classList.remove('open');setTimeout(show,220);});
+
+  window.NovaSupport={open,show,hide,url:URL_};
+  window.NovaI18nAdd?.({'حمایت از ما':'Support us','حمایت از NOVA':'Support NOVA','یادآوری حمایت':'Support reminder',
+    'هر چند ساعت یک کارت کوچک و بی‌مزاحمت پیشنهاد حمایت می‌دهد؛ هیچ‌وقت وسط پنجره‌ها یا حالت سینمایی نمی‌آید.':'Every few hours a small, quiet card suggests supporting NOVA; never over dialogs or cinema mode.',
+    'هر ۳ ساعت':'Every 3 h','هر ۶ ساعت':'Every 6 h','هر ۱۲ ساعت':'Every 12 h','خاموش':'Off','باز کردن صفحهٔ حمایت':'Open the support page','پیش‌نمایش یادآوری':'Preview reminder',
+    'NOVA رایگان، بدون تبلیغ و بدون ثبت‌نام است. حمایت شما خرج وقت توسعه، نسخه‌های تازه و امکانات بیشتر می‌شود.':'NOVA is free, ad-free and needs no account. Your support pays for development time, new releases and more features.',
+    'هر مبلغی، حتی کوچک، دلگرمی بزرگی است 💚':'Any amount, even a small one, means a lot 💚',
+    'حمایت مالی از طریق دونوفا؛ لینک در مرورگر پیش‌فرض باز می‌شود.':'Donations go through Donofa; the link opens in your default browser.',
+    '💚 ممنون که به NOVA فکر می‌کنی!':'💚 Thanks for thinking of NOVA!',
+    'یادآوری حمایت خاموش شد؛ از تنظیمات ← حمایت از ما برمی‌گردد':'Support reminder turned off; turn it back on in Settings → Support us'});
+})();
+</script>
+<script id="nova-v113-whatsnew-script">
+/* "What's new" after an update: shown once per version on the first launch after updating.
+   Not shown on a fresh install. "Skip" hides it for this version, "Don't show again" turns it off for good. */
+(()=>{
+  /* BUILD changes whenever new things ship inside the same version number, so the window shows once more */
+  const VERSION='1.14.0', BUILD='1.14.0+support-fix', SEEN='nova-whatsnew-seen', OFF='nova-whatsnew-off';
+  const NOTES=[
+    ['🛠','رفع چند مشکل پنهان','Hidden fixes','آماده‌سازی آهنگ بعدی در پس‌زمینه حالا واقعاً کار می‌کند، کاورهای سبک بی‌درنگ جایگزین می‌شوند، تعداد پلی‌لیست‌ها در تنظیمات درست نشان داده می‌شود و پیام‌های کوچک (مثل تشکر حمایت) دوباره دیده می‌شوند.','Background loading of the next track now really works, light covers swap in instantly, the playlist count in Settings is correct and small messages (like the support thank-you) show again.'],
+    ['💚','بخش «حمایت از ما»','Support us','کارت «حمایت از ما» در منوی کناری، بخش تازه در تنظیمات و یک یادآوری کوچک هر ۲ ساعت.','A "Support us" card in the sidebar, a new Settings pane and a small reminder every 2 hours.'],
+    ['⚡','سبک‌تر و کم‌مصرف‌تر','Lighter on RAM & CPU','کاورهای لیست‌ها حالا تصویر کوچک کش‌شده دارند و ردیف‌های بیرون از دید اصلاً رسم نمی‌شوند؛ ظاهر دقیقاً همان است.','List covers now use small cached thumbnails and off-screen rows are not drawn at all; the look is exactly the same.'],
+    ['🚀','آهنگ‌ها سریع‌تر شروع می‌شوند','Faster track start','آهنگ بعدی از قبل در پس‌زمینه آماده می‌شود و عوض کردن آهنگ دیگر کل لیست را از نو نمی‌سازد.','The next track is prepared in the background, and changing tracks no longer rebuilds the whole list.'],
+    ['🧭','جابه‌جایی روان‌تر بین منوها','Smoother menus','رفتن بین کتابخانه، پلی‌لیست‌ها و علاقه‌مندی‌ها سریع‌تر و بدون لگ است.','Moving between Library, Playlists and Favorites is quicker and lag-free.'],
+    ['⌨️','میانبر «حمایت از ما»','A "Support us" shortcut','در تنظیمات ← میانبرها می‌توانی برای «حمایت از ما» هم کلید بگذاری.','Settings → Shortcuts can now give "Support us" a key too.'],
+    ['⇅','مرتب‌سازی پلی‌لیست','Playlist sorting','داخل هر پلی‌لیست: A→Z، Z→A، جدیدترین، قدیمی‌ترین، حجم، پوشه، نوع فایل یا ترتیب دستی خودت.','Inside any playlist: A→Z, Z→A, newest, oldest, size, folder, file type or your own manual order.'],
+    ['⌨️','میانبر برای همه‌چیز','Shortcuts for everything','در تنظیمات ← میانبرها برای هر دکمهٔ برنامه کلید بگذار؛ ترکیب Ctrl / Alt / Shift هم قبول است.','Settings → Shortcuts now lists every control in the app; Ctrl / Alt / Shift combos work too.'],
+    ['⛶','تمام‌صفحهٔ متن آهنگ','Full-screen lyrics','دکمهٔ چهارگوشه کنار ابزار متن آهنگ؛ متن کل اتاق شنیدن را می‌گیرد. Esc برای خروج.','The corner button next to the lyrics tools fills the listening room with lyrics. Esc to exit.'],
+    ['🎬','سینمایی + متن کامل','Cinema + full lyrics','در حالت سینمایی، دیسک و کنترل‌ها سمت چپ و متن آهنگ سمت راست.','In cinema mode the disc and controls sit on the left, lyrics on the right.'],
+    ['🎚️','سینمایی خلوت‌تر','A cleaner cinema mode','نوار پایین و جستجو مخفی می‌شوند؛ فقط خروج از سینما و صدا بالای صفحه می‌مانند.','The bottom bar and search hide; only exit-cinema and volume stay, at the top.'],
+    ['📐','اتاق شنیدن تمام‌قد','Full-height listening room','اتاق شنیدن تا پایین پنجره کشیده می‌شود، با متن آهنگ هم.','The listening room stretches to the bottom of the window, lyrics included.'],
+    ['🧹','منوی ساده‌تر','Simpler menus','SEARCH منو، جستجوی کتابخانه، کارت تایمر خواب و دکمهٔ جستجوی نوار پایین حذف شدند (Ctrl+K و تایمر خواب سر جایشان هستند).','Removed the SEARCH nav item, library search, sleep-timer card and the dock search button (Ctrl+K and the sleep timer still work).']
+  ];
+  let ls; try{ls=localStorage}catch(e){return}
+  if(ls.getItem(OFF)==='1'||ls.getItem(SEEN)===BUILD)return;
+  /* fresh install too: shown once, but only after the first-run tutorial is closed */
+  const fresh=!window.__novaHadData;
+  const en=()=>document.documentElement.lang==='en'||document.documentElement.dir==='ltr';
+  const show=()=>{
+    if(document.querySelector('.nwn-back'))return;
+    const E=en(), back=document.createElement('div');
+    back.className='nwn-back';back.setAttribute('role','dialog');back.setAttribute('aria-modal','true');back.setAttribute('aria-labelledby','nwnTitle');
+    back.dir=E?'ltr':'rtl';
+    back.innerHTML='<div class="nwn"><div class="nwn-head"><div class="nwn-badge">✨</div><div><small>NOVA v'+VERSION+'</small><h2 id="nwnTitle"></h2></div></div><ul class="nwn-list"></ul>'+
+      '<div class="nwn-foot"><button type="button" class="nwn-never"></button><button type="button" class="nwn-skip"></button><button type="button" class="nwn-ok"></button></div></div>';
+    back.querySelector('h2').textContent=E?"What's new":'چه چیزهایی جدید است؟';
+    const ul=back.querySelector('ul');
+    NOTES.forEach(n=>{const li=document.createElement('li');li.innerHTML='<div class="i"></div><div><b></b><span></span></div>';
+      li.querySelector('.i').textContent=n[0];li.querySelector('b').textContent=E?n[2]:n[1];li.querySelector('span').textContent=E?n[4]:n[3];ul.appendChild(li)});
+    back.querySelector('.nwn-never').textContent=E?"Don't show again":'دیگر نشان نده';
+    back.querySelector('.nwn-skip').textContent=E?'Skip':'رد کردن';
+    back.querySelector('.nwn-ok').textContent=E?'Got it':'فهمیدم';
+    const close=never=>{ls.setItem(SEEN,BUILD);if(never)ls.setItem(OFF,'1');back.classList.remove('on');
+      document.removeEventListener('keydown',key,true);setTimeout(()=>back.remove(),260)};
+    const key=e=>{if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close(false)}};
+    back.querySelector('.nwn-never').onclick=()=>close(true);
+    back.querySelector('.nwn-skip').onclick=()=>close(false);
+    back.querySelector('.nwn-ok').onclick=()=>close(false);
+    back.addEventListener('click',e=>{if(e.target===back)close(false)});
+    document.addEventListener('keydown',key,true);
+    document.body.appendChild(back);requestAnimationFrame(()=>requestAnimationFrame(()=>back.classList.add('on')));
+    back.querySelector('.nwn-ok').focus();
+  };
+  const tutorialOpen=()=>!!document.querySelector('#tutorialBg.open');
+  const go=()=>setTimeout(function wait(){if(tutorialOpen()||document.hidden){setTimeout(wait,1500);return}show()},fresh?1800:900);
+  document.readyState==='complete'?go():window.addEventListener('load',go,{once:true});
+  window.NovaWhatsNew={show,build:BUILD,reset:()=>{ls.removeItem(SEEN);ls.removeItem(OFF)}};
+})();
+</script>
+<script id="nova-v113-help-i18n">(()=>{const d={
+'⇅ مرتب‌سازی پلی‌لیست (1.13.0)':'⇅ Playlist sorting (1.13.0)','💚 حمایت از ما (1.13.0)':'💚 Support us (1.13.0)','۱۰ حالت':'10 modes','ترتیب دستی':'Manual order','حمایت':'Support','یادآوری':'Reminder','جستجو':'Search',
+'داخل هر پلی‌لیست دکمهٔ «مرتب‌سازی»: دستی، A→Z، Z→A، جدیدترین، قدیمی‌ترین، آخرین اضافه‌شده، حجم بزرگ/کوچک، پوشه و نوع فایل. برای هر پلی‌لیست جدا ذخیره می‌شود و پخش هم به همان ترتیب است.':'The "Sort" button inside every playlist: manual, A→Z, Z→A, newest, oldest, recently added, size (large/small), folder and file type. Saved per playlist, and playback follows the same order.',
+'«همین ترتیب رو ترتیب دستی کن»، «برعکس کردن» و «درهم ریختن»؛ یا آهنگ‌ها را با ⠿ بکش.':'"Make this the manual order", "Reverse" and "Shuffle", or drag tracks with ⠿.',
+'NOVA رایگان و بدون تبلیغ است. کارت «حمایت از ما» پایین منوی کناری یا تنظیمات ← حمایت از ما، صفحهٔ donofa.com/novaplayerapp را در مرورگر باز می‌کند.':'NOVA is free and ad-free. The "Support us" card at the bottom of the side menu, or Settings → Support us, opens donofa.com/novaplayerapp in your browser.',
+'هر ۲ ساعت یک کارت کوچک پیشنهاد حمایت می‌دهد و هیچ‌وقت وسط پنجره‌ها یا حالت سینمایی نمی‌آید.':'Every 2 hours a small card suggests supporting NOVA; it never shows up over dialogs or cinema mode.',
+'تمام‌صفحهٔ متن آهنگ':'Full-screen lyrics','تایمر خواب':'Sleep timer','جستجو و دانلود آهنگ':'Search & download music','تنظیمات':'Settings','راهنما · بزرگ‌نمایی پنجره':'Help · maximize window'
+};const go=()=>window.NovaI18nAdd?.(d);window.NovaI18nAdd?go():document.addEventListener('DOMContentLoaded',go);})();</script>
+<!-- nova-sync:i18n --><script id="nova-sync-i18n">(()=>{const d={"تازه":"New","✨ تازه‌های 1.14.0":"✨ New in 1.14.0","هماهنگ‌سازی شمارهٔ نسخه در برنامه، نصب‌کننده و سایت":"Synchronized the version across the app, installer, and website","به‌روزرسانی نشان نسخه و فایل دانلود سایت":"Updated the website version badges and download filename","افکت صدای زیبا برای کلیک، باز و بسته‌شدن منوها، تب‌ها و تغییر حالت‌ها؛ کاملاً آفلاین و بدون فایل خارجی":"Polished offline sound effects for clicks, opening and closing menus, tabs, and state changes; no external audio files","کرکتر نوا را با رنگ، گوش، اکسسوری، اسم، نوشتهٔ شال، اندازه و انرژی رقص شخصی‌سازی کن؛ تنظیمات همان لحظه ذخیره می‌شوند":"Customize NOVA buddy with colors, ears, accessories, name, scarf text, size, and dance energy; changes save instantly"};const go=()=>window.NovaI18nAdd?.(d);window.NovaI18nAdd?go():document.addEventListener('DOMContentLoaded',go);})();</script><!-- /nova-sync:i18n -->
+<script id="nova-mascot-script">
+/* NOVA buddy: markup + on/off + click hop. Dancing itself is pure CSS keyed on body.nova-playing. */
+(()=>{
+  const KEY='nova-mascot';
+  const on=()=>{try{return localStorage.getItem(KEY)!=='off';}catch(e){return true;}};
+  const b=document.createElement('button');b.type='button';b.className='nm';b.id='novaMascot';
+  const lbl=()=>document.documentElement.lang==='en'?'NOVA buddy':'کرکتر نوا';
+  b.innerHTML='<svg viewBox="0 0 120 150" aria-hidden="true" focusable="false"><ellipse class="nm-shadow" cx="60" cy="143" rx="30" ry="5"/><g class="nm-all"> <g class="nm-legs"><rect class="nm-leg-l" x="40" y="116" width="15" height="26" rx="7"/><rect class="nm-leg-r" x="65" y="116" width="15" height="26" rx="7"/></g> <path class="nm-body" d="M38 76 C30 92 27 112 30 122 Q60 132 90 122 C93 112 90 92 82 76 Z"/> <path class="nm-zip" d="M60 88 V124"/> <rect class="nm-tag" x="72" y="112" width="7" height="6" rx="1.5"/> <g class="nm-arm nm-arm-l"><path d="M38 86 C26 90 17 102 18 113 C19 120 27 120 31 112 C33 106 36 100 40 96 Z"/></g> <g class="nm-arm nm-arm-r"><path d="M82 86 C94 90 103 102 102 113 C101 120 93 120 89 112 C87 106 84 100 80 96 Z"/></g> <g class="nm-head">  <g class="nm-ear nm-ear-l nm-ears-bunny"><path class="nm-cream" d="M42 40 C30 22 30 6 38 3 C47 1 52 20 52 36 Z"/><path class="nm-inner" d="M43 34 C36 22 36 11 40 9 C45 8 48 21 48 31 Z"/><circle class="nm-dot" cx="42" cy="17" r="1.4"/><circle class="nm-dot" cx="44" cy="24" r="1.4"/></g>  <g class="nm-ear nm-ear-r nm-ears-bunny"><path class="nm-cream" d="M78 40 C90 22 92 6 84 3 C75 1 68 20 68 36 Z"/><path class="nm-inner" d="M77 34 C84 22 86 11 82 9 C77 8 72 21 72 31 Z"/><circle class="nm-dot" cx="80" cy="17" r="1.4"/><circle class="nm-dot" cx="78" cy="24" r="1.4"/></g><g class="nm-ear nm-ear-l nm-ears-cat"><path class="nm-cream" d="M30 52 L34 18 L54 34 Z"/><path class="nm-inner" d="M35 44 L37 26 L48 35 Z"/></g><g class="nm-ear nm-ear-r nm-ears-cat"><path class="nm-cream" d="M90 52 L86 18 L66 34 Z"/><path class="nm-inner" d="M85 44 L83 26 L72 35 Z"/></g><g class="nm-ear nm-ear-l nm-ears-bear"><circle class="nm-cream" cx="34" cy="38" r="12"/><circle class="nm-inner" cx="34" cy="38" r="6.5"/></g><g class="nm-ear nm-ear-r nm-ears-bear"><circle class="nm-cream" cx="86" cy="38" r="12"/><circle class="nm-inner" cx="86" cy="38" r="6.5"/></g>  <path class="nm-cream" d="M60 30 C84 30 94 48 94 66 C94 80 84 88 60 88 C36 88 26 80 26 66 C26 48 36 30 60 30 Z"/>  <path class="nm-seam" d="M60 31 V40"/>  <path class="nm-face" d="M60 44 C78 44 84 56 84 66 C84 76 76 80 60 80 C44 80 36 76 36 66 C36 56 42 44 60 44 Z"/>  <g class="nm-eyes"><circle class="nm-eye" cx="49" cy="63" r="8"/><circle class="nm-eye" cx="71" cy="63" r="8"/><g class="nm-look"><circle class="nm-pupil" cx="49" cy="63" r="4"/><circle class="nm-pupil" cx="71" cy="63" r="4"/><circle class="nm-glint" cx="51.5" cy="60.5" r="1.4"/><circle class="nm-glint" cx="73.5" cy="60.5" r="1.4"/></g></g><g class="nm-acc nm-acc-glasses"><circle cx="49" cy="63" r="10.5"/><circle cx="71" cy="63" r="10.5"/><path d="M59.5 62 Q60 59.5 60.5 62"/></g><g class="nm-acc nm-acc-phones"><path class="nm-ph-band" d="M25 66 C25 16 95 16 95 66"/><rect class="nm-ph-cup" x="18" y="55" width="12" height="20" rx="5"/><rect class="nm-ph-cup" x="90" y="55" width="12" height="20" rx="5"/></g><g class="nm-acc nm-acc-crown"><path d="M47 33 L45 17 L53.5 24.5 L60 13 L66.5 24.5 L75 17 L73 33 Z"/><circle cx="60" cy="27" r="2"/></g><g class="nm-acc nm-acc-bow"><path d="M60 34 L47 25 Q43 34 47 42 Z"/><path d="M60 34 L73 25 Q77 34 73 42 Z"/><circle cx="60" cy="34" r="3.6"/></g> </g> <g class="nm-scarf"><path class="nm-scarf-band" d="M30 78 Q60 90 90 78 L92 86 Q60 100 28 86 Z"/><path class="nm-scarf-tri" d="M38 84 Q60 94 82 84 L62 112 Q60 114 58 112 Z"/><path class="nm-scarf-tail" d="M86 82 L100 92 L94 96 L84 88 Z"/><text class="nm-nv" x="60" y="99" text-anchor="middle">NV</text></g></g><g class="nm-notes"><path class="nm-note nm-note-a" d="M104 40 v-12 l7 -2 v12" /><circle class="nm-note-h nm-note-a" cx="102.5" cy="40" r="2.6"/><circle class="nm-note-h nm-note-a" cx="109.5" cy="38" r="2.6"/><path class="nm-note nm-note-b" d="M14 34 v-11"/><circle class="nm-note-h nm-note-b" cx="12.3" cy="34" r="2.6"/></g></svg>';
+  const syncLbl=()=>{b.title=lbl();b.setAttribute('aria-label',lbl());};syncLbl();
+  b.addEventListener('click',()=>{b.classList.remove('nm-hop');void b.offsetWidth;b.classList.add('nm-hop');});
+  b.addEventListener('animationend',e=>{if(e.animationName==='nmHop')b.classList.remove('nm-hop');});
+  const mount=()=>{const nav=document.getElementById('nvNav');if(!nav){if(!b.parentNode)document.body.appendChild(b);return;}
+    const sup=document.getElementById('novaSupportBtn');
+    if(sup&&sup.parentNode===nav){if(b.nextSibling!==sup)nav.insertBefore(b,sup);}else if(b.parentNode!==nav)nav.appendChild(b);};
+  mount();try{window.matchMedia('(min-width:900px)').addEventListener('change',()=>setTimeout(mount,30));}catch(e){}
+  /* eyes follow the mouse: one rAF per pointer move at most, only pupils move */
+  let px=0,py=0,queued=false,lx=0,ly=0;
+  const look=()=>{queued=false;if(document.hidden||document.body.classList.contains('nm-off'))return;
+    const svg=b.firstElementChild;if(!svg)return;const r=svg.getBoundingClientRect();if(!r.width)return;
+    const cx=r.left+r.width/2,cy=r.top+r.height*.42,dx=px-cx,dy=py-cy,d=Math.hypot(dx,dy)||1,k=Math.min(1,d/260)*3.4;
+    const nx=Math.round(dx/d*k*10)/10,ny=Math.round(dy/d*k*10)/10;
+    if(nx!==lx){b.style.setProperty('--lx',nx);lx=nx;}if(ny!==ly){b.style.setProperty('--ly',ny);ly=ny;}};
+  window.addEventListener('pointermove',e=>{px=e.clientX;py=e.clientY;if(!queued){queued=true;requestAnimationFrame(look);}},{passive:true});
+  document.addEventListener('pointerleave',()=>{b.style.setProperty('--lx',0);b.style.setProperty('--ly',0);lx=ly=0;});
+  const apply=()=>{const v=on();document.body.classList.toggle('nm-off',!v);const i=document.getElementById('nsetMascot');if(i)i.checked=v;};
+  document.getElementById('nsetMascot')?.addEventListener('change',e=>{try{localStorage.setItem(KEY,e.target.checked?'on':'off');}catch(_){}apply();});
+  try{new MutationObserver(syncLbl).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});}catch(e){}
+  apply();
+  /* ── customization ── */
+  const LK='nova-mascot-skin';
+  const DEF={preset:'classic',cream:'',body:'',face:'',scarf:'',eye:'',acc_c:'',ears:'bunny',acc:'none',scarfOn:'on',name:'',tag:'NV',size:'m',dance:'normal'};
+  const PRESETS=[
+    {id:'classic',fa:'کلاسیک',c:{cream:'',body:'',face:'',scarf:'',eye:''},sw:['#f1ebdf','#2b2e27','#ff7a45','#c8ff00']},
+    {id:'sakura',fa:'شکوفه',c:{cream:'#fff1f4',body:'#f3a6bd',face:'#3a1f2b',scarf:'#ff5d8f',eye:'#ffd1e0'}},
+    {id:'panda',fa:'پاندا',c:{cream:'#ffffff',body:'#1d1d1f',face:'#111111',scarf:'#4ade80',eye:'#ffffff'}},
+    {id:'ocean',fa:'اقیانوس',c:{cream:'#e6f6ff',body:'#1f4e79',face:'#0b1a2b',scarf:'#38bdf8',eye:'#7dd3fc'}},
+    {id:'sunset',fa:'غروب',c:{cream:'#fff4e0',body:'#7c2d12',face:'#1c0d06',scarf:'#fb923c',eye:'#fde047'}},
+    {id:'galaxy',fa:'کهکشان',c:{cream:'#e9e3ff',body:'#2e1065',face:'#0c0620',scarf:'#a855f7',eye:'#67e8f9'}},
+    {id:'mint',fa:'نعنایی',c:{cream:'#f0fff7',body:'#14532d',face:'#06180d',scarf:'#f472b6',eye:'#86efac'}},
+    {id:'mono',fa:'سیاه‌سفید',c:{cream:'#f5f5f5',body:'#3f3f46',face:'#09090b',scarf:'#e4e4e7',eye:'#fafafa'}}
+  ];
+  PRESETS.forEach(p=>{if(!p.sw)p.sw=[p.c.cream,p.c.body,p.c.scarf,p.c.eye];});
+  const COLORS=[['cream','کلاه'],['body','لباس'],['face','صورت'],['scarf','شال'],['eye','چشم'],['acc_c','اکسسوری']];
+  const FALLBACK={cream:'#f1ebdf',body:'#2b2e27',face:'#141611',scarf:'#ff7a45',eye:'#c8ff00',acc_c:'#e8e2d4'};
+  let skin;
+  try{skin={...DEF,...JSON.parse(localStorage.getItem(LK)||'{}')};}catch(e){skin={...DEF};}
+  const save=()=>{try{localStorage.setItem(LK,JSON.stringify(skin));}catch(e){}};
+  const VARS={cream:'--nm-cream',body:'--nm-body',face:'--nm-face',scarf:'--nm-scarf',eye:'--nm-eye',acc_c:'--nm-acc'};
+  const paintEl=el=>{
+    if(!el)return;
+    for(const k in VARS){if(skin[k])el.style.setProperty(VARS[k],skin[k]);else el.style.removeProperty(VARS[k]);}
+    el.dataset.ears=skin.ears;el.dataset.acc=skin.acc;el.dataset.scarf=skin.scarfOn;el.dataset.size=skin.size;el.dataset.dance=skin.dance;
+    const t=el.querySelector('.nm-nv');if(t)t.textContent=(skin.tag||'').toUpperCase();
+  };
+  const nameOf=()=>skin.name||lbl();
+  const prev=document.createElement('button');prev.type='button';prev.className='nm nm-prev';prev.setAttribute('aria-label','پیش‌نمایش');
+  prev.innerHTML=b.innerHTML;
+  prev.addEventListener('click',()=>{prev.classList.remove('nm-hop');void prev.offsetWidth;prev.classList.add('nm-hop');});
+  prev.addEventListener('animationend',e=>{if(e.animationName==='nmHop')prev.classList.remove('nm-hop');});
+  const $i=id=>document.getElementById(id);
+  const syncUI=()=>{
+    document.querySelectorAll('#nmCust [data-nmk]').forEach(g=>{const k=g.dataset.nmk==='scarf'?'scarfOn':g.dataset.nmk;
+      g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===skin[k])));});
+    document.querySelectorAll('#nmcPresets .nmc-preset').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.p===skin.preset)));
+    document.querySelectorAll('#nmcColors input').forEach(x=>{x.value=skin[x.dataset.k]||FALLBACK[x.dataset.k];});
+    const n=$i('nmcNameIn');if(n&&document.activeElement!==n)n.value=skin.name;
+    const t=$i('nmcTag');if(t&&document.activeElement!==t)t.value=skin.tag;
+    const nm=$i('nmcName');if(nm)nm.textContent=nameOf();
+  };
+  const refresh=()=>{paintEl(b);paintEl(prev);syncLbl2();syncUI();save();};
+  const syncLbl2=()=>{b.title=nameOf();b.setAttribute('aria-label',nameOf());};
+  const build=()=>{
+    const slot=$i('nmcSlot');if(!slot||slot.firstChild)return;
+    slot.appendChild(prev);
+    const ps=$i('nmcPresets');
+    PRESETS.forEach(p=>{const x=document.createElement('button');x.type='button';x.className='nmc-preset';x.dataset.p=p.id;
+      x.innerHTML='<span class="nmc-sw">'+p.sw.map(c=>'<i style="background:'+c+'"></i>').join('')+'</span><span>'+p.fa+'</span>';
+      x.addEventListener('click',()=>{Object.assign(skin,p.c,{preset:p.id});if(p.id==='classic')skin.acc_c='';refresh();});ps.appendChild(x);});
+    const cs=$i('nmcColors');
+    COLORS.forEach(([k,fa])=>{const l=document.createElement('label');l.className='nmc-color';
+      l.innerHTML='<input type="color" data-k="'+k+'" aria-label="'+fa+'"><span>'+fa+'</span>';
+      l.querySelector('input').addEventListener('input',e=>{skin[k]=e.target.value;skin.preset='custom';refresh();});cs.appendChild(l);});
+    document.querySelectorAll('#nmCust [data-nmk]').forEach(g=>g.addEventListener('click',e=>{const x=e.target.closest('button');if(!x)return;
+      skin[g.dataset.nmk==='scarf'?'scarfOn':g.dataset.nmk]=x.dataset.v;refresh();}));
+    $i('nmcNameIn')?.addEventListener('input',e=>{skin.name=e.target.value.trim();refresh();});
+    $i('nmcTag')?.addEventListener('input',e=>{skin.tag=e.target.value.replace(/\s+/g,'').slice(0,3);refresh();});
+    $i('nmcPlay')?.addEventListener('click',e=>{const on=prev.classList.toggle('nm-dance');e.currentTarget.setAttribute('aria-pressed',String(on));});
+    $i('nmcReset')?.addEventListener('click',()=>{skin={...DEF};refresh();});
+    $i('nmcRandom')?.addEventListener('click',()=>{const pick=a=>a[Math.floor(Math.random()*a.length)];
+      const p=pick(PRESETS.slice(1));Object.assign(skin,p.c,{preset:p.id,ears:pick(['bunny','cat','bear']),acc:pick(['none','phones','glasses','crown','bow']),dance:pick(['calm','normal','wild'])});refresh();});
+    refresh();
+  };
+  build();if(!$i('nmcSlot'))document.addEventListener('DOMContentLoaded',build);
+  refresh();
+  try{new MutationObserver(syncLbl2).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});}catch(e){}
+  window.NovaI18nAdd?.({'شخصی‌سازی کرکتر':'Customize buddy','رنگ، گوش، اکسسوری، نوشتهٔ شال، اندازه و انرژی رقص؛ همان لحظه ذخیره می‌شود.':'Colors, ears, accessory, scarf text, size and dance energy; saved instantly.',
+    'ظاهر آماده':'Presets','رنگ‌ها':'Colors','گوش':'Ears','اکسسوری':'Accessory','شال':'Scarf','اسم کرکتر':'Buddy name','نوشتهٔ شال':'Scarf text','اندازه':'Size','رقص':'Dance',
+    'خرگوش':'Bunny','گربه':'Cat','خرس':'Bear','بدون گوش':'None','هیچ':'None','هدفون':'Headphones','عینک':'Glasses','تاج':'Crown','پاپیون':'Bow','دارد':'On','ندارد':'Off',
+    'کوچک':'Small','متوسط':'Medium','بزرگ':'Large','نمی‌رقصد':'Still','آرام':'Calm','عادی':'Normal','پرانرژی':'Wild','▶ رقص':'▶ Dance','🎲 تصادفی':'🎲 Random','برگرداندن پیش‌فرض':'Reset',
+    'کلاسیک':'Classic','شکوفه':'Sakura','پاندا':'Panda','اقیانوس':'Ocean','غروب':'Sunset','کهکشان':'Galaxy','نعنایی':'Mint','سیاه‌سفید':'Mono','کلاه':'Hood','لباس':'Outfit','صورت':'Face','چشم':'Eyes'});
+  window.NovaI18nAdd?.({'کرکتر نوا':'NOVA buddy','یک دوست کوچولو گوشهٔ برنامه که وقتی آهنگ پخش می‌شود می‌رقصد؛ با کلیک می‌پرد.':'A tiny friend in the corner that dances while music plays; click it to make it hop.'});
+})();
+</script>
+<script id="nova-menu-sfx-v114">
+/* v1.14.0 · NOVA menu sound effects: generated locally with Web Audio, no files or network needed. */
+(()=>{
+  const KEY='nova-menu-sfx-enabled';
+  let ctx=null, master=null, last=0;
+  const enabled=()=>{try{return localStorage.getItem(KEY)!=='off'}catch(_){return true}};
+  const wake=()=>{if(!enabled())return null;try{if(!ctx){ctx=new (window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=.16;master.connect(ctx.destination)}if(ctx.state==='suspended')ctx.resume();return ctx}catch(_){return null}};
+  const tone=(freq,dur,type='sine',gain=.055,delay=0)=>{const c=wake();if(!c)return;const t=c.currentTime+delay,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(70,freq*.72),t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(gain,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.03)};
+  const sfx={
+    click:()=>{tone(520,.055,'sine',.045);tone(760,.07,'sine',.032,.025)},
+    open:()=>{tone(330,.12,'triangle',.05);tone(520,.16,'sine',.042,.055);tone(780,.20,'sine',.026,.11)},
+    close:()=>{tone(680,.11,'sine',.038);tone(430,.16,'triangle',.045,.045)},
+    tab:()=>{tone(420,.08,'sine',.04);tone(620,.10,'sine',.03,.035)},
+    toggle:()=>{tone(300,.07,'square',.025);tone(600,.10,'sine',.038,.035)}
+  };
+  const play=(kind='click')=>{const now=performance.now();if(now-last<38)return;last=now;sfx[kind]?.()};
+  window.NovaMenuSFX={enabled, set(v){try{localStorage.setItem(KEY,v?'on':'off')}catch(_){}}, play};
+  const interactive=e=>e.target.closest('button,[role="button"],a,.icon-btn,.tab-btn,.nset-tab,.settings-btn,.plx-pop-item,.sort-pill');
+  document.addEventListener('pointerdown',e=>{if(!interactive(e))return;wake();}, {capture:true,passive:true});
+  document.addEventListener('click',e=>{
+    const el=interactive(e);if(!el)return;
+    if(el.matches('.modal-btn-cancel,.modal-x,[data-close],#settingsClose,#settingsDone,#helpClose,#aboutClose,#sleepClose'))play('close');
+    else if(el.matches('.nset-tab,.tab-btn,.lang-opt,.nset-seg button,.sort-pill'))play('tab');
+    else if(el.matches('input[type="checkbox"],.nset-switch,[role="switch"]'))play('toggle');
+    else play('click');
+  }, {capture:true});
+  const observer=new MutationObserver(ms=>ms.forEach(m=>{if(m.type!=='attributes'||m.attributeName!=='class')return;const el=m.target;if(!el.classList.contains('modal-bg'))return;play(el.classList.contains('open')?'open':'close')}));
+  document.addEventListener('DOMContentLoaded',()=>observer.observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']}));
+})();
 </script>
 </body>
 </html>
