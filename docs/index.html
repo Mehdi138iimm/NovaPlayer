@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NOVA Player</title>
-  <meta name="description" content="NOVA Player، پخش‌کننده موسیقی سریع، خصوصی و آفلاین برای ویندوز، مک و لینوکس؛ با چارت ترندهای جهانی، متن هم‌زمان آهنگ با ترجمهٔ فارسی و مینی‌پلیر وینیل. دانلود رایگان آخرین نسخه، مستقیم از GitHub.">
+  <meta name="description" content="NOVA Player، پخش‌کننده موسیقی سریع، خصوصی و آفلاین برای ویندوز، مک، لینوکس، اندروید و اندروید TV؛ با چارت ترندهای جهانی، متن هم‌زمان آهنگ با ترجمهٔ فارسی و مینی‌پلیر وینیل. دانلود رایگان آخرین نسخه، مستقیم از GitHub.">
   <meta name="theme-color" content="#11130f">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23b9ee50'/%3E%3Cpath d='M26 19l19 13-19 13z' fill='%23273016'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://api.github.com" crossorigin>
@@ -280,6 +280,19 @@
 }
 </style>
 
+<style id="nova-hero-support">.hero-support{position:relative;display:flex;align-items:center;gap:13px;width:min(100%,560px);margin:22px auto 0;padding:13px 16px;border:1px solid oklch(var(--ember-c,.72 .16 40) / .55);border-radius:16px;background:linear-gradient(100deg,oklch(var(--ember-c,.72 .16 40) / .16),var(--surface) 62%);color:var(--text);text-decoration:none;box-shadow:0 10px 30px oklch(var(--sh) / .28);transition:transform .2s ease,border-color .2s ease}.hero-support:hover{transform:translateY(-3px);border-color:var(--ember)}.hero-support-ico{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:12px;background:var(--ember);color:#20130e}.hero-support-ico svg{width:20px;height:20px;fill:currentColor}.hero-support-copy{display:flex;flex-direction:column;gap:2px;text-align:start;line-height:1.35;min-width:0}.hero-support-copy b{font-size:15px;font-weight:850;color:var(--ember)}.hero-support-copy small{font-size:11px;color:var(--muted)}.hero-support-url{margin-inline-start:auto;font:9px var(--mono);color:var(--muted);direction:ltr;white-space:nowrap}.hero-support-arrow{font:700 20px var(--mono);color:var(--ember)}@media(max-width:600px){.hero-support{width:100%;padding:12px;gap:10px}.hero-support-url{display:none}.hero-support-copy b{font-size:14px}.hero-support-copy small{font-size:10px}}</style><style id="nova-faq">
+.faq-section{max-width:1200px;margin:0 auto;padding:72px 48px 84px;}
+.faq-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:44px;}
+.faq-item{border:1px solid var(--border);border-radius:16px;background:var(--surface);overflow:hidden;transition:border-color .2s ease,background-color .2s ease;}
+.faq-item:hover,.faq-item[open]{border-color:oklch(var(--neon-c) / .55);background:var(--raised);}
+.faq-item summary{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 22px;cursor:pointer;list-style:none;font-size:15px;font-weight:750;line-height:1.5;}
+.faq-item summary::-webkit-details-marker{display:none;}
+.faq-item summary::after{content:'+';flex:none;color:var(--neon);font:700 22px/1 var(--mono);transition:transform .25s ease;}
+.faq-item[open] summary::after{content:'−';transform:rotate(180deg);}
+.faq-answer{padding:0 22px 21px;color:var(--muted);font-size:14px;line-height:1.9;max-width:680px;}
+.faq-answer code{padding:2px 6px;border-radius:6px;background:var(--ink);color:var(--ice);font-family:var(--mono);font-size:.9em;}
+@media (max-width:768px){.faq-section{padding:56px 20px 64px;}.faq-grid{grid-template-columns:1fr;margin-top:32px;}.faq-item summary{padding:17px 18px;font-size:14px;}.faq-answer{padding:0 18px 18px;font-size:13px;}}
+</style>
 </head>
 
 <body class="is-loading"><link rel="preconnect" href="https://unpkg.com" />
@@ -385,6 +398,7 @@
   <a href="#features" onclick="closeMobileNav()" data-en="Features">قابلیت‌ها</a>
   <a href="#whatsnew" onclick="closeMobileNav()" data-en="What&#39;s new">تازه‌ها</a>
   <a href="#download" onclick="closeMobileNav()" data-en="Download">دانلود</a>
+  <a href="#faq" onclick="closeMobileNav()" data-en="FAQ">سؤالات</a>
   <a href="https://github.com/Mehdi138iimm/NovaPlayer" target="_blank" rel="noopener" onclick="closeMobileNav()" data-en="GitHub">گیت‌هاب</a>
   <div class="mobile-switches">
     <button type="button" class="mobile-switch" id="themeBtnM">
@@ -405,29 +419,41 @@
   <div class="hero-inner">
     <div class="hero-badge fade-up">
       <span class="hero-badge-dot" aria-hidden="true"></span>
-      <span id="nvHeroBadge" data-en="Version 1.13.0 is live">نسخه 1.13.0 منتشر شد</span>
+      <span id="nvHeroBadge">نسخه 1.14.1 منتشر شد</span>
     </div>
     <h1 class="hero-title fade-up d1" id="heroTitle" data-en="Hear your music&lt;br&gt;the &lt;span class=&quot;hero-title-accent&quot;&gt;NOVA&lt;/span&gt; way">
       موزیک خود را<br>با <span class="hero-title-accent">NOVA</span> تجربه کن
     </h1>
-    <p class="hero-sub fade-up d2" data-en="A local music player with a beautiful interface, a smart library, live global trending charts, and synced lyrics with Persian translation. Built for Windows.">
-      پخش‌کننده موسیقی محلی با رابط کاربری زیبا، کتابخانه هوشمند، چارت ترندهای جهانی و متن هم‌زمان آهنگ با ترجمهٔ فارسی، برای ویندوز.
+    <p class="hero-sub fade-up d2" data-en="A local music player with a beautiful interface, a smart library, live global trending charts, and synced lyrics with Persian translation. On Windows, macOS, Linux, Android and Android TV.">
+      پخش‌کننده موسیقی محلی با رابط کاربری زیبا، کتابخانه هوشمند، چارت ترندهای جهانی و متن هم‌زمان آهنگ با ترجمهٔ فارسی؛ روی ویندوز، مک، لینوکس، اندروید و اندروید TV.
     </p>
     <div class="hero-actions fade-up d3">
       <a id="nvHeroDl" href="https://github.com/Mehdi138iimm/NovaPlayer/releases/latest"
-         class="btn-primary wipe" aria-label="دانلود Nova Player نسخه 1.13.0 برای ویندوز" data-en-aria="Download Nova Player 1.13.0 for Windows">
-        <span class="wipe-base"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download for Windows">دانلود برای ویندوز</span></span>
-        <span class="wipe-over over" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download for Windows">دانلود برای ویندوز</span></span>
+         class="btn-primary wipe" aria-label="دانلود Nova Player">
+        <span class="wipe-base"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="nv-btn-lbl">دانلود برای ویندوز</span></span>
+        <span class="wipe-over over" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="nv-btn-lbl">دانلود برای ویندوز</span></span>
       </a>
       <a href="https://github.com/Mehdi138iimm/NovaPlayer" target="_blank" rel="noopener" class="btn-ghost">
         <svg viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
         <span data-en="View source">مشاهده سورس</span>
       </a>
     </div>
+    <a class="hero-support fade-up d4" href="https://donofa.com/novaplayerapp" target="_blank" rel="noopener" aria-label="حمایت از NOVA Player" data-en-aria="Support NOVA Player">
+      <span class="hero-support-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg></span>
+      <span class="hero-support-copy"><b data-en="Support us">حمایت از ما</b><small data-en="Help NOVA stay free and independent">کمک کن NOVA رایگان و مستقل بماند</small></span>
+      <span class="hero-support-url">donofa.com/novaplayerapp</span><span class="hero-support-arrow">↗</span>
+    </a>
+    <div class="hero-plats fade-up d4" aria-label="دانلود برای هر سیستم‌عامل" data-en-aria="Download for any system">
+      <a href="#download-win" class="hero-plat" data-os-go="win"><svg viewBox="0 0 24 24" aria-hidden="true" class="ic-fill"><path d="M3 5.6 10.4 4.6v6.9H3zM11.6 4.4 21 3v8.5h-9.4zM3 12.5h7.4v6.9L3 18.4zM11.6 12.5H21V21l-9.4-1.3z"/></svg><span data-en="Windows">ویندوز</span></a>
+      <a href="#download-mac" class="hero-plat" data-os-go="mac"><svg viewBox="0 0 24 24" aria-hidden="true" class="ic-fill"><path d="M16.4 12.7c0-2.5 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.8-1.7 0-3.3 1-4.1 2.5-1.8 3.1-.5 7.6 1.3 10.1.8 1.2 1.8 2.6 3.1 2.5 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-1-2.4-4.3zM14 5.3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg><span data-en="macOS">macOS</span></a>
+      <a href="#download-linux" class="hero-plat" data-os-go="linux"><svg viewBox="0 0 24 24" aria-hidden="true" class="ic-fill"><path d="M12 2c-2.3 0-3.7 1.9-3.7 4.5 0 1.3-.4 2.3-1.3 3.6C5.7 11.9 4.8 13.8 4.8 16c0 .8.1 1.5.4 2.1l-1.5 1.1c-.6.5-.3 1.4.5 1.5l3.3.4c.8.9 2.2 1.4 4.5 1.4s3.7-.5 4.5-1.4l3.3-.4c.8-.1 1.1-1 .5-1.5l-1.5-1.1c.3-.6.4-1.3.4-2.1 0-2.2-.9-4.1-2.2-5.9-.9-1.3-1.3-2.3-1.3-3.6C15.7 3.9 14.3 2 12 2zm0 9.3c1.9 0 3.3 2 3.3 4.4S13.9 19.6 12 19.6s-3.3-1.5-3.3-3.9 1.4-4.4 3.3-4.4zM10.4 6a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zm3.2 0a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6z" fill-rule="evenodd"/></svg><span data-en="Linux">لینوکس</span></a>
+      <a href="#download-android" class="hero-plat" data-os-go="android"><svg viewBox="0 0 24 24" aria-hidden="true" class="ic-fill"><path d="M7.1 6.2 5.6 3.7M16.9 6.2l1.5-2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path fill-rule="evenodd" d="M2.5 17.5a9.5 9.5 0 0 1 19 0zM8 12.6a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2zm8 0a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2z"/><rect x="2.5" y="19" width="19" height="2.2" rx="1.1" opacity=".45"/></svg><span data-en="Android">اندروید</span></a>
+      <a href="#download-tv" class="hero-plat" data-os-go="tv"><svg viewBox="0 0 24 24" aria-hidden="true" class="ic-line"><rect x="2.5" y="4" width="19" height="13" rx="2.6"/><path d="M8 21h8M12 17v4"/><path d="M10.3 8.4v4.2l3.6-2.1z" fill="currentColor" stroke="none"/></svg><span data-en="Android TV">اندروید TV</span></a>
+    </div>
     <div class="hero-meta fade-up d4">
       <span class="hero-meta-item"><span class="hero-meta-val" id="nvHeroVer">v1.13.0</span></span>
       <span class="hero-meta-sep">·</span>
-      <span class="hero-meta-item">Windows · macOS · Linux</span>
+      <span class="hero-meta-item" data-en="5 platforms">۵ پلتفرم</span>
       <span class="hero-meta-sep">·</span>
       <span class="hero-meta-item" data-en="Free and open source">رایگان و متن‌باز</span>
     </div>
@@ -472,11 +498,7 @@
             <span class="pv-upload-btns"><span data-en="📁 File">📁 فایل</span><span data-en="📂 Folder">📂 پوشه</span></span>
           </div>
           <div class="pv-buddy" title="NOVA buddy"><svg viewBox="0 0 120 150" aria-hidden="true" focusable="false"><ellipse class="nm-shadow" cx="60" cy="143" rx="30" ry="5"/><g class="nm-all"> <g class="nm-legs"><rect class="nm-leg-l" x="40" y="116" width="15" height="26" rx="7"/><rect class="nm-leg-r" x="65" y="116" width="15" height="26" rx="7"/></g> <path class="nm-body" d="M38 76 C30 92 27 112 30 122 Q60 132 90 122 C93 112 90 92 82 76 Z"/> <path class="nm-zip" d="M60 88 V124"/> <rect class="nm-tag" x="72" y="112" width="7" height="6" rx="1.5"/> <g class="nm-arm nm-arm-l"><path d="M38 86 C26 90 17 102 18 113 C19 120 27 120 31 112 C33 106 36 100 40 96 Z"/></g> <g class="nm-arm nm-arm-r"><path d="M82 86 C94 90 103 102 102 113 C101 120 93 120 89 112 C87 106 84 100 80 96 Z"/></g> <g class="nm-head">  <g class="nm-ear nm-ear-l"><path class="nm-cream" d="M42 40 C30 22 30 6 38 3 C47 1 52 20 52 36 Z"/><path class="nm-inner" d="M43 34 C36 22 36 11 40 9 C45 8 48 21 48 31 Z"/><circle class="nm-dot" cx="42" cy="17" r="1.4"/><circle class="nm-dot" cx="44" cy="24" r="1.4"/></g>  <g class="nm-ear nm-ear-r"><path class="nm-cream" d="M78 40 C90 22 92 6 84 3 C75 1 68 20 68 36 Z"/><path class="nm-inner" d="M77 34 C84 22 86 11 82 9 C77 8 72 21 72 31 Z"/><circle class="nm-dot" cx="80" cy="17" r="1.4"/><circle class="nm-dot" cx="78" cy="24" r="1.4"/></g>  <path class="nm-cream" d="M60 30 C84 30 94 48 94 66 C94 80 84 88 60 88 C36 88 26 80 26 66 C26 48 36 30 60 30 Z"/>  <path class="nm-seam" d="M60 31 V40"/>  <path class="nm-face" d="M60 44 C78 44 84 56 84 66 C84 76 76 80 60 80 C44 80 36 76 36 66 C36 56 42 44 60 44 Z"/>  <g class="nm-eyes"><circle class="nm-eye" cx="49" cy="63" r="8"/><circle class="nm-eye" cx="71" cy="63" r="8"/><g class="nm-look"><circle class="nm-pupil" cx="49" cy="63" r="4"/><circle class="nm-pupil" cx="71" cy="63" r="4"/><circle class="nm-glint" cx="51.5" cy="60.5" r="1.4"/><circle class="nm-glint" cx="73.5" cy="60.5" r="1.4"/></g></g> </g> <g class="nm-scarf"><path class="nm-scarf-band" d="M30 78 Q60 90 90 78 L92 86 Q60 100 28 86 Z"/><path class="nm-scarf-tri" d="M38 84 Q60 94 82 84 L62 112 Q60 114 58 112 Z"/><path class="nm-scarf-tail" d="M86 82 L100 92 L94 96 L84 88 Z"/><text class="nm-nv" x="60" y="99" text-anchor="middle">NV</text></g></g><g class="nm-notes"><path class="nm-note nm-note-a" d="M104 40 v-12 l7 -2 v12" /><circle class="nm-note-h nm-note-a" cx="102.5" cy="40" r="2.6"/><circle class="nm-note-h nm-note-a" cx="109.5" cy="38" r="2.6"/><path class="nm-note nm-note-b" d="M14 34 v-11"/><circle class="nm-note-h nm-note-b" cx="12.3" cy="34" r="2.6"/></g></svg></div>
-          <div class="pv-support">
-            <span class="pv-support-ico"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg></span>
-            <span class="pv-support-txt"><b data-en="Support us">حمایت از ما</b><small>donofa.com/novaplayerapp</small></span>
-          </div>
-        </div>
+</div>
 
         <!-- center: listening room -->
         <div class="preview-player">
@@ -729,41 +751,74 @@
     <span class="nv-dot" id="nvDot" aria-hidden="true"></span>
   </div>
   <h2 class="section-title reveal" id="downloadTitle" data-en="Ready to download">آماده دانلود</h2>
-  <p class="section-sub reveal d1" data-en="Free, open source, and no sign-up. This section reads straight from GitHub Releases, so every new version lands here on its own.">رایگان، متن‌باز، و بدون نیاز به ثبت‌نام. این بخش مستقیم از Releases گیت‌هاب خوانده می‌شود و هر نسخه تازه خودکار همین‌جا قرار می‌گیرد.</p>
+  <p class="section-sub reveal d1" data-en="Pick your system, grab the right file. Free, open source, no sign-up, and always the newest build straight from GitHub.">سیستم‌عاملت رو انتخاب کن و فایل درست رو بگیر. رایگان، متن‌باز، بدون ثبت‌نام، و همیشه تازه‌ترین نسخه مستقیم از گیت‌هاب.</p>
+
+  <div class="nv-os-wrap reveal d1">
+    <div class="nv-os-label" data-en="Choose your operating system">سیستم‌عاملت رو انتخاب کن</div>
+    <div class="nv-os" id="nvOs" role="tablist" aria-label="سیستم‌عامل" data-en-aria="Operating system">
+      <button type="button" role="tab" class="nv-os-btn" data-os-pick="win" aria-selected="true" aria-controls="nvPanel">
+        <span class="nv-os-top"><span class="nv-os-ico"><svg viewBox="0 0 24 24" aria-hidden="true" class="ic-fill"><path d="M3 5.6 10.4 4.6v6.9H3zM11.6 4.4 21 3v8.5h-9.4zM3 12.5h7.4v6.9L3 18.4zM11.6 12.5H21V21l-9.4-1.3z"/></svg></span><span class="nv-os-you" data-en="Your system">سیستم تو</span></span>
+        <span class="nv-os-name" data-en="Windows">ویندوز</span>
+        <span class="nv-os-sub">10 · 11 · x64</span>
+        <span class="nv-os-ver">···</span>
+      </button>
+      <button type="button" role="tab" class="nv-os-btn" data-os-pick="mac" aria-selected="false" aria-controls="nvPanel">
+        <span class="nv-os-top"><span class="nv-os-ico"><svg viewBox="0 0 24 24" aria-hidden="true" class="ic-fill"><path d="M16.4 12.7c0-2.5 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.8-1.7 0-3.3 1-4.1 2.5-1.8 3.1-.5 7.6 1.3 10.1.8 1.2 1.8 2.6 3.1 2.5 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-1-2.4-4.3zM14 5.3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg></span><span class="nv-os-you" data-en="Your system">سیستم تو</span></span>
+        <span class="nv-os-name" data-en="macOS">macOS</span>
+        <span class="nv-os-sub">Apple Silicon · Intel</span>
+        <span class="nv-os-ver">···</span>
+      </button>
+      <button type="button" role="tab" class="nv-os-btn" data-os-pick="linux" aria-selected="false" aria-controls="nvPanel">
+        <span class="nv-os-top"><span class="nv-os-ico"><svg viewBox="0 0 24 24" aria-hidden="true" class="ic-fill"><path d="M12 2c-2.3 0-3.7 1.9-3.7 4.5 0 1.3-.4 2.3-1.3 3.6C5.7 11.9 4.8 13.8 4.8 16c0 .8.1 1.5.4 2.1l-1.5 1.1c-.6.5-.3 1.4.5 1.5l3.3.4c.8.9 2.2 1.4 4.5 1.4s3.7-.5 4.5-1.4l3.3-.4c.8-.1 1.1-1 .5-1.5l-1.5-1.1c.3-.6.4-1.3.4-2.1 0-2.2-.9-4.1-2.2-5.9-.9-1.3-1.3-2.3-1.3-3.6C15.7 3.9 14.3 2 12 2zm0 9.3c1.9 0 3.3 2 3.3 4.4S13.9 19.6 12 19.6s-3.3-1.5-3.3-3.9 1.4-4.4 3.3-4.4zM10.4 6a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zm3.2 0a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6z" fill-rule="evenodd"/></svg></span><span class="nv-os-you" data-en="Your system">سیستم تو</span></span>
+        <span class="nv-os-name" data-en="Linux">لینوکس</span>
+        <span class="nv-os-sub">AppImage · deb · rpm</span>
+        <span class="nv-os-ver">···</span>
+      </button>
+      <button type="button" role="tab" class="nv-os-btn" data-os-pick="android" aria-selected="false" aria-controls="nvPanel">
+        <span class="nv-os-top"><span class="nv-os-ico"><svg viewBox="0 0 24 24" aria-hidden="true" class="ic-fill"><path d="M7.1 6.2 5.6 3.7M16.9 6.2l1.5-2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path fill-rule="evenodd" d="M2.5 17.5a9.5 9.5 0 0 1 19 0zM8 12.6a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2zm8 0a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2z"/><rect x="2.5" y="19" width="19" height="2.2" rx="1.1" opacity=".45"/></svg></span><span class="nv-os-you" data-en="Your system">سیستم تو</span></span>
+        <span class="nv-os-name" data-en="Android">اندروید</span>
+        <span class="nv-os-sub">Phone · Tablet</span>
+        <span class="nv-os-ver">···</span>
+      </button>
+      <button type="button" role="tab" class="nv-os-btn" data-os-pick="tv" aria-selected="false" aria-controls="nvPanel">
+        <span class="nv-os-top"><span class="nv-os-ico"><svg viewBox="0 0 24 24" aria-hidden="true" class="ic-line"><rect x="2.5" y="4" width="19" height="13" rx="2.6"/><path d="M8 21h8M12 17v4"/><path d="M10.3 8.4v4.2l3.6-2.1z" fill="currentColor" stroke="none"/></svg></span><span class="nv-os-you" data-en="Your system">سیستم تو</span></span>
+        <span class="nv-os-name" data-en="Android TV">اندروید TV</span>
+        <span class="nv-os-sub">Google TV · APK</span>
+        <span class="nv-os-ver">···</span>
+      </button>
+    </div>
+  </div>
 
   <div class="download-layout">
-    <div class="dl-card primary surface reveal d2">
+    <div class="dl-card primary surface reveal d2" id="nvPanel" role="tabpanel" data-download-target="android-or-tv">
       <div class="dl-tag">
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        <span id="nvTag" data-en="Latest stable release">آخرین نسخه پایدار</span>
+        <span id="nvTag">آخرین نسخه پایدار</span>
       </div>
-      <div class="dl-title">NOVA Player</div>
-      <div class="dl-sub" data-en="Official builds for Windows 10/11, macOS (Apple Silicon and Intel) and Linux. The button picks the right file for your system.">نسخهٔ رسمی برای ویندوز ۱۰ و ۱۱، مک (Apple Silicon و Intel) و لینوکس. دکمه خودش فایل مناسب سیستم تو را برمی‌دارد.</div>
+      <div class="dl-title">NOVA Player <span class="nv-title-os" id="nvTitleOs">برای ویندوز</span></div>
+      <div class="dl-sub" id="nvSub">ویندوز ۱۰ و ۱۱ · ۶۴ بیتی</div>
       <div class="dl-chips">
-        <span class="dl-chip hi" id="nvChipVer">v1.13.0</span>
+        <span class="dl-chip hi" id="nvChipVer">v1.14.1</span>
         <span class="dl-chip" id="nvChipOs">Windows x64</span>
         <span class="dl-chip" id="nvChipSize" hidden></span>
         <span class="dl-chip nv-date" id="nvChipDate" hidden></span>
         <span class="dl-chip" data-en="Free">رایگان</span>
       </div>
-      <code class="dl-filename" id="nvFile">NOVA.Player_1.13.0_x64-setup.exe</code>
+      <div class="nv-variants" id="nvVariants" hidden></div>
+      <code class="dl-filename" id="nvFile">NOVA.Player_1.14.1_x64-setup.exe</code>
       <a id="nvDlBtn" href="https://github.com/Mehdi138iimm/NovaPlayer/releases/latest"
          class="btn-download wipe"
-         aria-label="دانلود آخرین نسخه NOVA Player برای ویندوز ۶۴ بیتی" data-en-aria="Download the latest NOVA Player for Windows x64">
-        <span class="wipe-base"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download installer">دانلود نصب‌کننده</span></span>
-        <span class="wipe-over over" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-en="Download installer">دانلود نصب‌کننده</span></span>
+         aria-label="دانلود NOVA Player">
+        <span class="wipe-base"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="nv-btn-lbl">دانلود نصب‌کننده</span></span>
+        <span class="wipe-over over" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="nv-btn-lbl">دانلود نصب‌کننده</span></span>
       </a>
       <a class="nv-stable-alt" id="nvStableAlt" href="https://github.com/Mehdi138iimm/NovaPlayer/releases/latest" rel="noopener" hidden></a>
-      <div class="nv-assets" id="nvAssets" hidden></div>
+      <p class="nv-howto" id="nvHowto" hidden></p>
       <details class="nv-notes" id="nvNotesWrap" hidden>
         <summary id="nvNotesSum">تغییرات این نسخه</summary>
         <div class="nv-notes-body" id="nvNotes"></div>
       </details>
-      <p class="dl-note" data-en="Or grab it from the &lt;a href=&quot;https://github.com/Mehdi138iimm/NovaPlayer/releases&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;GitHub releases page&lt;/a&gt;">
-        یا از
-        <a href="https://github.com/Mehdi138iimm/NovaPlayer/releases" target="_blank" rel="noopener">صفحه Releases گیت‌هاب</a>
-        دانلود کن
-      </p>
+      <p class="dl-note" id="nvRelNote">یا از <a href="https://github.com/Mehdi138iimm/NovaPlayer/releases" target="_blank" rel="noopener">صفحه Releases گیت‌هاب</a> دانلود کن</p>
       <p class="nv-app-note" data-en="Already installed? From v1.6.0 on, NOVA tells you about every new version, stable or beta, right inside the app.">نصبش کردی؟ از نسخه 1.6.0 به بعد، NOVA خبر هر نسخه تازه، پایدار یا بتا، رو داخل خود برنامه بهت میده.</p>
     </div>
 
@@ -783,9 +838,9 @@
         <div class="nv-skel"></div>
       </div>
       <div class="nv-vers-foot">
-        <code class="gh-repo">Mehdi138iimm/NovaPlayer</code>
-        <a href="https://github.com/Mehdi138iimm/NovaPlayer" target="_blank" rel="noopener"
-           class="btn-github" aria-label="مشاهده مخزن Nova Player در GitHub" data-en-aria="View the Nova Player repository on GitHub">
+        <code class="gh-repo" id="nvRepo">Mehdi138iimm/NovaPlayer</code>
+        <a href="https://github.com/Mehdi138iimm/NovaPlayer" target="_blank" rel="noopener" id="nvRepoBtn"
+           class="btn-github" aria-label="مشاهده مخزن در GitHub" data-en-aria="View the repository on GitHub">
           <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           <span data-en="View on GitHub">مشاهده در GitHub</span>
         </a>
@@ -803,14 +858,7 @@
       <span class="social-highlight-card__beam" aria-hidden="true"></span>
       <span class="social-highlight-card__icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.259-1.91.177-.184 3.247-2.977 3.307-3.23.005-.03.01-.14-.052-.198-.062-.058-.155-.038-.222-.023-.096.022-1.622 1.03-4.58 3.022-.433.297-.824.442-1.174.435-.386-.008-1.13-.218-1.682-.397-.68-.22-1.22-.336-1.174-.71.023-.194.29-.393.802-.596 3.132-1.364 5.218-2.264 6.26-2.699 2.979-1.24 3.597-1.456 4-1.462z"/></svg></span>
     </a>
-    <a class="social-highlight-card" style="--brand: oklch(76% .14 38); --brand-lt: oklch(62% .18 34)" href="https://donofa.com/novaplayerapp" target="_blank" rel="noopener" aria-label="Support NOVA on Donofa" data-en-aria="Support NOVA on Donofa">
-      <span class="social-highlight-card__glow" aria-hidden="true"></span>
-      <span class="social-highlight-card__beam" aria-hidden="true"></span>
-      <span class="social-highlight-card__icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20.3s-7.8-4.6-7.8-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.8 2.7c0 5.6-7.8 10.2-7.8 10.2Z"/></svg></span>
-      <h3 class="social-highlight-card__title" data-en="Support NOVA">حمایت از NOVA</h3>
-      <p class="social-highlight-card__desc" data-en="Help us grow. Free, ad-free, and always will be.">کمک کن بزرگ‌تر بشم. رایگان، بدون تبلیغ، تا‌همیشه.</p>
-    </a>
-        <a class="social-highlight-card" style="--brand: oklch(68% .19 355); --brand-lt: oklch(52% .22 358)" href="https://www.instagram.com/novaplayerapp" target="_blank" rel="noopener" aria-label="اینستاگرام" title="اینستاگرام" data-en-aria="Instagram" data-en-title="Instagram">
+<a class="social-highlight-card" style="--brand: oklch(68% .19 355); --brand-lt: oklch(52% .22 358)" href="https://www.instagram.com/novaplayerapp" target="_blank" rel="noopener" aria-label="اینستاگرام" title="اینستاگرام" data-en-aria="Instagram" data-en-title="Instagram">
       <span class="social-highlight-card__glow" aria-hidden="true"></span>
       <span class="social-highlight-card__beam" aria-hidden="true"></span>
       <span class="social-highlight-card__icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.9.423.423.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.902 1.382-.421.423-.827.679-1.383.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.902-.421-.421-.69-.827-.9-1.383-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.422.81-.692 1.379-.9.42-.170 1.051-.365 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.441 1.441 0 0 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/></svg></span>
@@ -830,6 +878,42 @@
 </section>
 
 <!-- ══ FOOTER ══ -->
+<!-- ══ FAQ ══ -->
+<section class="faq-section section" id="faq" aria-labelledby="faqTitle">
+  <div class="section-eyebrow">
+    <div class="section-label-line" aria-hidden="true"></div>
+    <span class="section-label" data-en="FAQ">سؤالات</span>
+  </div>
+  <h2 class="section-title reveal" id="faqTitle" data-en="Got a question?">سؤال داری؟</h2>
+  <p class="section-sub reveal d1" data-en="The short answers to the things people ask most about NOVA.">جواب کوتاه به سؤال‌هایی که بیشتر درباره NOVA پرسیده می‌شن.</p>
+  <div class="faq-grid">
+    <details class="faq-item reveal d1">
+      <summary data-en="Is NOVA free and open source?">آیا NOVA رایگان و متن‌باز است؟</summary>
+      <p class="faq-answer" data-en="Yes. NOVA is completely free, with no ads and no paid version.">بله، کاملاً رایگان و متن‌باز است؛ بدون تبلیغ و بدون نسخه پولی.</p>
+    </details>
+    <details class="faq-item reveal d2">
+      <summary data-en="Where are my songs stored?">آهنگ‌های من کجا ذخیره می‌شوند؟</summary>
+      <p class="faq-answer" data-en="Only on your own device. NOVA does not upload your files anywhere.">فقط روی دستگاه خودت. NOVA فایل‌هایت را جایی آپلود نمی‌کند.</p>
+    </details>
+    <details class="faq-item reveal d1">
+      <summary data-en="How do I add lyrics?">چطور متن آهنگ اضافه کنم؟</summary>
+      <p class="faq-answer" data-en="Select a song, press L, then choose Add LRC and select your .lrc file.">آهنگ را انتخاب کن، کلید <code>L</code> را بزن و «افزودن LRC» را انتخاب کن.</p>
+    </details>
+    <details class="faq-item reveal d2">
+      <summary data-en="Why is my cover art not showing?">چرا کاور آهنگم نمایش داده نمی‌شود؟</summary>
+      <p class="faq-answer" data-en="NOVA reads embedded ID3v2 cover art. Files without embedded artwork use the default icon.">کاور از تگ ID3v2 فایل خوانده می‌شود؛ اگر کاور داخل فایل نباشد، آیکون پیش‌فرض نمایش داده می‌شود.</p>
+    </details>
+    <details class="faq-item reveal d1">
+      <summary data-en="Why are TRENDING previews only 30 seconds?">چرا پیش‌نمایش‌های TRENDING فقط ۳۰ ثانیه‌اند؟</summary>
+      <p class="faq-answer" data-en="They are official iTunes previews. Add the full song file to your library to listen without the limit.">این‌ها پیش‌نمایش رسمی iTunes هستند. برای شنیدن کامل، فایل خود آهنگ را به کتابخانه اضافه کن.</p>
+    </details>
+    <details class="faq-item reveal d2">
+      <summary data-en="How do I know when a new version is available?">از کجا بفهمم نسخه جدید آمده؟</summary>
+      <p class="faq-answer" data-en="NOVA checks GitHub Releases and shows stable and beta updates inside the app.">NOVA نسخه‌های جدید پایدار و بتا را از GitHub Releases بررسی می‌کند و داخل برنامه به تو خبر می‌دهد.</p>
+    </details>
+  </div>
+</section>
+
 <footer class="nf" role="contentinfo">
   <div class="nf-track">
     <span class="nf-time cur" id="nfCur">00:00</span>
@@ -846,6 +930,7 @@
           <li><a href="#features" data-en="Features">قابلیت‌ها</a></li>
           <li><a href="#whatsnew" data-en="What&#39;s new">تازه‌ها</a></li>
           <li><a href="#download" data-en="Download">دانلود</a></li>
+          <li><a href="#faq" data-en="FAQ">سؤالات</a></li>
           <li><a href="https://github.com/Mehdi138iimm/NovaPlayer/releases" target="_blank" rel="noopener"><span data-en="Release history">تاریخچه نسخه‌ها</span><svg class="nf-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg></a></li>
         </ul>
       </div>
@@ -853,6 +938,7 @@
         <h2 class="nf-h" data-en="Open source">متن‌باز</h2>
         <ul>
           <li><a href="https://github.com/Mehdi138iimm/NovaPlayer" target="_blank" rel="noopener"><span data-en="Source code">کد منبع</span><svg class="nf-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg></a></li>
+          <li><a href="https://github.com/Mehdi138iimm/NOVA-Player-macOS-Linux" target="_blank" rel="noopener"><span data-en="macOS &amp; Linux source">کد macOS و لینوکس</span><svg class="nf-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg></a></li>
           <li><a href="https://github.com/Mehdi138iimm/NovaPlayer/issues" target="_blank" rel="noopener"><span data-en="Report a bug">گزارش باگ</span><svg class="nf-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg></a></li>
           <li><a href="https://github.com/Mehdi138iimm/NovaPlayer/stargazers" target="_blank" rel="noopener"><span data-en="Star on GitHub">ستاره در گیت‌هاب</span><svg class="nf-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg></a></li>
         </ul>
@@ -1086,78 +1172,269 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
 .nv-stable-alt:hover{color:var(--neon);}
 .nv-app-note{margin-top:8px;font-size:11px;color:var(--muted);}
 #download .dl-card.primary .dl-note{margin-top:auto;padding-top:14px;}
+/* ── multi-platform picker ── */
+.ic-fill{fill:currentColor;stroke:none}
+.ic-line{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nv-os-wrap{margin:34px 0 18px}
+.nv-os-label{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:14px;font-weight:700;color:var(--text)}
+.nv-os-label::before{content:'';width:20px;height:2px;border-radius:2px;background:var(--neon);box-shadow:0 0 8px var(--neon-glow)}
+:root[data-lang="en"] .nv-os-label{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+.nv-os{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.nv-os-btn{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:3px;min-width:0;padding:14px 14px 13px;border-radius:16px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font:inherit;text-align:start;cursor:pointer;overflow:hidden;isolation:isolate;transition:border-color .22s var(--ease-out),color .22s var(--ease-out),transform .28s var(--ease-out),box-shadow .28s var(--ease-out)}
+.nv-os-btn::before{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(120% 90% at 0% 0%,oklch(var(--neon-c) / .16),transparent 60%);opacity:0;transition:opacity .3s var(--ease-out)}
+:root:not([data-lang="en"]) .nv-os-btn::before{background:radial-gradient(120% 90% at 100% 0%,oklch(var(--neon-c) / .16),transparent 60%)}
+.nv-os-btn:hover{border-color:var(--border-2);color:var(--text);transform:translateY(-2px)}
+.nv-os-btn:focus-visible{outline:1.5px solid var(--neon);outline-offset:3px}
+.nv-os-btn[aria-selected="true"]{border-color:oklch(var(--neon-c) / .6);color:var(--text);box-shadow:0 0 0 1px oklch(var(--neon-c) / .22),0 18px 40px -22px var(--neon-glow)}
+.nv-os-btn[aria-selected="true"]::before{opacity:1}
+.nv-os-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px}
+.nv-os-ico{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--raised);border:1px solid var(--border);color:var(--muted);transition:color .22s,background-color .22s,border-color .22s}
+.nv-os-ico svg{width:21px;height:21px}
+.nv-os-btn[aria-selected="true"] .nv-os-ico{color:var(--on-accent,#1b2110);background:var(--neon);border-color:transparent;box-shadow:0 0 16px var(--neon-glow)}
+.nv-os-you{display:none;font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;color:var(--neon);background:var(--neon-dim);border:1px solid oklch(var(--neon-c) / .25);white-space:nowrap}
+.nv-os-btn.is-you .nv-os-you{display:inline-block}
+.nv-os-name{font-size:16px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nv-os-sub{font:10.5px var(--mono);letter-spacing:.02em;color:var(--muted);direction:ltr;unicode-bidi:isolate;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:start}
+.nv-os-ver{margin-top:6px;font:700 11px var(--mono);color:var(--muted);direction:ltr;unicode-bidi:isolate;text-align:start}
+.nv-os-btn[aria-selected="true"] .nv-os-ver{color:var(--neon)}
+.nv-os-ver.pre::after{content:' β';opacity:.7}
+.nv-title-os{color:var(--neon)}
+.nv-variants{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}
+.nv-var-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.nv-var-k{min-width:58px;font-size:11px;color:var(--muted)}
+.nv-var-opt{display:inline-flex;align-items:baseline;gap:6px;padding:7px 12px;border-radius:10px;border:1px solid var(--border);background:oklch(var(--ink-c) / .4);color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer;transition:border-color .18s,background-color .18s,color .18s}
+.nv-var-opt b{font-weight:700}
+.nv-var-opt small{font:10px var(--mono);opacity:.75;direction:ltr;unicode-bidi:isolate}
+.nv-var-opt:hover{color:var(--text);border-color:var(--border-2)}
+.nv-var-opt[aria-pressed="true"]{color:var(--text);border-color:oklch(var(--neon-c) / .5);background:var(--neon-dim)}
+.nv-var-opt[aria-pressed="true"] small{color:var(--neon);opacity:1}
+.nv-var-opt:focus-visible{outline:1.5px solid var(--neon);outline-offset:2px}
+.nv-howto{margin-top:14px;padding:10px 13px;border-radius:11px;border:1px dashed var(--border-2);font-size:12.5px;line-height:1.9;color:var(--muted)}
+.nv-howto code{font-family:var(--mono);font-size:.92em;padding:1px 6px;border-radius:6px;background:var(--raised);border:1px solid var(--border);color:var(--text);direction:ltr;unicode-bidi:isolate;white-space:nowrap}
+.dl-card.primary.nv-swap>*{animation:nvSwap .42s var(--ease-out) both}
+.dl-card.primary.nv-swap>*:nth-child(2){animation-delay:.03s}.dl-card.primary.nv-swap>*:nth-child(3){animation-delay:.06s}.dl-card.primary.nv-swap>*:nth-child(n+4){animation-delay:.09s}
+@keyframes nvSwap{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* hero platform row */
+.hero-plats{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:22px auto 0}
+.hero-plat{display:inline-flex;align-items:center;gap:7px;padding:7px 14px 7px 12px;border-radius:999px;border:1px solid var(--border);background:oklch(var(--ink-c) / .45);color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;backdrop-filter:blur(6px);transition:color .2s,border-color .2s,transform .25s var(--ease-out)}
+.hero-plat svg{width:15px;height:15px;flex:none}
+.hero-plat:hover{color:var(--text);border-color:var(--border-2);transform:translateY(-1px)}
+.hero-plat.on{color:var(--text);border-color:oklch(var(--neon-c) / .45)}
+.hero-plat.on svg{color:var(--neon)}
+.hero-plat:focus-visible{outline:1.5px solid var(--neon);outline-offset:3px}
+.hero-plats+.hero-meta{margin-top:16px}
+@media (max-width:900px){
+  .nv-os{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(150px,1fr);overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;scrollbar-width:none}
+  .nv-os-btn{scroll-snap-align:start}
+}
+@media (max-width:640px){
+  .nv-os-wrap{margin-bottom:14px}
+  .nv-os{grid-auto-columns:minmax(132px,1fr);gap:8px}
+  .nv-os-btn{padding:12px}
+  .nv-os-ico{width:36px;height:36px}
+  .hero-plat{padding:6px 11px 6px 10px;font-size:12px}
+}
+@media (prefers-reduced-motion:reduce){.dl-card.primary.nv-swap>*{animation:none}}
+
 </style>
 <script id="nova-releases-js">
-/* NOVA Player · live download section
-   Reads the GitHub Releases of Mehdi138iimm/NovaPlayer and fills in the download
-   card, the version list, the hero badge, every download button and the What's new cards.
-   Publish a new release on GitHub and the site updates itself. */
+/* NOVA Player · live, multi-platform download section
+   Reads GitHub Releases from two repos and lets the visitor pick an OS first:
+     Mehdi138iimm/NovaPlayer                 → Windows, Android, Android TV
+     Mehdi138iimm/NOVA-Player-macOS-Linux    → macOS, Linux
+   Publish a new release on either repo and the site updates itself. */
 (function () {
   'use strict';
   var OWNER = 'Mehdi138iimm';
-  var REPO = 'NovaPlayer';
-  var API = 'https://api.github.com/repos/' + OWNER + '/' + REPO + '/releases?per_page=30';
-  var REL_PAGE = 'https://github.com/' + OWNER + '/' + REPO + '/releases';
-  var LATEST_PAGE = REL_PAGE + '/latest';
-  var CACHE_KEY = 'nova-releases-v3';
-  var CACHE_TTL = 10 * 60 * 1000; // ask GitHub at most once every 10 minutes per visitor (API limit is 60/hour per IP)
+  var REPOS = {
+    main: { name: 'NovaPlayer' },
+    ml: { name: 'NOVA-Player-macOS-Linux' }
+  };
+  Object.keys(REPOS).forEach(function (k) {
+    var r = REPOS[k];
+    r.full = OWNER + '/' + r.name;
+    r.api = 'https://api.github.com/repos/' + r.full + '/releases?per_page=30';
+    r.page = 'https://github.com/' + r.full;
+    r.rel = r.page + '/releases';
+    r.cache = 'nova-rel-' + k + '-v4';
+    r.list = null; r.failed = false;
+  });
+  var CACHE_TTL = 10 * 60 * 1000; // at most one GitHub call per repo per visitor every 10 minutes (API limit is 60/hour per IP)
   var MAX_ROWS = 6;
+  var OS_KEY = 'nova-os';
+  var ORDER = ['win', 'mac', 'linux', 'android', 'tv'];
 
   var doc = document, root = doc.documentElement;
-  var state = { list: null, failed: false };
-  var downloadUrl = LATEST_PAGE;
+  var downloadUrl = REPOS.main.rel + '/latest';
 
   var EXT_ICON = '<svg class="nf-ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>';
-  var DL_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
 
   function faNum(n) { try { return Number(n).toLocaleString('fa-IR'); } catch (e) { return String(n); } }
 
+  // ── platforms ──
+  var PLAT = {
+    win: {
+      repo: 'main', fa: 'ویندوز', en: 'Windows',
+      subFa: 'ویندوز ۱۰ و ۱۱ · ۶۴ بیتی', subEn: 'Windows 10 and 11 · 64-bit',
+      fmts: ['exe', 'msi', 'zip']
+    },
+    mac: {
+      repo: 'ml', fa: 'macOS', en: 'macOS',
+      subFa: 'macOS 11 Big Sur به بالا · Apple Silicon و Intel', subEn: 'macOS 11 Big Sur or later · Apple Silicon and Intel',
+      fmts: ['dmg']
+    },
+    linux: {
+      repo: 'ml', fa: 'لینوکس', en: 'Linux',
+      subFa: 'Ubuntu، Debian، Fedora و بقیه توزیع‌ها · x64 و ARM64', subEn: 'Ubuntu, Debian, Fedora and more · x64 and ARM64',
+      fmts: ['appimage', 'deb', 'rpm']
+    },
+    android: {
+      repo: 'main', fa: 'اندروید', en: 'Android',
+      subFa: 'گوشی و تبلت اندرویدی · فایل APK', subEn: 'Android phones and tablets · APK',
+      fmts: ['apk']
+    },
+    tv: {
+      repo: 'main', fa: 'اندروید TV', en: 'Android TV',
+      subFa: 'Android TV و Google TV · فایل APK', subEn: 'Android TV and Google TV · APK',
+      fmts: ['apk']
+    }
+  };
+  var TV_RX = /(^|[^a-z])(tv|leanback|atv)([^a-z]|$)/i;
+  function fmtOf(n) {
+    var m = /\.(appimage|deb|rpm|dmg|exe|msi|apk|zip)$/i.exec(n);
+    return m ? m[1].toLowerCase() : '';
+  }
+  function archOf(n) {
+    if (/aarch64|arm64|armv8|armv7|[_.-]arm[_.-]/i.test(n)) return 'arm';
+    if (/x86_64|amd64|x64|win64|x86/i.test(n)) return 'x64';
+    return '';
+  }
+  // updater/signature files are for the app, not for people
+  var JUNK = /(\.sig|\.json|\.blockmap|\.sha256|\.txt|\.nsis\.zip|\.msi\.zip|\.tar\.gz)$/i;
+  function files(r) { return (r.assets || []).filter(function (a) { return a && a.name && a.url && !JUNK.test(a.name); }); }
+  function platFiles(os, r) {
+    var p = PLAT[os], all = files(r).filter(function (a) { return p.fmts.indexOf(fmtOf(a.name)) > -1; });
+    if (os === 'android' || os === 'tv') {
+      var tvs = all.filter(function (a) { return TV_RX.test(a.name.replace(/\.apk$/i, '')); });
+      var phones = all.filter(function (a) { return tvs.indexOf(a) < 0; });
+      if (os === 'tv') return tvs; // TV is intentionally isolated from phone/tablet APKs
+      return phones;
+    }
+    if (os === 'win') return all.filter(function (a) { return fmtOf(a.name) !== 'zip' || /portable/i.test(a.name); });
+    return all;
+  }
+  // Android phone/tablet and Android TV are separate download targets.
+
+  // ── visitor's system ──
+  var UA = navigator.userAgent || '';
+  var IS_TV = /Android/i.test(UA) && /(\bTV\b|AFT[A-Z]|BRAVIA|GoogleTV|SmartTV|Chromecast|MiBOX|SHIELD|Leanback)/i.test(UA);
+  var DETECTED = IS_TV ? 'tv'
+    : /Android/i.test(UA) ? 'android'
+    : /Mac|iPhone|iPad/i.test(UA) ? 'mac'
+    : /Linux|X11|CrOS/i.test(UA) ? 'linux' : 'win';
+  function guessArch(os) {
+    if (os === 'linux') return /aarch64|arm/i.test(UA + ' ' + (navigator.platform || '')) ? 'arm' : 'x64';
+    if (os === 'mac') {
+      try {
+        var c = doc.createElement('canvas'), gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+        var ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
+        var gpu = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+        if (/Intel|AMD|Radeon|NVIDIA/i.test(gpu)) return 'x64';
+      } catch (e) {}
+      return 'arm'; // every Mac sold since 2020 is Apple Silicon
+    }
+    return 'x64';
+  }
+  function guessFmt(os) {
+    if (os === 'linux') return /Fedora|Red Hat|openSUSE|CentOS/i.test(UA) ? 'rpm' : (/Ubuntu|Debian|Mint/i.test(UA) ? 'deb' : 'appimage');
+    return PLAT[os].fmts[0];
+  }
+
+  var saved = null;
+  try { saved = localStorage.getItem(OS_KEY); } catch (e) {}
+  var sel = { os: PLAT[saved] ? saved : DETECTED };
+  sel.arch = guessArch(sel.os); sel.fmt = guessFmt(sel.os);
+
+  // ── strings ──
   var T = {
     fa: {
       badge: function (v) { return 'نسخه ' + v + ' منتشر شد'; },
-      heroAria: function (v) { return 'دانلود Nova Player نسخه ' + v + ' برای ویندوز'; },
-      dlAria: function (v) { return 'دانلود NOVA Player نسخه ' + v + ' برای ویندوز ۶۴ بیتی'; },
+      heroBtn: function (o) { return 'دانلود برای ' + o; },
+      dlAria: function (v, o) { return 'دانلود NOVA Player نسخه ' + v + ' برای ' + o; },
+      dlBtn: { win: 'دانلود نصب‌کننده', mac: 'دانلود برای مک', linux: 'دانلود برای لینوکس', android: 'دانلود APK', tv: 'دانلود APK تلویزیون' },
+      title: function (o) { return 'برای ' + o; },
       tagStable: 'آخرین نسخه پایدار',
       tagPre: 'آخرین نسخه پیش‌نمایش',
       notes: function (v) { return 'تغییرات نسخه ' + v; },
-      latest: 'آخرین',
-      pre: 'پیش‌نمایش',
-      next: 'نسخه بعدی',
-      soon: 'به‌زودی',
-      count: function (n) { return faNum(n) + ' نسخه منتشر شده'; },
+      latest: 'آخرین', pre: 'پیش‌نمایش', next: 'نسخه بعدی', soon: 'به‌زودی',
+      count: function (n, o) { return faNum(n) + ' نسخه برای ' + o; },
       more: function (n) { return 'دیدن همه ' + faNum(n) + ' نسخه در GitHub'; },
       loading: 'در حال خواندن از GitHub…',
       offline: 'اتصال به GitHub برقرار نشد',
       err: 'فعلاً به GitHub دسترسی نداریم.',
       errLink: 'صفحه Releases',
-      empty: 'هنوز نسخه‌ای منتشر نشده است.',
-      kind: { setup: 'ویندوز · نصب‌کننده', msi: 'ویندوز · MSI', portable: 'پرتابل، بدون نصب', macArm: 'مک · Apple Silicon (M1 به بعد)', macIntel: 'مک · Intel', mac: 'مک', appimage: 'لینوکس · AppImage', deb: 'لینوکس · Ubuntu/Debian', rpm: 'لینوکس · Fedora', file: 'فایل' }
+      empty: 'هنوز نسخه‌ای برای این سیستم منتشر نشده.',
+      stableAlt: function (t) { return 'آخرین نسخه پایدار: ' + t + ' ↓'; },
+      relNote: 'یا از <a href="{u}" target="_blank" rel="noopener">صفحه Releases گیت‌هاب</a> دانلود کن',
+      kArch: 'معماری', kFmt: 'فرمت',
+      arch: { mac: { arm: 'Apple Silicon', x64: 'Intel' }, linux: { arm: 'ARM64', x64: 'x64' }, def: { arm: 'ARM64', x64: 'x64' } },
+      archHint: { mac: { arm: 'تراشه‌های سری M', x64: 'مک‌های قدیمی‌تر' } },
+      fmt: { appimage: 'AppImage', deb: 'deb', rpm: 'rpm', exe: 'نصب‌کننده', msi: 'MSI', zip: 'پرتابل', dmg: 'dmg', apk: 'APK' },
+      fmtHint: { appimage: 'همه توزیع‌ها', deb: 'Ubuntu · Debian', rpm: 'Fedora · openSUSE' },
+      howto: {
+        win: 'نصب‌کننده رو اجرا کن. اگه SmartScreen پیغام داد، روی More info و بعد Run anyway بزن.',
+        mac: 'فایل dmg رو باز کن و NOVA رو بکش توی پوشه Applications.',
+        appimage: 'بعد از دانلود: <code>chmod +x NOVA*.AppImage</code> و بعد اجراش کن.',
+        deb: 'نصب با: <code>sudo apt install ./NOVA*.deb</code>',
+        rpm: 'نصب با: <code>sudo dnf install ./NOVA*.rpm</code>',
+        android: 'فایل APK رو باز کن؛ اگه خواست، «نصب از منابع ناشناس» رو برای مرورگرت روشن کن.',
+        tv: 'APK رو با اپ Downloader یا فلش روی تلویزیون نصب کن.'
+      },
+      tvShared: 'همون APK اندروید روی تلویزیون هم نصب میشه.',
+      kind: { exe: 'ویندوز · نصب‌کننده', msi: 'ویندوز · MSI', zip: 'پرتابل', dmg: 'macOS', appimage: 'لینوکس · AppImage', deb: 'لینوکس · deb', rpm: 'لینوکس · rpm', apk: 'اندروید · APK' }
     },
     en: {
       badge: function (v) { return 'Version ' + v + ' is live'; },
-      heroAria: function (v) { return 'Download Nova Player ' + v + ' for Windows'; },
-      dlAria: function (v) { return 'Download NOVA Player ' + v + ' for Windows x64'; },
+      heroBtn: function (o) { return 'Download for ' + o; },
+      dlAria: function (v, o) { return 'Download NOVA Player ' + v + ' for ' + o; },
+      dlBtn: { win: 'Download installer', mac: 'Download for Mac', linux: 'Download for Linux', android: 'Download APK', tv: 'Download TV APK' },
+      title: function (o) { return 'for ' + o; },
       tagStable: 'Latest stable release',
       tagPre: 'Latest preview release',
       notes: function (v) { return "What's new in " + v; },
-      latest: 'Latest',
-      pre: 'Preview',
-      next: 'Next up',
-      soon: 'Soon',
-      count: function (n) { return n + (n === 1 ? ' release' : ' releases') + ' published'; },
+      latest: 'Latest', pre: 'Preview', next: 'Next up', soon: 'Soon',
+      count: function (n, o) { return n + (n === 1 ? ' release' : ' releases') + ' for ' + o; },
       more: function (n) { return 'See all ' + n + ' releases on GitHub'; },
       loading: 'Reading from GitHub…',
       offline: 'GitHub is unreachable',
       err: "Can't reach GitHub right now.",
       errLink: 'Open the Releases page',
-      empty: 'No releases published yet.',
-      kind: { setup: 'Windows · installer', msi: 'Windows · MSI', portable: 'Portable, no install', macArm: 'macOS · Apple Silicon', macIntel: 'macOS · Intel', mac: 'macOS', appimage: 'Linux · AppImage', deb: 'Linux · Ubuntu/Debian', rpm: 'Linux · Fedora', file: 'File' }
+      empty: 'No release for this system yet.',
+      stableAlt: function (t) { return 'Latest stable: ' + t + ' ↓'; },
+      relNote: 'Or grab it from the <a href="{u}" target="_blank" rel="noopener">GitHub releases page</a>',
+      kArch: 'Chip', kFmt: 'Format',
+      arch: { mac: { arm: 'Apple Silicon', x64: 'Intel' }, linux: { arm: 'ARM64', x64: 'x64' }, def: { arm: 'ARM64', x64: 'x64' } },
+      archHint: { mac: { arm: 'M-series chips', x64: 'older Macs' } },
+      fmt: { appimage: 'AppImage', deb: 'deb', rpm: 'rpm', exe: 'Installer', msi: 'MSI', zip: 'Portable', dmg: 'dmg', apk: 'APK' },
+      fmtHint: { appimage: 'any distro', deb: 'Ubuntu · Debian', rpm: 'Fedora · openSUSE' },
+      howto: {
+        win: 'Run the installer. If SmartScreen pops up, hit More info, then Run anyway.',
+        mac: 'Open the dmg and drag NOVA into Applications.',
+        appimage: 'After downloading: <code>chmod +x NOVA*.AppImage</code>, then run it.',
+        deb: 'Install with <code>sudo apt install ./NOVA*.deb</code>',
+        rpm: 'Install with <code>sudo dnf install ./NOVA*.rpm</code>',
+        android: 'Open the APK. If asked, allow installs from unknown sources for your browser.',
+        tv: 'Sideload the APK on your TV with the Downloader app or a USB stick.'
+      },
+      tvShared: 'The Android APK installs on TVs too.',
+      kind: { exe: 'Windows · installer', msi: 'Windows · MSI', zip: 'Portable', dmg: 'macOS', appimage: 'Linux · AppImage', deb: 'Linux · deb', rpm: 'Linux · rpm', apk: 'Android · APK' }
     }
   };
 
   function $(id) { return doc.getElementById(id); }
   function isEn() { return root.getAttribute('data-lang') === 'en'; }
   function tr() { return isEn() ? T.en : T.fa; }
+  function osName(os) { return isEn() ? PLAT[os].en : PLAT[os].fa; }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -1165,19 +1442,7 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
   }
   function setText(id, s) { var el = $(id); if (el) el.textContent = s; return el; }
   function show(el, on) { if (el) el.hidden = !on; }
-  // keep the site's own FA/EN switcher in sync with the values we write at runtime
-  function setI18n(el, fa, en) {
-    if (!el) return;
-    el.setAttribute('data-fa', esc(fa));
-    el.setAttribute('data-en', esc(en));
-    el.innerHTML = esc(isEn() ? en : fa);
-  }
-  function setAria(el, fa, en) {
-    if (!el) return;
-    el.setAttribute('data-fa-aria', fa);
-    el.setAttribute('data-en-aria', en);
-    el.setAttribute('aria-label', isEn() ? en : fa);
-  }
+  function setAria(el, s) { if (el) el.setAttribute('aria-label', s); }
 
   function fmtSize(b) { return b ? (b / 1048576).toFixed(1) + ' MB' : ''; }
   function fmtDate(iso) {
@@ -1217,37 +1482,11 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
     return c === 0 ? a + '.' + (b + 1) + '.0' : a + '.' + b + '.' + (c + 1);
   }
 
-  // updater/signature files are for the app, not for people
-  var JUNK = /(\.sig|\.json|\.blockmap|\.sha256|\.txt|\.nsis\.zip|\.msi\.zip|\.tar\.gz)$/i;
-  function files(r) { return (r.assets || []).filter(function (a) { return a && a.name && a.url && !JUNK.test(a.name); }); }
-  var UA = navigator.userAgent || '';
-  var OS = /Mac|iPhone|iPad/i.test(UA) ? 'mac' : (/Linux|X11/i.test(UA) && !/Android/i.test(UA) ? 'linux' : 'win');
-  function pickMain(list) {
-    var order = OS === 'mac' ? [/aarch64\.dmg$/i, /\.dmg$/i]
-      : OS === 'linux' ? [/\.AppImage$/i, /\.deb$/i, /\.rpm$/i] : [];
-    order = order.concat([/setup\.exe$/i, /\.exe$/i, /\.msi$/i, /\.zip$/i]);
-    for (var i = 0; i < order.length; i++) {
-      for (var j = 0; j < list.length; j++) if (order[i].test(list[j].name)) return list[j];
-    }
-    return list[0] || null;
-  }
-  function kindOf(name) {
-    if (/\.dmg$/i.test(name)) return /aarch64|arm64/i.test(name) ? 'macArm' : (/universal/i.test(name) ? 'mac' : 'macIntel');
-    if (/\.AppImage$/i.test(name)) return 'appimage';
-    if (/\.deb$/i.test(name)) return 'deb';
-    if (/\.rpm$/i.test(name)) return 'rpm';
-    if (/portable/i.test(name) || /\.zip$/i.test(name)) return 'portable';
-    if (/\.msi$/i.test(name)) return 'msi';
-    if (/\.exe$/i.test(name)) return 'setup';
-    return 'file';
-  }
-  function extOf(name) { var m = /\.([a-z0-9]{1,5})$/i.exec(name); return m ? m[1].toUpperCase() : 'FILE'; }
-
   function simplify(raw) {
     return raw.filter(function (r) { return r && !r.draft; }).map(function (r) {
       return {
         tag: r.tag_name || '',
-        url: r.html_url || REL_PAGE,
+        url: r.html_url || '',
         pre: !!r.prerelease,
         date: r.published_at || r.created_at || '',
         body: String(r.body || '').slice(0, 8000),
@@ -1290,99 +1529,214 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
     return out.join('');
   }
 
-  // newest version number wins, pre-release (beta) or not, exactly like the in-app update check
-  function pick(list) {
-    var stable = null, main = null, i;
-    for (i = 0; i < list.length; i++) if (files(list[i]).length) { main = list[i]; break; }
-    for (i = 0; i < list.length; i++) if (!list[i].pre && files(list[i]).length) { stable = list[i]; break; }
-    return { stable: stable, main: main };
+  // releases of one platform, newest first; the newest version number wins, beta or not, like the in-app update check
+  function relsFor(os) {
+    var list = REPOS[PLAT[os].repo].list || [];
+    return list.filter(function (r) { return platFiles(os, r).length; });
+  }
+  function pickFor(os) {
+    var rels = relsFor(os), main = rels[0] || null, stable = null;
+    for (var i = 0; i < rels.length; i++) if (!rels[i].pre) { stable = rels[i]; break; }
+    return { main: main, stable: stable, rels: rels };
+  }
+  function verFor(os, r, file) {
+    if ((os === 'android' || os === 'tv') && file) {
+      var m = /(\d+\.\d+(?:\.\d+)?)\.apk$/i.exec(file.name);
+      if (m) return 'v' + m[1];
+    }
+    return r ? r.tag : '';
+  }
+  function chooseFile(os, list, prefer) {
+    if (!list.length) return null;
+    prefer = prefer || sel;
+    var fmts = PLAT[os].fmts;
+    var fmt = list.some(function (a) { return fmtOf(a.name) === prefer.fmt; }) ? prefer.fmt
+      : (fmts.filter(function (f) { return list.some(function (a) { return fmtOf(a.name) === f; }); })[0]);
+    var pool = list.filter(function (a) { return fmtOf(a.name) === fmt; });
+    var hit = pool.filter(function (a) { return archOf(a.name) === prefer.arch; })[0]
+      || pool.filter(function (a) { return archOf(a.name) === 'x64' || !archOf(a.name); })[0]
+      || pool[0];
+    if (os === 'win') hit = pool.filter(function (a) { return /setup/i.test(a.name); })[0] || hit;
+    return hit;
   }
 
-  function renderAssets(assets, mainFile) {
-    var box = $('nvAssets');
+  function uniq(a) { return a.filter(function (x, i) { return x && a.indexOf(x) === i; }); }
+  function renderVariants(os, list, file) {
+    var box = $('nvVariants');
     if (!box) return;
-    var t = tr(), rest = assets.filter(function (a) { return a !== mainFile; });
-    if (!rest.length) { box.innerHTML = ''; show(box, false); return; }
-    box.innerHTML = rest.map(function (a) {
-      var meta = esc(t.kind[kindOf(a.name)]) + (a.size ? ' · <span class="nv-ltr">' + esc(fmtSize(a.size)) + '</span>' : '');
-      return '<a class="nv-asset" href="' + esc(a.url) + '" rel="noopener">' +
-        '<span class="nv-asset-type">' + esc(extOf(a.name)) + '</span>' +
-        '<span class="nv-asset-name">' + esc(a.name) + '</span>' +
-        '<span class="nv-asset-meta">' + meta + '</span>' + DL_ICON + '</a>';
-    }).join('');
-    show(box, true);
+    var t = tr();
+    var fmts = uniq(PLAT[os].fmts.filter(function (f) { return list.some(function (a) { return fmtOf(a.name) === f; }); }));
+    var curFmt = fmtOf(file.name), curArch = archOf(file.name);
+    var arches = uniq(['arm', 'x64'].filter(function (x) { return list.some(function (a) { return fmtOf(a.name) === curFmt && archOf(a.name) === x; }); }));
+    if (os === 'mac') arches = arches.sort(function (a) { return a === 'arm' ? -1 : 1; });
+    var html = '';
+    function sizeOf(f, x) {
+      var a = list.filter(function (z) { return fmtOf(z.name) === f && (!x || archOf(z.name) === x); })[0];
+      return a && a.size ? fmtSize(a.size) : '';
+    }
+    if (arches.length > 1) {
+      var names = t.arch[os] || t.arch.def, hints = (t.archHint[os] || {});
+      html += '<div class="nv-var-row" role="group" aria-label="' + esc(t.kArch) + '"><span class="nv-var-k">' + esc(t.kArch) + '</span>' +
+        arches.map(function (x) {
+          return '<button type="button" class="nv-var-opt" data-arch="' + x + '" aria-pressed="' + (x === curArch) + '">' +
+            '<b>' + esc(names[x]) + '</b>' + (hints[x] ? '<small>' + esc(hints[x]) + '</small>' : '') + '</button>';
+        }).join('') + '</div>';
+    }
+    if (fmts.length > 1) {
+      html += '<div class="nv-var-row" role="group" aria-label="' + esc(t.kFmt) + '"><span class="nv-var-k">' + esc(t.kFmt) + '</span>' +
+        fmts.map(function (f) {
+          var h = t.fmtHint[f] || sizeOf(f, curArch);
+          return '<button type="button" class="nv-var-opt" data-fmt="' + f + '" aria-pressed="' + (f === curFmt) + '">' +
+            '<b>' + esc(t.fmt[f] || f) + '</b>' + (h ? '<small>' + esc(h) + '</small>' : '') + '</button>';
+        }).join('') + '</div>';
+    }
+    box.innerHTML = html;
+    show(box, !!html);
   }
 
-  function renderMain(main, stable) {
-    var t = tr(), assets = files(main), file = pickMain(assets), v = cleanV(main.tag);
-    if (!file) return;
+  function setBtnLabel(btn, txt) {
+    if (!btn) return;
+    var spans = btn.querySelectorAll('.nv-btn-lbl');
+    for (var i = 0; i < spans.length; i++) spans[i].textContent = txt;
+  }
+
+  function renderPicker() {
+    var t = tr();
+    var btns = doc.querySelectorAll('[data-os-pick]');
+    for (var i = 0; i < btns.length; i++) {
+      var b = btns[i], os = b.getAttribute('data-os-pick'), on = os === sel.os;
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+      b.classList.toggle('is-you', os === DETECTED);
+      var v = b.querySelector('.nv-os-ver');
+      if (v) {
+        var p = pickFor(os), f = p.main ? chooseFile(os, platFiles(os, p.main), { fmt: guessFmt(os), arch: guessArch(os) }) : null;
+        var repo = REPOS[PLAT[os].repo];
+        v.textContent = p.main ? verFor(os, p.main, f) : (repo.list || repo.failed ? '—' : '···');
+        v.classList.toggle('pre', !!(p.main && p.main.pre));
+      }
+    }
+    var heroP = doc.querySelectorAll('[data-os-go]');
+    for (var j = 0; j < heroP.length; j++) heroP[j].classList.toggle('on', heroP[j].getAttribute('data-os-go') === DETECTED);
+  }
+
+  function renderMain() {
+    var t = tr(), os = sel.os, repo = REPOS[PLAT[os].repo], name = osName(os);
+    var p = pickFor(os), main = p.main;
+    setText('nvTitleOs', t.title(name));
+    setText('nvSub', isEn() ? PLAT[os].subEn : PLAT[os].subFa);
+    var rn = $('nvRelNote');
+    if (rn) rn.innerHTML = t.relNote.replace('{u}', repo.rel);
+    var btn = $('nvDlBtn'), file = main ? chooseFile(os, platFiles(os, main)) : null;
+    setBtnLabel(btn, t.dlBtn[os]);
+    if (!main || !file) {
+      // not loaded yet, failed, or nothing published for this OS: send people to the right Releases page
+      downloadUrl = repo.rel + '/latest';
+      if (btn) { btn.href = repo.rel; setAria(btn, t.dlBtn[os]); }
+      setText('nvChipVer', repo.list ? '—' : '···');
+      setText('nvChipOs', name);
+      show($('nvChipSize'), false); show($('nvChipDate'), false);
+      setText('nvFile', repo.list ? t.empty : (repo.failed ? t.err : t.loading));
+      show($('nvVariants'), false); show($('nvStableAlt'), false); show($('nvNotesWrap'), false);
+      setText('nvTag', t.tagStable);
+      renderHowto(os, null);
+      return;
+    }
+    var ver = verFor(os, main, file);
     downloadUrl = file.url;
-    setI18n($('nvTag'), main.pre ? T.fa.tagPre : T.fa.tagStable, main.pre ? T.en.tagPre : T.en.tagStable);
-    setText('nvChipVer', main.tag);
+    setText('nvTag', main.pre ? t.tagPre : t.tagStable);
+    setText('nvChipVer', ver);
+    var arch = archOf(file.name), archNames = t.arch[os] || t.arch.def;
+    setText('nvChipOs', name + (arch && os !== 'win' ? ' · ' + archNames[arch] : (os === 'win' ? ' x64' : '')));
     show(setText('nvChipSize', fmtSize(file.size)), !!file.size);
     var when = fmtDate(main.date);
     show(setText('nvChipDate', when), !!when);
     setText('nvFile', file.name);
-    var ko = kindOf(file.name);
-    setText('nvChipOs', /^mac/.test(ko) ? 'macOS' : (/appimage|deb|rpm/.test(ko) ? 'Linux' : 'Windows x64'));
-    var btn = $('nvDlBtn');
-    if (btn) { btn.href = file.url; setAria(btn, T.fa.dlAria(v), T.en.dlAria(v)); }
-    renderAssets(assets, file);
-    var alt = $('nvStableAlt'), sf = stable && stable !== main ? pickMain(files(stable)) : null;
+    if (btn) { btn.href = file.url; setAria(btn, t.dlAria(ver, name)); }
+    renderVariants(os, platFiles(os, main), file);
+    var alt = $('nvStableAlt'), sf = p.stable && p.stable !== main ? chooseFile(os, platFiles(os, p.stable)) : null;
     if (alt) {
-      if (sf) {
-        alt.href = sf.url;
-        setI18n(alt, 'آخرین نسخه پایدار: ' + stable.tag + ' ↓', 'Latest stable: ' + stable.tag + ' ↓');
-      }
+      if (sf) { alt.href = sf.url; alt.textContent = t.stableAlt(p.stable.tag); }
       show(alt, !!sf);
     }
     var notes = $('nvNotes'), wrap = $('nvNotesWrap'), body = md(main.body);
-    if (notes && wrap) { notes.innerHTML = body; setText('nvNotesSum', t.notes(v)); show(wrap, !!body); }
-    setI18n($('nvHeroBadge'), T.fa.badge(v), T.en.badge(v));
-    setText('nvHeroVer', main.tag);
-    var hero = $('nvHeroDl');
-    if (hero) { hero.href = file.url; setAria(hero, T.fa.heroAria(v), T.en.heroAria(v)); }
+    if (notes && wrap) { notes.innerHTML = body; setText('nvNotesSum', t.notes(cleanV(main.tag))); show(wrap, !!body); }
+    renderHowto(os, file, main);
   }
 
-  function renderList(list, main) {
-    var box = $('nvVers');
+  function renderHowto(os, file, rel) {
+    var box = $('nvHowto'), t = tr();
     if (!box) return;
-    var t = tr(), html = '';
+    var key = os === 'linux' ? (file ? fmtOf(file.name) : 'appimage') : os;
+    var html = t.howto[key] || '';
+    if (os === 'tv') html = esc(t.tvShared) + ' ' + html;
+    box.innerHTML = html;
+    show(box, !!html);
+  }
+
+  function renderHero() {
+    var t = tr(), os = DETECTED, p = pickFor(os), name = osName(os);
+    var hero = $('nvHeroDl'), file = p.main ? chooseFile(os, platFiles(os, p.main), { fmt: guessFmt(os), arch: guessArch(os) }) : null;
+    setBtnLabel(hero, t.heroBtn(name));
+    if (hero) {
+      hero.href = file ? file.url : '#download';
+      setAria(hero, t.heroBtn(name));
+    }
+    var badgeRel = p.main || pickFor('win').main;
+    if (badgeRel) {
+      var v = verFor(os, badgeRel, file);
+      setText('nvHeroBadge', t.badge(cleanV(v)));
+      setText('nvHeroVer', v);
+    }
+  }
+
+  function renderList() {
+    var box = $('nvVers'), os = sel.os, repo = REPOS[PLAT[os].repo];
+    if (!box) return;
+    var t = tr(), html = '', p = pickFor(os), list = p.rels, main = p.main;
+    setText('nvRepo', repo.full);
+    var rb = $('nvRepoBtn');
+    if (rb) rb.href = repo.page;
+    if (!repo.list) {
+      if (repo.failed) { renderError(); return; }
+      box.innerHTML = '<div class="nv-skel"></div><div class="nv-skel"></div><div class="nv-skel"></div>';
+      box.setAttribute('aria-busy', 'true');
+      setText('nvCount', t.loading);
+      return;
+    }
     if (!list.length) {
-      html = '<div class="nv-err">' + esc(t.empty) + '</div>';
+      html = '<div class="nv-err">' + esc(t.empty) + ' <a href="' + esc(repo.rel) + '" target="_blank" rel="noopener">' + esc(t.errLink) + ' ↗</a></div>';
     } else {
       if (main && !main.pre && list[0] === main) {
         var nv = nextV(main.tag);
         if (nv) html += '<div class="nv-ver nv-next" aria-hidden="true"><span class="nv-ver-num">v' + esc(nv) + '</span><span class="nv-badge">' + esc(t.next) + '</span><span class="nv-ver-date">' + esc(t.soon) + '</span></div>';
       }
       for (var i = 0; i < list.length && i < MAX_ROWS; i++) {
-        var r = list[i];
-        html += '<a class="nv-ver" href="' + esc(r.url) + '" target="_blank" rel="noopener">' +
-          '<span class="nv-ver-num">' + esc(r.tag) + '</span>' +
+        var r = list[i], f = chooseFile(os, platFiles(os, r));
+        html += '<a class="nv-ver" href="' + esc(r.url || repo.rel) + '" target="_blank" rel="noopener">' +
+          '<span class="nv-ver-num">' + esc(verFor(os, r, f)) + '</span>' +
           (r === main ? '<span class="nv-badge latest">' + esc(t.latest) + '</span>' : '') +
           (r.pre ? '<span class="nv-badge pre">' + esc(t.pre) + '</span>' : '') +
           '<span class="nv-ver-date">' + esc(fmtDate(r.date)) + '</span>' + EXT_ICON + '</a>';
       }
-      if (list.length > MAX_ROWS) html += '<a class="nv-more" href="' + REL_PAGE + '" target="_blank" rel="noopener">' + esc(t.more(list.length)) + '</a>';
+      if (list.length > MAX_ROWS) html += '<a class="nv-more" href="' + esc(repo.rel) + '" target="_blank" rel="noopener">' + esc(t.more(list.length)) + '</a>';
     }
     box.innerHTML = html;
     box.setAttribute('aria-busy', 'false');
-    setText('nvCount', t.count(list.length));
+    setText('nvCount', t.count(list.length, osName(os)));
   }
 
   function renderError() {
-    var t = tr(), box = $('nvVers');
+    var t = tr(), box = $('nvVers'), repo = REPOS[PLAT[sel.os].repo];
     if (box) {
-      box.innerHTML = '<div class="nv-err">' + esc(t.err) + ' <a href="' + REL_PAGE + '" target="_blank" rel="noopener">' + esc(t.errLink) + ' ↗</a></div>';
+      box.innerHTML = '<div class="nv-err">' + esc(t.err) + ' <a href="' + esc(repo.rel) + '" target="_blank" rel="noopener">' + esc(t.errLink) + ' ↗</a></div>';
       box.setAttribute('aria-busy', 'false');
     }
     setText('nvCount', t.offline);
-    var dot = $('nvDot');
-    if (dot) dot.classList.add('off');
   }
 
 
-  // ── WHAT'S NEW · built from the newest GitHub releases ──
+  // ── WHAT'S NEW · built from the newest GitHub releases of the main repo ──
   // Each card = the release title + a short summary. If the notes contain a block like
   //   <!-- summary
   //   title: متن فارسی || English text
@@ -1435,7 +1789,6 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
       });
       if (sum.points.length) return sum;
     }
-    // automatic: group bullets by section, skip technical ones
     var sections = [], cur = null, heads = '';
     body.replace(/<!--[\s\S]*?-->/g, '').split('\n').forEach(function (raw) {
       var line = raw.trim(), m;
@@ -1495,44 +1848,92 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
   }
 
   function render() {
-    var dot = $('nvDot');
-    if (state.list) {
-      var p = pick(state.list);
-      if (p.main) renderMain(p.main, p.stable);
-      renderList(state.list, p.main);
-      renderWhatsNew(state.list);
-      if (dot) dot.classList.remove('off');
-    } else if (state.failed) {
-      renderError();
-    } else {
-      setText('nvCount', tr().loading);
-    }
+    renderPicker();
+    renderMain();
+    renderList();
+    renderHero();
+    renderWhatsNew(REPOS.main.list);
+    var dot = $('nvDot'), r = REPOS[PLAT[sel.os].repo];
+    if (dot) dot.classList.toggle('off', !!(r.failed && !r.list));
   }
 
-  function readCache() {
+  // ── interactions ──
+  function selectOs(os, opts) {
+    if (!PLAT[os]) return;
+    var changed = os !== sel.os;
+    sel.os = os; sel.arch = guessArch(os); sel.fmt = guessFmt(os);
+    try { localStorage.setItem(OS_KEY, os); } catch (e) {}
+    render();
+    if (changed) {
+      var card = doc.querySelector('#download .dl-card.primary');
+      if (card) { card.classList.remove('nv-swap'); void card.offsetWidth; card.classList.add('nv-swap'); }
+    }
+    var b = doc.querySelector('[data-os-pick="' + os + '"]');
+    if (opts && opts.focus && b) b.focus({ preventScroll: true });
+    centerTab(b, true);
+  }
+  // on phones the picker scrolls sideways: keep the chosen system in view
+  function centerTab(b, smooth) {
+    var c = $('nvOs');
+    if (!c || !b || c.scrollWidth <= c.clientWidth + 2) return;
+    var cr = c.getBoundingClientRect(), br = b.getBoundingClientRect();
+    c.scrollBy({ left: (br.left + br.width / 2) - (cr.left + cr.width / 2), behavior: smooth ? 'smooth' : 'auto' });
+  }
+  doc.addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-os-pick],[data-os-go],[data-arch],[data-fmt]') : null;
+    if (!el) return;
+    if (el.hasAttribute('data-os-pick')) { selectOs(el.getAttribute('data-os-pick')); return; }
+    if (el.hasAttribute('data-os-go')) {
+      e.preventDefault();
+      selectOs(el.getAttribute('data-os-go'));
+      var dl = $('download');
+      if (dl) dl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (el.hasAttribute('data-arch')) { sel.arch = el.getAttribute('data-arch'); renderMain(); return; }
+    if (el.hasAttribute('data-fmt')) { sel.fmt = el.getAttribute('data-fmt'); renderMain(); }
+  });
+  var tabs = $('nvOs');
+  if (tabs) {
+    tabs.addEventListener('keydown', function (e) {
+      var k = e.key, i = ORDER.indexOf(sel.os), rtl = !isEn();
+      var fwd = rtl ? 'ArrowLeft' : 'ArrowRight', back = rtl ? 'ArrowRight' : 'ArrowLeft';
+      if (k === fwd) i = (i + 1) % ORDER.length;
+      else if (k === back) i = (i - 1 + ORDER.length) % ORDER.length;
+      else if (k === 'Home') i = 0;
+      else if (k === 'End') i = ORDER.length - 1;
+      else return;
+      e.preventDefault();
+      selectOs(ORDER[i], { focus: true });
+    });
+  }
+  // deep links: …/#download-mac, #download-linux, #download-android, #download-tv
+  var hm = /^#download-(win|windows|mac|macos|linux|android|tv)$/i.exec(location.hash || '');
+  if (hm) { var hk = hm[1].toLowerCase(); sel.os = hk === 'windows' ? 'win' : (hk === 'macos' ? 'mac' : hk); sel.arch = guessArch(sel.os); sel.fmt = guessFmt(sel.os); }
+
+  function readCache(repo) {
     try {
-      var c = JSON.parse(localStorage.getItem(CACHE_KEY));
+      var c = JSON.parse(localStorage.getItem(repo.cache));
       if (c && c.t && Array.isArray(c.d)) return c;
     } catch (e) {}
     return null;
   }
-  function writeCache(list) {
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), d: list })); } catch (e) {}
+  function writeCache(repo, list) {
+    try { localStorage.setItem(repo.cache, JSON.stringify({ t: Date.now(), d: list })); } catch (e) {}
   }
-
-  function fetchReleases(done) {
+  function fetchReleases(repo, done) {
     if (!window.fetch) { done(null); return; }
     var finished = false;
     var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
     var timer = setTimeout(function () { if (ctrl) ctrl.abort(); end(null); }, 9000);
     function end(v) { if (finished) return; finished = true; clearTimeout(timer); done(v); }
-    fetch(API, ctrl ? { signal: ctrl.signal } : undefined)
+    fetch(repo.api, ctrl ? { signal: ctrl.signal } : undefined)
       .then(function (res) { if (!res.ok) throw new Error('GitHub ' + res.status); return res.json(); })
       .then(function (json) { end(Array.isArray(json) ? simplify(json) : null); })
       .catch(function () { end(null); });
   }
 
-  // mobile menu "free download" button always points at the newest installer
+  // mobile menu "free download" button always points at the file picked for this visitor
   var mobileBtn = $('mobileDlBtn');
   if (mobileBtn) {
     mobileBtn.addEventListener('click', function () {
@@ -1546,17 +1947,20 @@ a.nv-ver:focus-visible,.nv-asset:focus-visible,.nv-more:focus-visible{outline:1.
     new MutationObserver(function () { render(); }).observe(root, { attributes: true, attributeFilter: ['data-lang'] });
   }
 
-  var cached = readCache();
-  if (cached) state.list = cached.d;
+  Object.keys(REPOS).forEach(function (k) {
+    var repo = REPOS[k], cached = readCache(repo);
+    if (cached) repo.list = cached.d;
+    var age = cached ? Date.now() - cached.t : Infinity;
+    if (!(age >= 0 && age < CACHE_TTL)) {
+      fetchReleases(repo, function (list) {
+        if (list) { repo.list = list; repo.failed = false; writeCache(repo, list); }
+        else if (!repo.list) { repo.failed = true; }
+        render();
+      });
+    }
+  });
   render();
-  var age = cached ? Date.now() - cached.t : Infinity;
-  if (!(age >= 0 && age < CACHE_TTL)) {
-    fetchReleases(function (list) {
-      if (list) { state.list = list; state.failed = false; writeCache(list); }
-      else if (!state.list) { state.failed = true; }
-      render();
-    });
-  }
+  centerTab(doc.querySelector('[data-os-pick="' + sel.os + '"]'), false);
 }());
 </script>
 <script id="nv-buddy-look">(()=>{const b=document.querySelector('.pv-buddy');if(!b)return;let x=0,y=0,q=false;
