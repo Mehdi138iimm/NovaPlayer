@@ -1,0 +1,132 @@
+
+name: NOVA Player - Telegram Introduction
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nova-telegram-introduction
+  cancel-in-progress: false
+
+jobs:
+  introduce:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Send one-time introduction
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT: ${{ secrets.TG_CHAT }}
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import urllib.parse
+          import urllib.request
+
+          state_file = ".github/telegram-intro-state.json"
+
+          with open(state_file, encoding="utf-8") as f:
+              state = json.load(f)
+
+          if state.get("intro_sent", False):
+              print("Introduction was already sent. Nothing to do.")
+              raise SystemExit(0)
+
+          token = os.environ["TG_TOKEN"]
+          chat = os.environ["TG_CHAT"]
+
+          message = """🎧 سلاممم به جماعت موزیک‌باز! 😂💛
+
+          من بات رسمی اطلاع‌رسانی NOVA Player هستم؛ همون رفیق دیجیتالی‌تون که نمی‌ذاره از آپدیت‌های خفن جا بمونید! 🤖🚀
+
+          خب، من دقیقاً چه‌کاره‌ام؟ 👀
+
+          🚀 انتشار نسخهٔ جدید: خبر آپدیت‌ها رو براتون میارم!
+
+          📝 تغییرات نسخه: می‌گم چی جدید شده و چه چیزهایی بهتر شده.
+
+          🔗 لینک انتشار: لینک نسخه و فایل‌های انتشار رو می‌ذارم؛ دیگه لازم نیست وسط گیت‌هاب گم بشید! 😂
+
+          🗑️ حذف انتشار اشتباهی: در صورت امکان، پیام مربوط به Release حذف‌شده رو هم پاک می‌کنم.
+
+          🌐 سایت رسمی NOVA Player:
+          https://mehdi138iimm.github.io/NovaPlayer/
+
+          👨‍💻 سازندگان NOVA Player:
+          • Mehdi Jafari
+          • Kasra Ghelichi
+          🔗 https://github.com/kasragfxdx
+
+          💛 به خانوادهٔ NOVA Player خوش اومدید!
+
+          برید موزیک‌هاتون رو پلی کنید؛ بقیهٔ خبرها با من! 🎧🚀"""
+
+          payload = urllib.parse.urlencode({
+              "chat_id": chat,
+              "text": message,
+              "disable_web_page_preview": "false"
+          }).encode()
+
+          request = urllib.request.Request(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              data=payload,
+              method="POST"
+          )
+
+          with urllib.request.urlopen(request, timeout=30) as response:
+              result = json.loads(response.read().decode())
+
+          if not result.get("ok"):
+              raise RuntimeError(
+                  "Telegram API rejected the message: " + str(result)
+              )
+
+          state["intro_sent"] = True
+
+          with open(state_file, "w", encoding="utf-8") as f:
+              json.dump(state, f, ensure_ascii=False, indent=2)
+              f.write("\n")
+
+          subprocess.run(
+              ["git", "config", "user.name", "github-actions[bot]"],
+              check=True
+          )
+          subprocess.run(
+              ["git", "config", "user.email",
+               "41898282+github-actions[bot]@users.noreply.github.com"],
+              check=True
+          )
+          subprocess.run(
+              ["git", "add", state_file],
+              check=True
+          )
+
+          changed = subprocess.run(
+              ["git", "diff", "--cached", "--quiet"]
+          ).returncode != 0
+
+          if changed:
+              subprocess.run(
+                  ["git", "commit", "-m",
+                   "Record Telegram introduction status"],
+                  check=True
+              )
+              subprocess.run(
+                  ["git", "push", "origin", "HEAD:main"],
+                  check=True
+              )
+
+          print("Introduction sent and recorded successfully.")
+          PY
