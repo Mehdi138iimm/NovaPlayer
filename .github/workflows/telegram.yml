@@ -14,20 +14,68 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Send message to Telegram
+      - name: Send polished Telegram announcement
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT: ${{ secrets.TG_CHAT }}
           RELEASE_TAG: ${{ github.event.release.tag_name || 'تست دستی' }}
+          RELEASE_URL: ${{ github.event.release.html_url || format('https://github.com/{0}/releases', github.repository) }}
           RELEASE_BODY: ${{ github.event.release.body || 'این یک پیام آزمایشی است.' }}
 
         run: |
-          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import re
+          import json
+          import urllib.request
+          import urllib.parse
 
-          MESSAGE=$(printf '🎵 NovaPlayer %s منتشر شد!\n\n%s\n\n▶️ اجرای آنلاین: https://mehdi138iimm.github.io/NovaPlayer/' "$RELEASE_TAG" "$RELEASE_BODY")
+          tag = os.environ["RELEASE_TAG"]
+          url = os.environ["RELEASE_URL"]
+          body = os.environ["RELEASE_BODY"]
 
-          curl --fail-with-body --silent --show-error \
-            -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${TG_CHAT}" \
-            --data-urlencode "text=${MESSAGE}" \
-            --data-urlencode "disable_web_page_preview=true"
+          # Remove HTML comments and metadata blocks.
+          body = re.sub(r'<!--.*?-->', '', body, flags=re.S)
+
+          # Clean Markdown headings and formatting.
+          body = re.sub(r'(?m)^\s{0,3}#{1,6}\s+', '', body)
+          body = re.sub(r'(?m)^\s*[-*_]{3,}\s*$', '', body)
+          body = re.sub(r'!\[([^\]]*)\]\([^)]+\)', r'\1', body)
+          body = re.sub(r'\[([^\]]+)\]\((https?://[^)]+)\)', r'\1', body)
+          body = re.sub(r'(\*\*|__|~~|`)', '', body)
+          body = re.sub(r'(?m)^\s*[-*+]\s+', '• ', body)
+          body = re.sub(r'\n[ \t]*\n(?:[ \t]*\n)+', '\n\n', body)
+          body = body.strip()
+
+          if not body:
+              body = "جزئیات این نسخه هنوز ثبت نشده است."
+
+          message = (
+              "🎵 NOVA PLAYER\n"
+              "━━━━━━━━━━━━━━\n\n"
+              f"🚀 نسخه جدید {tag} منتشر شد!\n\n"
+              f"📝 تغییرات نسخه\n\n{body}\n\n"
+              "━━━━━━━━━━━━━━\n"
+              f"🔗 مشاهده نسخه و فایل‌های انتشار:\n{url}\n\n"
+              "🌐 سایت رسمی:\n"
+              "https://mehdi138iimm.github.io/NovaPlayer/"
+          )
+
+          payload = urllib.parse.urlencode({
+              "chat_id": os.environ["TG_CHAT"],
+              "text": message,
+              "disable_web_page_preview": "false"
+          }).encode()
+
+          request = urllib.request.Request(
+              f"https://api.telegram.org/bot{os.environ['TG_TOKEN']}/sendMessage",
+              data=payload,
+              method="POST"
+          )
+
+          with urllib.request.urlopen(request, timeout=30) as response:
+              result = json.loads(response.read().decode())
+              if not result.get("ok"):
+                  raise RuntimeError("Telegram could not send the message")
+              print("Telegram announcement sent successfully.")
+          PY
