@@ -1,231 +1,35 @@
 
-name: Notify Telegram
+def telegram(method, fields):
+    request = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/{method}",
+        data=urllib.parse.urlencode(fields).encode("utf-8"),
+        method="POST",
+    )
 
-on:
-  release:
-    types: [published, deleted]
-  workflow_dispatch:
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.loads(response.read().decode("utf-8"))
 
-permissions:
-  contents: write
+    except urllib.error.HTTPError as error:
+        response_body = error.read().decode("utf-8", errors="replace")
+        try:
+            result = json.loads(response_body)
+        except json.JSONDecodeError:
+            result = {"description": response_body}
 
-concurrency:
-  group: nova-telegram-notifications
-  cancel-in-progress: false
+        raise RuntimeError(
+            f"Telegram API HTTP {error.code}: "
+            f"{result.get('description', result)}"
+        ) from error
 
-jobs:
-  notify:
-    runs-on: ubuntu-latest
+    except urllib.error.URLError as error:
+        raise RuntimeError(
+            f"Cannot reach Telegram API: {error.reason}"
+        ) from error
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: main
+    if not result.get("ok"):
+        raise RuntimeError(
+            f"Telegram API error: {result.get('description', result)}"
+        )
 
-      - name: Send or delete Telegram message
-        env:
-          TG_TOKEN: ${{ secrets.TG_TOKEN }}
-          TG_CHAT: ${{ secrets.TG_CHAT }}
-          EVENT_ACTION: ${{ github.event.action || 'manual' }}
-          RELEASE_ID: ${{ github.event.release.id || '' }}
-          RELEASE_TAG: ${{ github.event.release.tag_name || 'تست دستی' }}
-          RELEASE_URL: ${{ github.event.release.html_url || format('https://github.com/{0}/releases', github.repository) }}
-          RELEASE_BODY: ${{ github.event.release.body || 'این یک پیام آزمایشی است.' }}
-          REPOSITORY: ${{ github.repository }}
-
-        run: |
-          set -euo pipefail
-
-          python3 - <<'PY'
-          import os
-          import re
-          import json
-          import subprocess
-          import urllib.request
-          import urllib.parse
-          import urllib.error
-
-          token = os.environ.get("TG_TOKEN", "").strip()
-          chat = os.environ.get("TG_CHAT", "").strip()
-          action = os.environ["EVENT_ACTION"]
-          release_id = os.environ["RELEASE_ID"]
-          tag = os.environ["RELEASE_TAG"]
-          url = os.environ["RELEASE_URL"]
-          body = os.environ["RELEASE_BODY"]
-          repo = os.environ["REPOSITORY"]
-
-          if not token or not chat:
-              raise RuntimeError(
-                  "TG_TOKEN or TG_CHAT is missing. "
-                  "Check GitHub Actions repository secrets."
-              )
-
-          map_file = ".github/telegram-message-map.json"
-
-          def telegram(method, fields):
-              request = urllib.request.Request(
-                  f"https://api.telegram.org/bot{token}/{method}",
-                  data=urllib.parse.urlencode(fields).encode(),
-                  method="POST"
-              )
-
-              try:
-                  with urllib.request.urlopen(
-                      request, timeout=30
-                  ) as response:
-                      result = json.loads(response.read().decode())
-
-              except urllib.error.HTTPError as error:
-                  response_body = error.read().decode(
-                      "utf-8", errors="replace"
-                  )
-                  try:
-                      result = json.loads(response_body)
-                  except json.JSONDecodeError:
-                      result = {"description": response_body}
-
-                  raise RuntimeError(
-                      f"Telegram API HTTP {error.code}: "
-                      f"{result.get('description', result)}"
-                  ) from error
-
-              except urllib.error.URLError as error:
-                  raise RuntimeError(
-                      f"Cannot reach Telegram API: {error.reason}"
-                  ) from error
-
-              if not result.get("ok"):
-                  raise RuntimeError(
-                      "Telegram API error: "
-                      + str(result.get("description", result))
-                  )
-
-              return result["result"]
-
-          def load_map():
-              if not os.path.exists(map_file):
-                  return {}
-
-              with open(map_file, encoding="utf-8") as file:
-                  return json.load(file)
-
-          def save_map(mapping):
-              with open(map_file, "w", encoding="utf-8") as file:
-                  json.dump(
-                      mapping, file, ensure_ascii=False, indent=2
-                  )
-                  file.write("\n")
-
-              subprocess.run(
-                  ["git", "config", "user.name",
-                   "github-actions[bot]"],
-                  check=True
-              )
-              subprocess.run(
-                  ["git", "config", "user.email",
-                   "41898282+github-actions[bot]@users.noreply.github.com"],
-                  check=True
-              )
-              subprocess.run(
-                  ["git", "add", map_file], check=True
-              )
-
-              changed = subprocess.run(
-                  ["git", "diff", "--cached", "--quiet"]
-              ).returncode != 0
-
-              if changed:
-                  subprocess.run(
-                      ["git", "commit", "-m",
-                       "Update Telegram message map"],
-                      check=True
-                  )
-                  subprocess.run(
-                      ["git", "push", "origin", "HEAD:main"],
-                      check=True
-                  )
-
-          mapping = load_map()
-
-          # Delete the Telegram message associated with a deleted release.
-          if action == "deleted":
-              entry = mapping.get(str(release_id))
-
-              if entry is None:
-                  print(
-                      f"No saved Telegram message found for {tag}."
-                  )
-                  raise SystemExit(0)
-
-              telegram("deleteMessage", {
-                  "chat_id": entry["chat_id"],
-                  "message_id": entry["message_id"]
-              })
-
-              del mapping[str(release_id)]
-              save_map(mapping)
-              print(f"Deleted Telegram message for {tag}.")
-              raise SystemExit(0)
-
-          # Manual runs send a test message.
-          if action == "manual":
-              tag = "تست دستی"
-              url = f"https://github.com/{repo}/releases"
-              body = "این یک پیام آزمایشی از NOVA Player است."
-
-          elif action != "published":
-              raise SystemExit(f"Unsupported event: {action}")
-
-          # Clean release notes.
-          body = re.sub(r'<!--.*?-->', '', body, flags=re.S)
-          body = re.sub(r'(?m)^\s{0,3}#{1,6}\s+', '', body)
-          body = re.sub(r'(?m)^\s*[-*_]{3,}\s*$', '', body)
-          body = re.sub(r'!\[([^\]]*)\]\([^)]+\)', r'\1', body)
-          body = re.sub(r'\[([^\]]+)\]\((https?://[^)]+)\)', r'\1', body)
-          body = re.sub(r'(\*\*|__|~~|`)', '', body)
-          body = re.sub(r'(?m)^\s*[-*+]\s+', '• ', body)
-          body = re.sub(r'\n[ \t]*\n(?:[ \t]*\n)+', '\n\n', body)
-          body = body.strip()
-
-          if not body:
-              body = "جزئیات این نسخه هنوز ثبت نشده است."
-
-          message = (
-              "🎵 NOVA PLAYER\n"
-              "━━━━━━━━━━━━━━\n\n"
-              f"🚀 نسخهٔ جدید {tag} منتشر شد!\n\n"
-              f"📝 تغییرات نسخه:\n\n{body}\n\n"
-              "━━━━━━━━━━━━━━\n"
-              f"🔗 مشاهدهٔ نسخه و فایل‌های انتشار:\n{url}\n\n"
-              "🌐 سایت رسمی NOVA Player:\n"
-              "https://mehdi138iimm.github.io/NovaPlayer/"
-          )
-
-          # Stay below Telegram's message length limit.
-          if len(message) > 4000:
-              message = (
-                  message[:3500]
-                  + "\n\n… ادامهٔ جزئیات در صفحهٔ انتشار:\n"
-                  + url
-                  + "\n\n🌐 سایت رسمی:\n"
-                  + "https://mehdi138iimm.github.io/NovaPlayer/"
-              )
-
-          sent = telegram("sendMessage", {
-              "chat_id": chat,
-              "text": message,
-              "disable_web_page_preview": "false"
-          })
-
-          # Save message ID for future release deletion.
-          if action == "published" and release_id:
-              mapping[str(release_id)] = {
-                  "tag": tag,
-                  "chat_id": sent["chat"]["id"],
-                  "message_id": sent["message_id"]
-              }
-              save_map(mapping)
-
-          print(f"Telegram announcement sent for {tag}.")
-          PY
+    return result["result"]
