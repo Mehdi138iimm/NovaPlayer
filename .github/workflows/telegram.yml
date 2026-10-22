@@ -46,8 +46,8 @@ jobs:
           import urllib.parse
           import urllib.error
 
-          token = os.environ["TG_TOKEN"]
-          chat = os.environ["TG_CHAT"]
+          token = os.environ.get("TG_TOKEN", "").strip()
+          chat = os.environ.get("TG_CHAT", "").strip()
           action = os.environ["EVENT_ACTION"]
           release_id = os.environ["RELEASE_ID"]
           tag = os.environ["RELEASE_TAG"]
@@ -55,13 +55,18 @@ jobs:
           body = os.environ["RELEASE_BODY"]
           repo = os.environ["REPOSITORY"]
 
+          if not token or not chat:
+              raise RuntimeError(
+                  "TG_TOKEN or TG_CHAT is missing. "
+                  "Check GitHub Actions repository secrets."
+              )
+
           map_file = ".github/telegram-message-map.json"
 
           def telegram(method, fields):
-              data = urllib.parse.urlencode(fields).encode()
               request = urllib.request.Request(
                   f"https://api.telegram.org/bot{token}/{method}",
-                  data=data,
+                  data=urllib.parse.urlencode(fields).encode(),
                   method="POST"
               )
 
@@ -75,7 +80,6 @@ jobs:
                   response_body = error.read().decode(
                       "utf-8", errors="replace"
                   )
-
                   try:
                       result = json.loads(response_body)
                   except json.JSONDecodeError:
@@ -84,6 +88,11 @@ jobs:
                   raise RuntimeError(
                       f"Telegram API HTTP {error.code}: "
                       f"{result.get('description', result)}"
+                  ) from error
+
+              except urllib.error.URLError as error:
+                  raise RuntimeError(
+                      f"Cannot reach Telegram API: {error.reason}"
                   ) from error
 
               if not result.get("ok"):
@@ -139,10 +148,9 @@ jobs:
 
           mapping = load_map()
 
-          # Delete the Telegram message linked to a deleted release.
+          # Delete the Telegram message associated with a deleted release.
           if action == "deleted":
-              key = str(release_id)
-              entry = mapping.get(key)
+              entry = mapping.get(str(release_id))
 
               if entry is None:
                   print(
@@ -155,49 +163,29 @@ jobs:
                   "message_id": entry["message_id"]
               })
 
-              del mapping[key]
+              del mapping[str(release_id)]
               save_map(mapping)
-
               print(f"Deleted Telegram message for {tag}.")
               raise SystemExit(0)
 
-          # A manual run sends a test message.
+          # Manual runs send a test message.
           if action == "manual":
               tag = "تست دستی"
               url = f"https://github.com/{repo}/releases"
               body = "این یک پیام آزمایشی از NOVA Player است."
 
           elif action != "published":
-              raise SystemExit(
-                  f"Unsupported event: {action}"
-              )
+              raise SystemExit(f"Unsupported event: {action}")
 
-          # Clean release Markdown and hidden metadata.
-          body = re.sub(
-              r'<!--.*?-->', '', body, flags=re.S
-          )
-          body = re.sub(
-              r'(?m)^\s{0,3}#{1,6}\s+', '', body
-          )
-          body = re.sub(
-              r'(?m)^\s*[-*_]{3,}\s*$', '', body
-          )
-          body = re.sub(
-              r'!\[([^\]]*)\]\([^)]+\)', r'\1', body
-          )
-          body = re.sub(
-              r'\[([^\]]+)\]\((https?://[^)]+)\)', r'\1', body
-          )
-          body = re.sub(
-              r'(\*\*|__|~~|`)', '', body
-          )
-          body = re.sub(
-              r'(?m)^\s*[-*+]\s+', '• ', body
-          )
-          body = re.sub(
-              r'\n[ \t]*\n(?:[ \t]*\n)+',
-              '\n\n', body
-          )
+          # Clean release notes.
+          body = re.sub(r'<!--.*?-->', '', body, flags=re.S)
+          body = re.sub(r'(?m)^\s{0,3}#{1,6}\s+', '', body)
+          body = re.sub(r'(?m)^\s*[-*_]{3,}\s*$', '', body)
+          body = re.sub(r'!\[([^\]]*)\]\([^)]+\)', r'\1', body)
+          body = re.sub(r'\[([^\]]+)\]\((https?://[^)]+)\)', r'\1', body)
+          body = re.sub(r'(\*\*|__|~~|`)', '', body)
+          body = re.sub(r'(?m)^\s*[-*+]\s+', '• ', body)
+          body = re.sub(r'\n[ \t]*\n(?:[ \t]*\n)+', '\n\n', body)
           body = body.strip()
 
           if not body:
@@ -206,20 +194,19 @@ jobs:
           message = (
               "🎵 NOVA PLAYER\n"
               "━━━━━━━━━━━━━━\n\n"
-              f"🚀 نسخه جدید {tag} منتشر شد!\n\n"
+              f"🚀 نسخهٔ جدید {tag} منتشر شد!\n\n"
               f"📝 تغییرات نسخه:\n\n{body}\n\n"
               "━━━━━━━━━━━━━━\n"
-              "🔗 مشاهده نسخه و فایل‌های انتشار:\n"
-              f"{url}\n\n"
+              f"🔗 مشاهدهٔ نسخه و فایل‌های انتشار:\n{url}\n\n"
               "🌐 سایت رسمی NOVA Player:\n"
               "https://mehdi138iimm.github.io/NovaPlayer/"
           )
 
-          # Telegram messages have a 4096-character limit.
+          # Stay below Telegram's message length limit.
           if len(message) > 4000:
               message = (
-                  message[:3700]
-                  + "\n\n… ادامه جزئیات در لینک انتشار:\n"
+                  message[:3500]
+                  + "\n\n… ادامهٔ جزئیات در صفحهٔ انتشار:\n"
                   + url
                   + "\n\n🌐 سایت رسمی:\n"
                   + "https://mehdi138iimm.github.io/NovaPlayer/"
@@ -231,7 +218,7 @@ jobs:
               "disable_web_page_preview": "false"
           })
 
-          # Save each published release's Telegram message ID.
+          # Save message ID for future release deletion.
           if action == "published" and release_id:
               mapping[str(release_id)] = {
                   "tag": tag,
